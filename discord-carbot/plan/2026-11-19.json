@@ -1,0 +1,35 @@
+{
+  "_sugo": "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
+  "sorszam": 9,
+  "nap": "2026-11-19",
+  "allapot": "tervezett",
+  "muvelet": "",
+  "probalkozas": 0,
+  "kikuldve": null,
+  "uzenet_id": null,
+  "auto_id": "porsche-550-spyder",
+  "auto_nev": "Porsche 550 Spyder",
+  "kategoria": "Sportautó",
+  "szoveg": "Porsche 550 Spyder (1953) – 1,5 l Fuhrmann boxer-4 négy vezérműtengellyel, kb. 110 LE, kb. 550 kg. Kis kategóriás győzelmek sora Le Mans-tól a Carrera Panamericanáig.",
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Porsche_550_A%2C_Bj._1956%2C_vorn_%282018-06-30_Sp%29.JPG/1920px-Porsche_550_A%2C_Bj._1956%2C_vorn_%282018-06-30_Sp%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Porsche_550_A,_Bj._1956,_vorn_(2018-06-30_Sp).JPG",
+      "szerzo": "Lothar Spurzem (CC BY-SA 2.0 de)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Porsche_550%2C_Bj._1956%2C_vorn_Seite_%282018-06-30_Sp%29.JPG/1920px-Porsche_550%2C_Bj._1956%2C_vorn_Seite_%282018-06-30_Sp%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Porsche_550,_Bj._1956,_vorn_Seite_(2018-06-30_Sp).JPG",
+      "szerzo": "Lothar Spurzem (CC BY-SA 2.0 de)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Porsche_550%2C_Bj._1956%2C_Heck_%282018-06-30_Sp%29.JPG/1920px-Porsche_550%2C_Bj._1956%2C_Heck_%282018-06-30_Sp%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Porsche_550,_Bj._1956,_Heck_(2018-06-30_Sp).JPG",
+      "szerzo": "Lothar Spurzem (CC BY-SA 2.0 de)"
+    }
+  ],
+  "kep_offset": 0,
+  "automatikus": false,
+  "hiba": null,
+  "figyelmeztetes": null
+}

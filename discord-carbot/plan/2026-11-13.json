@@ -1,0 +1,35 @@
+{
+  "_sugo": "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
+  "sorszam": 3,
+  "nap": "2026-11-13",
+  "allapot": "tervezett",
+  "muvelet": "",
+  "probalkozas": 0,
+  "kikuldve": null,
+  "uzenet_id": null,
+  "auto_id": "formula-e-gen3",
+  "auto_nev": "Formula E Gen3",
+  "kategoria": "Formula E",
+  "szoveg": "Formula E Gen3 (2023) – hátsó villanymotor max. 350 kW (kb. 470 LE), 320 km/h felett. Az első motor csak regenerál: a kettő együtt akár 600 kW-tal nyer vissza energiát.",
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/2023-04-23_Motorsport%2C_ABB_FIA_Formula_E_World_Championship%2C_Berlin_E-Prix_2023_1DX_1445_by_Stepro.jpg/1920px-2023-04-23_Motorsport%2C_ABB_FIA_Formula_E_World_Championship%2C_Berlin_E-Prix_2023_1DX_1445_by_Stepro.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:2023-04-23_Motorsport,_ABB_FIA_Formula_E_World_Championship,_Berlin_E-Prix_2023_1DX_1445_by_Stepro.jpg",
+      "szerzo": "Steffen Prößdorf (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Cupra%2C_IAA_Open_Space_2023%2C_Munich_%28P1120131%29.jpg/1920px-Cupra%2C_IAA_Open_Space_2023%2C_Munich_%28P1120131%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Cupra,_IAA_Open_Space_2023,_Munich_(P1120131).jpg",
+      "szerzo": "Matti Blume (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Nissan_Formula_E_Gen3%2C_Japan_Mobility_Show_2023_01.jpg/1920px-Nissan_Formula_E_Gen3%2C_Japan_Mobility_Show_2023_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Nissan_Formula_E_Gen3,_Japan_Mobility_Show_2023_01.jpg",
+      "szerzo": "HumanDX (CC BY-SA 4.0)"
+    }
+  ],
+  "kep_offset": 0,
+  "automatikus": false,
+  "hiba": null,
+  "figyelmeztetes": null
+}

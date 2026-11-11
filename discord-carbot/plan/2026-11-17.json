@@ -1,0 +1,35 @@
+{
+  "_sugo": "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
+  "sorszam": 7,
+  "nap": "2026-11-17",
+  "allapot": "tervezett",
+  "muvelet": "",
+  "probalkozas": 0,
+  "kikuldve": null,
+  "uzenet_id": null,
+  "auto_id": "toyota-gr-supra-gt500",
+  "auto_nev": "Toyota Supra GT500",
+  "kategoria": "Super GT",
+  "szoveg": "Toyota GR Supra GT500 (2020) – 2,0 l turbó négyhengeres, kb. 650 LE, a DTM-mel közös Class One-szabályok. A japán Super GT csúcsa.",
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Au_TOM%27S_GR_Supra_2025_%28front_view%29_at_Osaka_Auto_Messe_2026.jpg/1920px-Au_TOM%27S_GR_Supra_2025_%28front_view%29_at_Osaka_Auto_Messe_2026.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Au_TOM%27S_GR_Supra_2025_(front_view)_at_Osaka_Auto_Messe_2026.jpg",
+      "szerzo": "Aos.1905 (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5c/Au_TOM%27S_GR_Supra_2025_%28front_three-quarter_view%29_at_Osaka_Auto_Messe_2026.jpg/1920px-Au_TOM%27S_GR_Supra_2025_%28front_three-quarter_view%29_at_Osaka_Auto_Messe_2026.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Au_TOM%27S_GR_Supra_2025_(front_three-quarter_view)_at_Osaka_Auto_Messe_2026.jpg",
+      "szerzo": "Aos.1905 (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Au_TOM%27S_GR_Supra_2025_%28rear_three-quarter_view%29_at_Osaka_Auto_Messe_2026.jpg/1920px-Au_TOM%27S_GR_Supra_2025_%28rear_three-quarter_view%29_at_Osaka_Auto_Messe_2026.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Au_TOM%27S_GR_Supra_2025_(rear_three-quarter_view)_at_Osaka_Auto_Messe_2026.jpg",
+      "szerzo": "Aos.1905 (CC BY-SA 4.0)"
+    }
+  ],
+  "kep_offset": 0,
+  "automatikus": false,
+  "hiba": null,
+  "figyelmeztetes": null
+}
