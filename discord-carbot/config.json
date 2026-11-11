@@ -1,0 +1,32 @@
+{
+  "kuldes_ideje": "09:00",
+  "idozona": "Europe/Budapest",
+  "tervezett_napok": 9,
+  "max_karakter": 180,
+  "csak_jovahagyott": false,
+  "szunet": false,
+  "auto_arany": 0.3,
+  "bot_nev": "Autós érdekességek",
+  "bot_avatar": "",
+  "felfedezes": {
+    "hetente": 15,
+    "melyseg": 1,
+    "modell": "claude-haiku-5-5",
+    "kategoriak": [
+      {"nev": "Group B cars", "cimke": "Rali – B csoport", "mondat": "A B csoport őrült korszakának gyermeke"},
+      {"nev": "World Rally Cars", "cimke": "Rali – WRC", "mondat": "World Rally Car a rali-vb csúcskategóriájából"},
+      {"nev": "Rally1 cars", "cimke": "Rali – Rally1", "mondat": "Hibrid Rally1-es rali-vb-autó"},
+      {"nev": "Group 4 (racing) cars", "cimke": "Group 4", "mondat": "A Group 4-es versenyek autója"},
+      {"nev": "Rally cars", "cimke": "Rali", "mondat": "Raliautó", "melyseg": 0},
+      {"nev": "Dakar Rally–winning cars", "cimke": "Rali-raid", "mondat": "Dakar-győztes autó"},
+      {"nev": "Rally raid cars", "cimke": "Rali-raid", "mondat": "Sivatagi maratonokra épült"},
+      {"nev": "Group C cars", "cimke": "C csoport", "mondat": "A C csoportos sportautó-korszak prototípusa"},
+      {"nev": "Le Mans Prototypes", "cimke": "Le Mans-prototípus", "mondat": "Le Mans-prototípus"},
+      {"nev": "Can-Am cars", "cimke": "Can-Am", "mondat": "A szinte szabálymentes Can-Am sorozat autója"},
+      {"nev": "Group 5 cars", "cimke": "Group 5", "mondat": "Group 5-ös sziluett-versenyautó"},
+      {"nev": "Group A cars", "cimke": "A csoport", "mondat": "A csoportos versenyautó"},
+      {"nev": "Touring cars", "cimke": "Túraautó", "mondat": "Túraautó-versenyekre épült"},
+      {"nev": "Formula One cars", "cimke": "Forma–1", "mondat": "Forma–1-es versenyautó", "melyseg": 2}
+    ]
+  }
+}

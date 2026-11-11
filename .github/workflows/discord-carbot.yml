@@ -1,0 +1,100 @@
+# Discord car-facts bot (discord-carbot/): plans 9 days ahead, posts once a day,
+# looks for new cars weekly and publishes the 3x3 plan view to GitHub Pages.
+name: discord-carbot
+
+on:
+  schedule:
+    - cron: "17 * * * *"    # hourly: plan, process edits, post when due
+    - cron: "41 3 * * 1"    # Monday: look for new cars on Wikipedia
+  push:
+    branches: [main]
+    paths:
+      - "discord-carbot/**"
+      - ".github/workflows/discord-carbot.yml"
+  workflow_dispatch:
+    inputs:
+      muvelet:
+        description: "Művelet"
+        type: choice
+        options: [futtatas, felfedezes, masik-auto, uj-kepek, kuldes-most]
+        default: futtatas
+      nap:
+        description: "Nap (ÉÉÉÉ-HH-NN) – masik-auto / uj-kepek / kuldes-most esetén"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: discord-carbot
+  cancel-in-progress: false
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: discord-carbot
+    outputs:
+      pushed: ${{ steps.commit.outputs.pushed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Look for new cars
+        if: github.event.schedule == '41 3 * * 1' || inputs.muvelet == 'felfedezes'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python -m carbot discover
+
+      - name: Plan and post
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          CARBOT_DAY: ${{ inputs.nap }}
+          CARBOT_ACTION: ${{ contains(fromJSON('["masik-auto","uj-kepek","kuldes-most"]'), inputs.muvelet) && inputs.muvelet || '' }}
+        run: python -m carbot run
+
+      - name: Check data
+        run: python -m carbot check
+
+      - name: Commit plan changes
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plan cars
+          if git diff --cached --quiet; then
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -q -m "discord-carbot: plan update $(date -u +%F)"
+            git pull -q --rebase origin main
+            git push -q
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build plan page
+        run: python -m carbot site ../_site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  pages:
+    needs: bot
+    if: needs.bot.outputs.pushed == 'true' || github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}carbot/
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+        continue-on-error: true   # until Settings -> Pages -> Source is set to "GitHub Actions"
