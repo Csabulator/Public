@@ -2,11 +2,11 @@
   "_sugo": "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
   "sorszam": 1,
   "nap": "2026-11-11",
-  "allapot": "tervezett",
+  "allapot": "kikuldve",
   "muvelet": "",
   "probalkozas": 0,
-  "kikuldve": null,
-  "uzenet_id": null,
+  "kikuldve": "2026-11-11T21:13:12+00:00",
+  "uzenet_id": "1570184640009076741",
   "auto_id": "mclaren-senna",
   "auto_nev": "McLaren Senna",
   "kategoria": "Utcai versenyautó",
@@ -31,5 +31,6 @@
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,
-  "figyelmeztetes": null
+  "figyelmeztetes": null,
+  "link": "https://discord.com/channels/300673031397834762/533042034450104320/1570184640009076741"
 }
