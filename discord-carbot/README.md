@@ -15,10 +15,10 @@ weekly on Wikipedia.*
 | Mikor | Mit csinál |
 |---|---|
 | óránként | megtervezi a következő 9 napot, feldolgozza a kézi módosításokat, és a beállított időpont után kiküldi a napi posztot |
-| minden hétfőn | új autókat keres a Wikipédián (B csoport, WRC, C csoport, Le Mans, Can-Am, F1, túraautók…) |
+| minden hétfőn | új autókat keres a Wikipédián (B csoport, WRC, Le Mans, Can-Am, F1, túraautók, GT-k, szuperautók, hot hatchek, muscle carok…) |
 | ha módosítasz valamit | pár percen belül feldolgozza, és frissül a Pages oldal |
 
-- **Autók:** 229 kézzel válogatott autó van a `cars/kuralt.json`-ban, a hetente talált újak a `cars/auto.json`-ba kerülnek.
+- **Autók:** 286 kézzel válogatott autó van (versenyautók és érdekes utcai sport-, szuper- és hiperautók) a `cars/kuralt.json`-ban, a hetente talált újak a `cars/auto.json`-ba kerülnek.
   Amíg van még ki nem posztolt autó, nem ismétel. A talált autók a válogatottak közé keverednek (`auto_arany`, alapból 30%),
   a csempén „automatikus – ellenőrizd” jelzést kapnak, és 9 nappal a kiküldés előtt már látszanak.
 - **Terv:** minden nap egy fájl: `plan/ÉÉÉÉ-HH-NN.json`. Sorszámot, dátumot, autót, szöveget, képeket és állapotot tartalmaz.
