@@ -11,7 +11,23 @@
   "auto_nev": "Porsche 917K",
   "kategoria": "Le Mans",
   "szoveg": "Porsche 917K (1970) – 4,5–4,9 l léghűtéses boxer-12, kb. 600 LE, kb. 800 kg. 1970-ben hozta el a Porsche első abszolút Le Mans-i győzelmét.",
-  "kepek": [],
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/1969_Porsche_917K_FOS21.jpg/1920px-1969_Porsche_917K_FOS21.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:1969_Porsche_917K_FOS21.jpg",
+      "szerzo": "MrWalkr (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Porsche_917K_at_Goodwood_2014_001.jpg/1920px-Porsche_917K_at_Goodwood_2014_001.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Porsche_917K_at_Goodwood_2014_001.jpg",
+      "szerzo": "Nic Redhead (CC BY-SA 2.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/1971-_Porsche_917K_%28Gesamtsieger%29.jpg/1920px-1971-_Porsche_917K_%28Gesamtsieger%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:1971-_Porsche_917K_(Gesamtsieger).jpg",
+      "szerzo": "HardtimesVienna (CC BY-SA 4.0)"
+    }
+  ],
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,

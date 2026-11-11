@@ -11,7 +11,23 @@
   "auto_nev": "Lotus 25",
   "kategoria": "Forma–1",
   "szoveg": "Lotus 25 (1962) – Coventry Climax 1,5 l V8, kb. 195 LE. Az első monocoque F1-autó; Jim Clark 1963-ban vele lett világbajnok.",
-  "kepek": [],
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Lotus_25_at_Goodwood_FOS_2012.jpg/1920px-Lotus_25_at_Goodwood_FOS_2012.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Lotus_25_at_Goodwood_FOS_2012.jpg",
+      "szerzo": "Darren (CC BY 2.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/1962_Lotus_25_Climax_-_Flickr_-_exfordy_%281%29.jpg/1920px-1962_Lotus_25_Climax_-_Flickr_-_exfordy_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:1962_Lotus_25_Climax_-_Flickr_-_exfordy_(1).jpg",
+      "szerzo": "Brian Snelson from Hockley, Essex, England (CC BY 2.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Lotus_25_at_Barber_01.jpg/1920px-Lotus_25_at_Barber_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Lotus_25_at_Barber_01.jpg",
+      "szerzo": "Legends Of Motorsports (CC BY-SA 2.0)"
+    }
+  ],
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,

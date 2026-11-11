@@ -11,7 +11,23 @@
   "auto_nev": "Audi R15 TDI",
   "kategoria": "Le Mans",
   "szoveg": "Audi R15 TDI (2009) – 5,5 l biturbó V10 dízel, kb. 600 LE, 1050 Nm felett. 2010-ben hármas győzelmet aratott, távolsági rekorddal Le Mans-ban.",
-  "kepek": [],
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Audi_R15_TDI_%28Audi_Sverige%29.jpg/1920px-Audi_R15_TDI_%28Audi_Sverige%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Audi_R15_TDI_(Audi_Sverige).jpg",
+      "szerzo": "Audi Sverige (CC BY 3.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/2009_Audi_R15_TDI_Goodwood%2C_2009_%2801%29.jpg/1920px-2009_Audi_R15_TDI_Goodwood%2C_2009_%2801%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:2009_Audi_R15_TDI_Goodwood,_2009_(01).jpg",
+      "szerzo": "Bahnfrend (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f4/2009_Audi_R15_TDI_Goodwood%2C_2009_%2802%29.jpg/1920px-2009_Audi_R15_TDI_Goodwood%2C_2009_%2802%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:2009_Audi_R15_TDI_Goodwood,_2009_(02).jpg",
+      "szerzo": "Bahnfrend (CC BY-SA 4.0)"
+    }
+  ],
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,

@@ -11,7 +11,23 @@
   "auto_nev": "Porsche 550 Spyder",
   "kategoria": "Sportautó",
   "szoveg": "Porsche 550 Spyder (1953) – 1,5 l Fuhrmann boxer-4 négy vezérműtengellyel, kb. 110 LE, kb. 550 kg. Kis kategóriás győzelmek sora Le Mans-tól a Carrera Panamericanáig.",
-  "kepek": [],
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Porsche_550_Spyder_from_1957_in_the_Porsche-Museum_%282009%29_1X7A0325.jpg/1920px-Porsche_550_Spyder_from_1957_in_the_Porsche-Museum_%282009%29_1X7A0325.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Porsche_550_Spyder_from_1957_in_the_Porsche-Museum_(2009)_1X7A0325.jpg",
+      "szerzo": "Alexander Migl (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Porsche_550_Spyder_%281962%29_Solitude_Revival_2022_1X7A0017.jpg/1920px-Porsche_550_Spyder_%281962%29_Solitude_Revival_2022_1X7A0017.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Porsche_550_Spyder_(1962)_Solitude_Revival_2022_1X7A0017.jpg",
+      "szerzo": "Alexander Migl (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/Porsche_550_Spyder_%281962%29_Solitude_Revival_2022_1X7A0159.jpg/1920px-Porsche_550_Spyder_%281962%29_Solitude_Revival_2022_1X7A0159.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Porsche_550_Spyder_(1962)_Solitude_Revival_2022_1X7A0159.jpg",
+      "szerzo": "Alexander Migl (CC BY-SA 4.0)"
+    }
+  ],
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,
