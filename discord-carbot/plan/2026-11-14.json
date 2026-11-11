@@ -11,23 +11,7 @@
   "auto_nev": "Ferrari 312T",
   "kategoria": "Forma–1",
   "szoveg": "Ferrari 312T (1975) – 3,0 l 180°-os V12, kb. 500 LE, keresztben beépített váltó (a „T”). Niki Lauda vele lett világbajnok 1975-ben.",
-  "kepek": [
-    {
-      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Ferrari_312T_1975.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Ferrari_312T_1975.jpg",
-      "szerzo": "edvvc from London, UK (CC BY 2.0)"
-    },
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Niki_Lauda_Ferrari_312T_noBG.jpg/1920px-Niki_Lauda_Ferrari_312T_noBG.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Niki_Lauda_Ferrari_312T_noBG.jpg",
-      "szerzo": "Tony Hisgett from Birmingham, UK (CC BY-SA 4.0)"
-    },
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Ferrari_312T_%2819817663389%29.jpg/1920px-Ferrari_312T_%2819817663389%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Ferrari_312T_(19817663389).jpg",
-      "szerzo": "Neil (CC BY 2.0)"
-    }
-  ],
+  "kepek": [],
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,

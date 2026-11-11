@@ -11,23 +11,7 @@
   "auto_nev": "Porsche 911 GT2 RS (991)",
   "kategoria": "Utcai versenyautó",
   "szoveg": "Porsche 911 GT2 RS (991, 2017) – 3,8 l biturbó boxer-6, 700 LE, 750 Nm, hátsókerék. 6:47.3-mal sorozatgyártású rekordot futott a Nordschleifén.",
-  "kepek": [
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/2013_Porsche_911_Carrera_4S_%28991%29_%289626546987%29.jpg/1920px-2013_Porsche_911_Carrera_4S_%28991%29_%289626546987%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:2013_Porsche_911_Carrera_4S_(991)_(9626546987).jpg",
-      "szerzo": "David Villarreal Fernández (CC BY-SA 2.0)"
-    },
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Porsche_GT2_RS%2C_IAA_2017%2C_Frankfurt_%281Y7A2769%29.jpg/1920px-Porsche_GT2_RS%2C_IAA_2017%2C_Frankfurt_%281Y7A2769%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Porsche_GT2_RS,_IAA_2017,_Frankfurt_(1Y7A2769).jpg",
-      "szerzo": "Matti Blume (CC BY-SA 4.0)"
-    },
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Porsche_911_Carrera_RSR%2C_Bj._1974_%282011-08-13_Sp%29.JPG/1920px-Porsche_911_Carrera_RSR%2C_Bj._1974_%282011-08-13_Sp%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Porsche_911_Carrera_RSR,_Bj._1974_(2011-08-13_Sp).JPG",
-      "szerzo": "Lothar Spurzem (CC BY-SA 2.0 de)"
-    }
-  ],
+  "kepek": [],
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,

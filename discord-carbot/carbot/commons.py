@@ -1,6 +1,8 @@
 """Free-licensed car photos from Wikimedia Commons, with author + licence."""
 import html
 import re
+import unicodedata
+from urllib.parse import unquote
 
 from . import net
 
@@ -53,12 +55,37 @@ def search(query: str) -> list[dict]:
     return out
 
 
+def _tokens(s: str) -> list[str]:
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
+    return re.findall(r"[a-z0-9]+", s)
+
+
+def rank(name: str, results: list[dict]) -> list[dict]:
+    """Prefer files whose name contains the model words of the car name.
+    Brand (first word) and words in parentheses count less."""
+    main = re.sub(r"\([^)]*\)", " ", name)
+    weights = {}
+    for i, t in enumerate(_tokens(main)):
+        weights.setdefault(t, 0.25 if i == 0 else 1.0)
+    for t in _tokens(" ".join(re.findall(r"\(([^)]*)\)", name))):
+        weights.setdefault(t, 0.5)
+
+    def score(r):
+        title = set(_tokens(unquote(r.get("oldal") or r["url"]).rsplit("/", 1)[-1]))
+        return sum(w for t, w in weights.items() if t in title)
+
+    scored = [(score(r), i, r) for i, r in enumerate(results)]
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    good = [r for sc, _, r in scored if sc > 0.25]
+    return good if len(good) >= 3 else [r for _, _, r in scored]
+
+
 def for_car(car: dict, offset: int = 0, count: int = 3) -> tuple[list[dict], int]:
     """Up to `count` images and the offset actually used (wraps around)."""
     if car.get("kepek"):
         return [{"url": u, "oldal": u, "szerzo": ""} for u in car["kepek"][:count]], 0
     try:
-        found = search(car.get("kereses") or car["nev"])
+        found = rank(car["nev"], search(car.get("kereses") or car["nev"]))
     except Exception as e:
         print(f"::warning::Commons search failed for {car['nev']}: {e}")
         return [], offset

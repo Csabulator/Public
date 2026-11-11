@@ -11,23 +11,7 @@
   "auto_nev": "Toyota Supra GT500",
   "kategoria": "Super GT",
   "szoveg": "Toyota GR Supra GT500 (2020) – 2,0 l turbó négyhengeres, kb. 650 LE, a DTM-mel közös Class One-szabályok. A japán Super GT csúcsa.",
-  "kepek": [
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Au_TOM%27S_GR_Supra_2025_%28front_view%29_at_Osaka_Auto_Messe_2026.jpg/1920px-Au_TOM%27S_GR_Supra_2025_%28front_view%29_at_Osaka_Auto_Messe_2026.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Au_TOM%27S_GR_Supra_2025_(front_view)_at_Osaka_Auto_Messe_2026.jpg",
-      "szerzo": "Aos.1905 (CC BY-SA 4.0)"
-    },
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5c/Au_TOM%27S_GR_Supra_2025_%28front_three-quarter_view%29_at_Osaka_Auto_Messe_2026.jpg/1920px-Au_TOM%27S_GR_Supra_2025_%28front_three-quarter_view%29_at_Osaka_Auto_Messe_2026.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Au_TOM%27S_GR_Supra_2025_(front_three-quarter_view)_at_Osaka_Auto_Messe_2026.jpg",
-      "szerzo": "Aos.1905 (CC BY-SA 4.0)"
-    },
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Au_TOM%27S_GR_Supra_2025_%28rear_three-quarter_view%29_at_Osaka_Auto_Messe_2026.jpg/1920px-Au_TOM%27S_GR_Supra_2025_%28rear_three-quarter_view%29_at_Osaka_Auto_Messe_2026.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Au_TOM%27S_GR_Supra_2025_(rear_three-quarter_view)_at_Osaka_Auto_Messe_2026.jpg",
-      "szerzo": "Aos.1905 (CC BY-SA 4.0)"
-    }
-  ],
+  "kepek": [],
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,

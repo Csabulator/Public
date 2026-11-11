@@ -169,6 +169,14 @@ class TestPosting(Base):
             del os.environ["DISCORD_WEBHOOK_URL"]
 
 
+class TestImages(unittest.TestCase):
+    def test_rank_prefers_model_words(self):
+        mk = lambda n: {"url": "u", "oldal": "https://commons.wikimedia.org/wiki/File:" + n}  # noqa: E731
+        r = commons.rank("Porsche 911 GT2 RS (991)", [mk("Porsche_911_Carrera_4S_(991).jpg"),
+                                                    mk("Porsche_GT2_RS_IAA_2017.jpg"), mk("Porsche_RSR_1974.jpg")])
+        self.assertEqual(r[0]["oldal"].rsplit(":", 1)[1], "Porsche_GT2_RS_IAA_2017.jpg")
+
+
 class TestSite(Base):
     def test_build(self):
         self.bot.now = lambda: datetime(2026, 11, 12, 7, 0, tzinfo=self.bot.tz)

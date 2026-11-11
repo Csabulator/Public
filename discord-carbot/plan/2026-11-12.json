@@ -11,23 +11,7 @@
   "auto_nev": "Lotus 25",
   "kategoria": "Forma–1",
   "szoveg": "Lotus 25 (1962) – Coventry Climax 1,5 l V8, kb. 195 LE. Az első monocoque F1-autó; Jim Clark 1963-ban vele lett világbajnok.",
-  "kepek": [
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Mitter%2C_Gerhard_-_Lotus1965.jpg/1920px-Mitter%2C_Gerhard_-_Lotus1965.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Mitter,_Gerhard_-_Lotus1965.jpg",
-      "szerzo": "Lothar Spurzem (CC BY-SA 2.0 de)"
-    },
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/06/ClarkJim-Lotus19620805.jpg/1920px-ClarkJim-Lotus19620805.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:ClarkJim-Lotus19620805.jpg",
-      "szerzo": "Lothar Spurzem (CC BY-SA 2.0 de)"
-    },
-    {
-      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Lotus_25_at_Goodwood_FOS_2012.jpg/1920px-Lotus_25_at_Goodwood_FOS_2012.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "oldal": "https://commons.wikimedia.org/wiki/File:Lotus_25_at_Goodwood_FOS_2012.jpg",
-      "szerzo": "Darren (CC BY 2.0)"
-    }
-  ],
+  "kepek": [],
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,
