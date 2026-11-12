@@ -1,0 +1,35 @@
+{
+  "_sugo": "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
+  "sorszam": 10,
+  "nap": "2026-11-20",
+  "allapot": "tervezett",
+  "muvelet": "",
+  "probalkozas": 0,
+  "kikuldve": null,
+  "uzenet_id": null,
+  "auto_id": "pontiac-gto-1964",
+  "auto_nev": "Pontiac GTO (1964)",
+  "kategoria": "Muscle car",
+  "szoveg": "Pontiac GTO (1964) – 6,4 l (389 ci) V8, 325 LE, a középkategóriás Tempest alapján. Sokan ezt tartják az első igazi muscle carnak.",
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Pontiac_GTO_%281964-1967%29_IMG_3193.jpg/1920px-Pontiac_GTO_%281964-1967%29_IMG_3193.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Pontiac_GTO_(1964-1967)_IMG_3193.jpg",
+      "szerzo": "Alexander Migl (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/1964_Pontiac_GTO_%281143525157%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "oldal": "https://commons.wikimedia.org/wiki/File:1964_Pontiac_GTO_(1143525157).jpg",
+      "szerzo": "Joe Ross from Lansing, Michigan (CC BY-SA 2.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/1964_Pontiac_GTO_fl.jpg/1920px-1964_Pontiac_GTO_fl.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:1964_Pontiac_GTO_fl.jpg",
+      "szerzo": "Herranderssvensson (CC BY-SA 3.0)"
+    }
+  ],
+  "kep_offset": 0,
+  "automatikus": false,
+  "hiba": null,
+  "figyelmeztetes": null
+}
