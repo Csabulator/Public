@@ -23,6 +23,63 @@ can be set on the **Panel** tab.
 > **Status:** the panel is tested against a simulated dedicated server.
 > Reports from real servers are welcome: open an issue with what you saw.
 
+## Quick start
+
+You do not need to know anything about servers. Pick the computer the server
+will run on and follow its steps. The installer downloads the AMS2 dedicated
+server, sets it up and starts it.
+
+### Windows PC
+
+1. On this page, click the green **Code** button, then **Download ZIP**.
+2. Unzip it, for example to your Desktop.
+3. Right-click the **Start** button and choose **Terminal (Admin)** or
+   **Windows PowerShell (Admin)**.
+4. Copy these two lines, paste them into the window and press Enter:
+
+   ```powershell
+   cd "$([Environment]::GetFolderPath('Desktop'))\Public-main\ams2-server-panel\windows"
+   Set-ExecutionPolicy -Scope Process Bypass; .\install.ps1
+   ```
+
+   If you unzipped somewhere else, change the folder in the first line.
+5. Wait until it asks for a password, type one for the panel twice.
+6. When it says **Ready**, open <http://localhost:8080> in your browser and
+   sign in.
+
+From now on the panel and the server start by themselves when the PC starts.
+
+### Linux server (Debian or Ubuntu)
+
+Paste these lines into the terminal, then type a panel password when asked:
+
+```sh
+git clone --depth 1 https://github.com/Csabulator/Public.git
+cd Public/ams2-server-panel/linux
+sudo ./install.sh
+```
+
+Open `http://<server IP>:8080` in your browser.
+
+### Synology NAS
+
+1. Download the ZIP as in the Windows steps and copy the `docker` folder from
+   `ams2-server-panel` to the NAS, for example into `docker/ams2-server`.
+2. Open `docker-compose.yml` in a text editor and replace `change-me` with
+   your own password.
+3. In **Container Manager**, open **Project → Create**, pick that folder and
+   start it.
+4. Wait a few minutes for the first download, then open
+   `http://<NAS IP>:8080`.
+
+### Last step for everyone
+
+So that players can join from the internet, open ports **8766, 27015 and
+27016** (TCP and UDP) on your router and point them to the computer running the
+server. Your router's manual calls this *port forwarding*.
+
+The detailed guides for each platform are in the folders below.
+
 ## Pick your platform
 
 | Folder | For | How it runs |
