@@ -1,0 +1,35 @@
+{
+  "_sugo": "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
+  "sorszam": 11,
+  "nap": "2026-11-21",
+  "allapot": "tervezett",
+  "muvelet": "",
+  "probalkozas": 0,
+  "kikuldve": null,
+  "uzenet_id": null,
+  "auto_id": "mclaren-mp4-13",
+  "auto_nev": "McLaren MP4/13",
+  "kategoria": "Forma–1",
+  "szoveg": "McLaren MP4/13 (1998) – Mercedes 3,0 l V10, kb. 780 LE, Adrian Newey-féle keskeny autó. Mika Häkkinen vele lett világbajnok.",
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/MotorExpo_2014_MMB_13_McLaren_MP4-12C.jpg/1920px-MotorExpo_2014_MMB_13_McLaren_MP4-12C.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:MotorExpo_2014_MMB_13_McLaren_MP4-12C.jpg",
+      "szerzo": "mattbuck (category) (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/McLaren_MP4-13_at_Goodwood_2012.jpg/1920px-McLaren_MP4-13_at_Goodwood_2012.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:McLaren_MP4-13_at_Goodwood_2012.jpg",
+      "szerzo": "Nic Redhead from Birmingham, UK (CC BY-SA 2.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/McLaren_MP4-13_at_Goodwood_2012_%284%29.jpg/1920px-McLaren_MP4-13_at_Goodwood_2012_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:McLaren_MP4-13_at_Goodwood_2012_(4).jpg",
+      "szerzo": "Nic Redhead from Birmingham, UK (CC BY-SA 2.0)"
+    }
+  ],
+  "kep_offset": 0,
+  "automatikus": false,
+  "hiba": null,
+  "figyelmeztetes": null
+}
