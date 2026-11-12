@@ -2,7 +2,7 @@
 
 One container holds the panel, Wine and SteamCMD. On the first start it
 downloads the dedicated server into `./data/server`; later updates are done
-with the **Frissítés / telepítés** button in the panel, so you never need to
+with the **Install / update server** button in the panel, so you never need to
 rebuild the image for a server update.
 
 ## Any Docker host

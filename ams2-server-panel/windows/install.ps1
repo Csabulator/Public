@@ -97,7 +97,7 @@ if (-not $SkipServerInstall) {
     New-Item -ItemType Directory -Force -Path $ServerDir | Out-Null
     & $steamCmd +force_install_dir $ServerDir +login anonymous +app_update 1338040 validate +quit
     if (-not (Test-Path (Join-Path $ServerDir 'DedicatedServerCmd.exe'))) {
-        Write-Warning 'DedicatedServerCmd.exe was not found after SteamCMD finished. Run the script again, or use the "Frissites / telepites" (update) button in the panel later.'
+        Write-Warning 'DedicatedServerCmd.exe was not found after SteamCMD finished. Run the script again, or use the "Install / update server" button in the panel later.'
     }
 }
 

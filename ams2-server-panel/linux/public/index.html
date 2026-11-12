@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="hu">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AMS2 szerver</title>
+<title>AMS2 server</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -12,9 +12,9 @@
 <section id="login" class="login" hidden>
   <form id="loginForm" class="login-box">
     <div class="login-flag" aria-hidden="true"></div>
-    <h1>AMS2 szerver</h1>
-    <label>Jelszó <input type="password" id="loginPw" autocomplete="current-password" required autofocus></label>
-    <button class="btn primary" type="submit">Belépés</button>
+    <h1>AMS2 server</h1>
+    <label>Password <input type="password" id="loginPw" autocomplete="current-password" required autofocus></label>
+    <button class="btn primary" type="submit">Sign in</button>
     <p id="loginErr" class="err" role="alert"></p>
   </form>
 </section>
@@ -23,29 +23,29 @@
   <header class="strip" id="strip" data-state="stopped">
     <div class="strip-flag" aria-hidden="true"></div>
     <div class="strip-main">
-      <div class="strip-state" id="stripState">Áll</div>
+      <div class="strip-state" id="stripState">Stopped</div>
       <div class="strip-sub" id="stripSub">–</div>
     </div>
     <dl class="strip-facts">
-      <div><dt>Pálya</dt><dd id="factTrack">–</dd></div>
-      <div><dt>Szakasz</dt><dd id="factStage">–</dd></div>
-      <div><dt>Játékosok</dt><dd id="factPlayers">–</dd></div>
+      <div><dt>Track</dt><dd id="factTrack">–</dd></div>
+      <div><dt>Session</dt><dd id="factStage">–</dd></div>
+      <div><dt>Players</dt><dd id="factPlayers">–</dd></div>
     </dl>
     <div class="strip-actions">
-      <button class="btn go" data-action="start">Indítás</button>
-      <button class="btn" data-action="restart">Újraindítás</button>
-      <button class="btn stop" data-action="stop">Leállítás</button>
+      <button class="btn go" data-action="start">Start</button>
+      <button class="btn" data-action="restart">Restart</button>
+      <button class="btn stop" data-action="stop">Stop</button>
     </div>
   </header>
 
   <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="overview" aria-selected="true">Áttekintés</button>
-    <button role="tab" data-tab="session">Futam</button>
-    <button role="tab" data-tab="server">Szerver</button>
-    <button role="tab" data-tab="raw">Config fájl</button>
-    <button role="tab" data-tab="log">Napló</button>
+    <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button role="tab" data-tab="session">Race setup</button>
+    <button role="tab" data-tab="server">Server</button>
+    <button role="tab" data-tab="raw">Config file</button>
+    <button role="tab" data-tab="log">Log</button>
     <button role="tab" data-tab="panel">Panel</button>
-    <button class="logout" id="logout">Kilépés</button>
+    <button class="logout" id="logout">Sign out</button>
   </nav>
 
   <main>
@@ -55,88 +55,99 @@
     <section data-panel="overview">
       <div class="cols">
         <div class="block">
-          <h2>Játékosok</h2>
-          <div class="table-wrap"><table class="grid" id="players"><thead><tr><th>Név</th><th>Steam ID</th><th>Ping</th><th></th></tr></thead><tbody></tbody></table></div>
-          <p class="empty" id="playersEmpty">Nincs fent senki.</p>
+          <h2>Players</h2>
+          <div class="table-wrap"><table class="grid" id="players"><thead><tr><th>Name</th><th>Steam ID</th><th>Ping</th><th></th></tr></thead><tbody></tbody></table></div>
+          <p class="empty" id="playersEmpty">Nobody is on the server.</p>
         </div>
         <div class="block">
-          <h2>Üzenet a szerverre</h2>
+          <h2>Message to the server</h2>
           <form id="chatForm" class="inline">
-            <input id="chatMsg" maxlength="200" placeholder="Pl. 5 perc múlva rajt" required>
-            <button class="btn">Küldés</button>
+            <input id="chatMsg" maxlength="200" placeholder="For example: race starts in 5 minutes" required>
+            <button class="btn">Send</button>
           </form>
-          <h2>Dedikált szerver</h2>
+          <h2>Dedicated server</h2>
           <p class="muted" id="installInfo"></p>
-          <button class="btn" data-action="update">Frissítés / telepítés SteamCMD-vel</button>
-          <p class="muted small">Csak leállított szervernél működik. A folyamat a Napló fülön követhető.</p>
+          <button class="btn" data-action="update">Install / update server</button>
+          <p class="muted small">Works while the server is stopped. Follow the progress on the Log tab.</p>
         </div>
       </div>
     </section>
 
-    <!-- Session -->
+    <!-- Race setup -->
     <section data-panel="session" hidden>
       <p class="muted" id="listsInfo"></p>
       <form id="sessionForm" class="form">
-        <fieldset>
-          <legend>Pálya és autó</legend>
-          <label class="wide">Pálya <select id="s_TrackId" data-attr="TrackId" data-type="int"></select></label>
-          <label>Kaszt <select id="s_VehicleClassId" data-attr="VehicleClassId" data-type="int"></select></label>
-          <label>Autó <select id="s_VehicleModelId" data-attr="VehicleModelId" data-type="int"></select></label>
-          <label class="check"><input type="checkbox" data-attr="ServerControlsTrack" data-type="bool01"> A pályát a szerver választja</label>
-          <label class="check"><input type="checkbox" data-attr="ServerControlsVehicleClass" data-type="bool01"> A kasztot a szerver választja</label>
-          <label class="check"><input type="checkbox" data-attr="ServerControlsVehicle" data-type="bool01"> Az autót a szerver választja</label>
+        <fieldset class="pickers">
+          <legend>Track and car</legend>
+          <div class="choice" data-pick="track">
+            <span class="choice-label">Track</span>
+            <button type="button" class="choice-card"><span class="thumb track"></span><span class="choice-name">–</span><span class="choice-meta"></span></button>
+          </div>
+          <div class="choice" data-pick="class">
+            <span class="choice-label">Class</span>
+            <button type="button" class="choice-card"><span class="thumb"></span><span class="choice-name">–</span><span class="choice-meta"></span></button>
+          </div>
+          <div class="choice" data-pick="vehicle">
+            <span class="choice-label">Car</span>
+            <button type="button" class="choice-card"><span class="thumb"></span><span class="choice-name">–</span><span class="choice-meta"></span></button>
+          </div>
+          <div class="checks">
+            <label class="check"><input type="checkbox" data-attr="ServerControlsTrack" data-type="bool01"> The server picks the track</label>
+            <label class="check"><input type="checkbox" data-attr="ServerControlsVehicleClass" data-type="bool01"> The server picks the class</label>
+            <label class="check"><input type="checkbox" data-attr="ServerControlsVehicle" data-type="bool01"> The server picks the car</label>
+          </div>
         </fieldset>
         <fieldset>
-          <legend>Mezőny</legend>
-          <label>Rajtrács mérete <input type="number" min="1" max="32" data-attr="GridSize" data-type="int"></label>
-          <label>Max. játékos <input type="number" min="1" max="32" data-attr="MaxPlayers" data-type="int"></label>
-          <label>AI nehézség <input type="number" min="0" max="100" data-attr="OpponentDifficulty" data-type="int"></label>
-          <p class="hint" id="gridHint">AI csak akkor kerül a mezőnybe, ha a rajtrács nagyobb a max. játékosszámnál, és be van kapcsolva a „Mezőny feltöltése AI-val” szabály.</p>
+          <legend>Field</legend>
+          <label>Grid size <input type="number" min="1" max="32" data-attr="GridSize" data-type="int"></label>
+          <label>Max. players <input type="number" min="1" max="32" data-attr="MaxPlayers" data-type="int"></label>
+          <label>AI difficulty <input type="number" min="0" max="100" data-attr="OpponentDifficulty" data-type="int"></label>
+          <p class="hint" id="gridHint"></p>
         </fieldset>
         <fieldset>
-          <legend>Szakaszok</legend>
-          <label>Edzés (perc) <input type="number" min="0" data-attr="PracticeLength" data-type="int"></label>
-          <label>Időmérő (perc) <input type="number" min="0" data-attr="QualifyLength" data-type="int"></label>
-          <label>Futam <input type="number" min="0" data-attr="RaceLength" data-type="int"></label>
-          <p class="hint">A futam hossza körökben értendő, időre menő futamnál percben. 0 = a szakasz kimarad.</p>
+          <legend>Sessions</legend>
+          <label>Practice (minutes) <input type="number" min="0" data-attr="PracticeLength" data-type="int"></label>
+          <label>Qualifying (minutes) <input type="number" min="0" data-attr="QualifyLength" data-type="int"></label>
+          <label>Race <input type="number" min="0" data-attr="RaceLength" data-type="int"></label>
+          <p class="hint">Race length is in laps, or in minutes for a timed race. 0 skips the session.</p>
         </fieldset>
         <fieldset>
-          <legend>Realizmus</legend>
-          <label>Sérülés <select data-attr="DamageType" data-type="int" data-enum="damage"></select></label>
-          <label>Gumikopás <select data-attr="TireWearType" data-type="int" data-enum="tire_wear"></select></label>
-          <label>Üzemanyag-fogyás <select data-attr="FuelUsageType" data-type="int" data-enum="fuel_usage"></select></label>
-          <label>Büntetések <select data-attr="PenaltiesType" data-type="int" data-enum="penalties"></select></label>
-          <label>Kameranézetek <select data-attr="AllowedViews" data-type="int" data-enum="allowed_views"></select></label>
+          <legend>Realism</legend>
+          <label>Damage <select data-attr="DamageType" data-type="int" data-enum="damage"></select></label>
+          <label>Tyre wear <select data-attr="TireWearType" data-type="int" data-enum="tire_wear"></select></label>
+          <label>Fuel usage <select data-attr="FuelUsageType" data-type="int" data-enum="fuel_usage"></select></label>
+          <label>Penalties <select data-attr="PenaltiesType" data-type="int" data-enum="penalties"></select></label>
+          <label>Camera views <select data-attr="AllowedViews" data-type="int" data-enum="allowed_views"></select></label>
         </fieldset>
         <fieldset>
-          <legend>Idő és időjárás</legend>
-          <label>Kezdés órája <input type="number" min="0" max="23" data-attr="RaceDateHour" data-type="int"></label>
-          <label>Időjárás-szakaszok <select data-attr="RaceWeatherSlots" data-type="int" id="weatherCount">
+          <legend>Time and weather</legend>
+          <label>Start hour <input type="number" min="0" max="23" data-attr="RaceDateHour" data-type="int"></label>
+          <label>Weather slots <select data-attr="RaceWeatherSlots" data-type="int" id="weatherCount">
             <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
           <div class="weather" id="weatherSlots"></div>
         </fieldset>
         <fieldset>
-          <legend>Szabályok</legend>
+          <legend>Rules</legend>
           <div class="flags" id="flags"></div>
-          <p class="hint">A szabályok egyetlen számként kerülnek a configba: <code id="flagsValue">0</code></p>
+          <p class="hint">The rules are stored in the config as one number: <code id="flagsValue">0</code></p>
         </fieldset>
         <details class="block" id="otherAttrs">
-          <summary>További beállítások</summary>
+          <summary>More settings</summary>
           <div class="form-grid" id="otherAttrsBody"></div>
         </details>
       </form>
       <div class="savebar">
-        <button class="btn primary" id="sessSave">Mentés a configba</button>
-        <button class="btn" id="sessNext">Küldés a következő futamra</button>
-        <button class="btn" id="sessNow">Alkalmazás most (lobbiban)</button>
+        <button class="btn primary" id="sessSave">Save to config</button>
+        <button class="btn" id="sessNext">Send to next race</button>
+        <button class="btn" id="sessNow">Apply now (in lobby)</button>
         <span class="savebar-sep"></span>
-        <input id="presetName" placeholder="Előbeállítás neve">
-        <button class="btn" id="presetSave">Mentés előbeállításként</button>
+        <input id="presetName" placeholder="Preset name">
+        <button class="btn" id="presetSave">Save as preset</button>
       </div>
       <div class="block">
-        <h2>Előbeállítások</h2>
+        <h2>Presets</h2>
         <ul class="presets" id="presets"></ul>
-        <p class="empty" id="presetsEmpty">Még nincs mentett előbeállítás. Állítsd be a futamot, adj neki nevet lent, és mentsd el.</p>
+        <p class="empty" id="presetsEmpty">No presets yet. Set up a race, give it a name below and save it.</p>
       </div>
     </section>
 
@@ -144,68 +155,68 @@
     <section data-panel="server" hidden>
       <form id="serverForm" class="form">
         <fieldset>
-          <legend>Alapok</legend>
-          <label class="wide">Szerver neve <input data-key="name" data-type="str"></label>
-          <label>Jelszó a csatlakozáshoz <input data-key="password" data-type="str" placeholder="üres = nyílt szerver"></label>
-          <label>Max. játékos <input type="number" min="1" max="32" data-key="maxPlayerCount" data-type="int"></label>
-          <label>Naplózás <select data-key="logLevel" data-type="str"><option>debug</option><option>info</option><option>warning</option><option>error</option></select></label>
-          <label class="check"><input type="checkbox" data-key="secure" data-type="bool"> VAC-tiltás ellenőrzése (Steam)</label>
-          <label class="check"><input type="checkbox" data-key="allowEmptyJoin" data-type="bool"> Üresen is látszik a listában</label>
-          <label class="check"><input type="checkbox" data-key="controlGameSetup" data-type="bool"> A szerver irányítja a futambeállításokat</label>
-          <p class="hint">Ha az utolsó ki van kapcsolva, a host játékos dönt, és a panelből küldött futambeállítások nem érvényesülnek.</p>
+          <legend>Basics</legend>
+          <label class="wide">Server name <input data-key="name" data-type="str"></label>
+          <label>Join password <input data-key="password" data-type="str" placeholder="empty = open server"></label>
+          <label>Max. players <input type="number" min="1" max="32" data-key="maxPlayerCount" data-type="int"></label>
+          <label>Log level <select data-key="logLevel" data-type="str"><option>debug</option><option>info</option><option>warning</option><option>error</option></select></label>
+          <label class="check"><input type="checkbox" data-key="secure" data-type="bool"> Check VAC bans (Steam)</label>
+          <label class="check"><input type="checkbox" data-key="allowEmptyJoin" data-type="bool"> Show in the browser when empty</label>
+          <label class="check"><input type="checkbox" data-key="controlGameSetup" data-type="bool"> The server controls the race setup</label>
+          <p class="hint">With the last one off, the host player decides, and race settings sent from this panel have no effect.</p>
         </fieldset>
         <fieldset>
-          <legend>Hálózat</legend>
+          <legend>Network</legend>
           <label>Steam port <input type="number" data-key="steamPort" data-type="int"></label>
           <label>Host port <input type="number" data-key="hostPort" data-type="int"></label>
           <label>Query port <input type="number" data-key="queryPort" data-type="int"></label>
-          <label>Kötés IP-címhez <input data-key="bindIP" data-type="str" placeholder="üres = minden interfész"></label>
-          <p class="hint">Mindhárom portot (TCP és UDP) át kell engedni a routeren a szerver gépére.</p>
+          <label>Bind to IP <input data-key="bindIP" data-type="str" placeholder="empty = all interfaces"></label>
+          <p class="hint">Forward all three ports (TCP and UDP) on your router to the server machine.</p>
         </fieldset>
         <fieldset>
           <legend>HTTP API</legend>
-          <label class="check"><input type="checkbox" data-key="enableHttpApi" data-type="bool"> Bekapcsolva (a panelnek kell)</label>
+          <label class="check"><input type="checkbox" data-key="enableHttpApi" data-type="bool"> On (the panel needs it)</label>
           <label>Port <input type="number" data-key="httpApiPort" data-type="int"></label>
-          <label>Interfész <input data-key="httpApiInterface" data-type="str"></label>
-          <p class="hint">Hagyd 127.0.0.1-en: a panel ugyanazon a gépen fut, így kívülről nem kell elérni az API-t.</p>
+          <label>Interface <input data-key="httpApiInterface" data-type="str"></label>
+          <p class="hint">Keep it on 127.0.0.1: the panel runs on the same machine, so the API does not need to be reachable from outside.</p>
         </fieldset>
         <fieldset>
-          <legend>Lua addonok</legend>
-          <label class="check"><input type="checkbox" data-key="enableLuaApi" data-type="bool"> Lua addonok engedélyezése</label>
+          <legend>Lua addons</legend>
+          <label class="check"><input type="checkbox" data-key="enableLuaApi" data-type="bool"> Allow Lua addons</label>
           <div class="addons" id="addons"></div>
         </fieldset>
         <details class="block">
-          <summary>Ritkán kell</summary>
+          <summary>Rarely needed</summary>
           <div class="form-grid">
-            <label>Tick üresjáratban (ms) <input type="number" data-key="sleepWaiting" data-type="int"></label>
-            <label>Tick futam közben (ms) <input type="number" data-key="sleepActive" data-type="int"></label>
-            <label>Tárolt események <input type="number" data-key="eventsLogSize" data-type="int"></label>
-            <label class="check"><input type="checkbox" data-key="sportsPlay" data-type="bool"> Sports Play (csak offline LAN-eseményhez)</label>
+            <label>Tick while idle (ms) <input type="number" data-key="sleepWaiting" data-type="int"></label>
+            <label>Tick while racing (ms) <input type="number" data-key="sleepActive" data-type="int"></label>
+            <label>Events kept <input type="number" data-key="eventsLogSize" data-type="int"></label>
+            <label class="check"><input type="checkbox" data-key="sportsPlay" data-type="bool"> Sports Play (offline LAN events only)</label>
           </div>
         </details>
       </form>
       <div class="savebar">
-        <button class="btn primary" id="serverSave">Mentés a configba</button>
-        <span class="muted small">A szerver ezeket csak induláskor olvassa be.</span>
+        <button class="btn primary" id="serverSave">Save to config</button>
+        <span class="muted small">The server reads these only when it starts.</span>
       </div>
     </section>
 
     <!-- Raw -->
     <section data-panel="raw" hidden>
-      <p class="muted">Itt közvetlenül szerkesztheted a server.cfg fájlt: <code id="cfgPath"></code>. Mentés előtt a panel ellenőrzi, és mentés előtt biztonsági másolatot készít.</p>
+      <p class="muted">Edit server.cfg directly: <code id="cfgPath"></code>. The panel checks the file and keeps a backup of the previous version when you save.</p>
       <textarea id="rawCfg" spellcheck="false"></textarea>
       <div class="savebar">
-        <button class="btn primary" id="rawSave">Fájl mentése</button>
-        <button class="btn" id="rawReload">Újratöltés</button>
-        <button class="btn" id="rawClean">Tisztított alapconfig betöltése</button>
+        <button class="btn primary" id="rawSave">Save file</button>
+        <button class="btn" id="rawReload">Reload</button>
+        <button class="btn" id="rawClean">Replace with clean config</button>
       </div>
     </section>
 
     <!-- Log -->
     <section data-panel="log" hidden>
       <div class="logbar">
-        <label class="check"><input type="checkbox" id="logFollow" checked> Görgetés az új sorokhoz</label>
-        <label>Forrás <select id="logFilter"><option value="">mind</option><option value="server">szerver</option><option value="panel">panel</option><option value="steamcmd">steamcmd</option></select></label>
+        <label class="check"><input type="checkbox" id="logFollow" checked> Scroll to new lines</label>
+        <label>Source <select id="logFilter"><option value="">all</option><option value="server">server</option><option value="panel">panel</option><option value="steamcmd">steamcmd</option></select></label>
       </div>
       <pre class="log" id="log"></pre>
     </section>
@@ -214,31 +225,70 @@
     <section data-panel="panel" hidden>
       <form id="panelForm" class="form">
         <fieldset>
-          <legend>Elérési utak</legend>
-          <label class="wide">Szerver mappája <input data-pkey="serverDir"></label>
-          <label>Szerver programja <input data-pkey="serverExe"></label>
+          <legend>Display</legend>
+          <label>Date format <select data-pkey="dateFormat" id="dateFormat">
+            <option value="iso">2026-11-12</option><option value="eu">12.11.2026</option>
+            <option value="uk">12/11/2026</option><option value="us">11/12/2026</option></select></label>
+          <label>Time format <select data-pkey="timeFormat" id="timeFormat">
+            <option value="24h">24-hour (16:45)</option><option value="12h">12-hour (4:45 PM)</option></select></label>
+          <label>Track and car pictures <select data-pkey="imageSource">
+            <option value="wikipedia">Look up on Wikipedia</option><option value="off">Only my own pictures</option></select></label>
+          <p class="hint" id="formatPreview"></p>
+        </fieldset>
+        <fieldset>
+          <legend>Paths</legend>
+          <label class="wide">Server folder <input data-pkey="serverDir"></label>
+          <label>Server program <input data-pkey="serverExe"></label>
           <label class="wide">SteamCMD <input data-pkey="steamcmd"></label>
-          <label class="wide">Indító parancs előtag <input data-pkey="launcher" data-list="1" placeholder="Windowson üres, Linuxon: xvfb-run -a wine"></label>
-          <label class="wide">Leállítás után futtatandó <input data-pkey="postStop" data-list="1" placeholder="Linuxon: wineserver -k"></label>
+          <label class="wide">Launch prefix <input data-pkey="launcher" data-list="1" placeholder="empty on Windows; on Linux: xvfb-run -a wine"></label>
+          <label class="wide">Run after stopping <input data-pkey="postStop" data-list="1" placeholder="on Linux: wineserver -k"></label>
         </fieldset>
         <fieldset>
-          <legend>Viselkedés</legend>
-          <label class="check"><input type="checkbox" data-pkey="autoStart"> A panel indulásakor induljon a szerver is</label>
-          <label class="check"><input type="checkbox" data-pkey="autoRestart"> Újraindítás, ha a szerver váratlanul leáll</label>
+          <legend>Behaviour</legend>
+          <label class="check"><input type="checkbox" data-pkey="autoStart"> Start the server when the panel starts</label>
+          <label class="check"><input type="checkbox" data-pkey="autoRestart"> Restart the server if it stops unexpectedly</label>
         </fieldset>
         <fieldset>
-          <legend>Jelszó módosítása</legend>
-          <label>Jelenlegi jelszó <input type="password" id="pwOld" autocomplete="current-password"></label>
-          <label>Új jelszó <input type="password" id="pwNew" autocomplete="new-password"></label>
+          <legend>Change password</legend>
+          <label>Current password <input type="password" id="pwOld" autocomplete="current-password"></label>
+          <label>New password <input type="password" id="pwNew" autocomplete="new-password"></label>
         </fieldset>
       </form>
       <div class="savebar">
-        <button class="btn primary" id="panelSave">Panelbeállítások mentése</button>
+        <button class="btn primary" id="panelSave">Save panel settings</button>
         <span class="muted small" id="panelInfo"></span>
       </div>
     </section>
   </main>
 </div>
+
+<!-- Picker for track / class / car -->
+<dialog id="picker" class="picker" aria-labelledby="pickerTitle">
+  <header class="picker-head">
+    <h2 id="pickerTitle">Choose</h2>
+    <input id="pickerSearch" type="search" placeholder="Search" aria-label="Search">
+    <label class="check" id="pickerAllWrap"><input type="checkbox" id="pickerAll"> All classes</label>
+    <button class="btn" id="pickerClose" type="button">Close</button>
+  </header>
+  <div class="tiles" id="pickerTiles"></div>
+  <p class="empty" id="pickerEmpty" hidden>Nothing matches the search.</p>
+</dialog>
+
+<!-- Picture editor -->
+<dialog id="imgDialog" class="imgdlg" aria-labelledby="imgTitle">
+  <form method="dialog" id="imgForm">
+    <h2 id="imgTitle">Picture</h2>
+    <div class="imgdlg-preview"><img id="imgPreview" alt=""></div>
+    <p class="muted small" id="imgSource"></p>
+    <label>Upload a file <input type="file" id="imgFile" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"></label>
+    <label>Or paste an image link <input type="url" id="imgUrl" placeholder="https://…"></label>
+    <div class="imgdlg-actions">
+      <button class="btn primary" id="imgSave" value="save">Save picture</button>
+      <button class="btn" id="imgReset" value="reset">Use automatic picture</button>
+      <button class="btn" value="cancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="app.js"></script>

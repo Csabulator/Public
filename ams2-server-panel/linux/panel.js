@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 const cfgfile = require('./cfg');
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const isWin = process.platform === 'win32';
 const APP_DIR = __dirname;
 const SETTINGS_FILE = process.env.PANEL_SETTINGS || path.join(APP_DIR, 'panel.json');
@@ -35,6 +35,9 @@ const DEFAULTS = {
   autoStart: true,
   autoRestart: true,
   installIfMissing: false,
+  dateFormat: 'iso',     // iso | eu | uk | us
+  timeFormat: '24h',     // 24h | 12h
+  imageSource: 'wikipedia', // wikipedia | off (custom images always work)
 };
 
 let settings = loadSettings();
@@ -89,10 +92,10 @@ const exePath = () => path.join(settings.serverDir, settings.serverExe);
 const logLines = [];
 let logSeq = 0;
 function log(source, line) {
-  const t = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const ts = Date.now();
   for (const l of String(line).split(/\r?\n/)) {
     if (!l.trim()) continue;
-    logLines.push({ n: ++logSeq, t, source, text: l });
+    logLines.push({ n: ++logSeq, ts, source, text: l });
   }
   while (logLines.length > 2000) logLines.shift();
 }
@@ -206,7 +209,7 @@ async function getLists(refresh) {
       fs.writeFileSync(file, JSON.stringify(fresh));
       cache = fresh;
     } catch (e) {
-      if (refresh) cache.error = 'A listákat nem sikerült frissíteni: ' + e.message;
+      if (refresh) cache.error = 'Could not refresh the lists: ' + e.message;
     }
   }
   return cache;
@@ -234,7 +237,7 @@ function adoptRunning() {
 
 function startServer() {
   if (proc.state === 'running' || proc.state === 'starting') return;
-  if (!fs.existsSync(exePath())) throw new Error(`Nem található a szerver: ${exePath()} - telepítsd a "Frissítés / telepítés" gombbal.`);
+  if (!fs.existsSync(exePath())) throw new Error(`Dedicated server not found: ${exePath()} - install it with the "Install / update server" button.`);
   if (!fs.existsSync(cfgPath())) writeConfig(defaultConfig());
   const cmd = [...settings.launcher, exePath(), ...settings.launchArgs];
   log('panel', 'Starting: ' + cmd.join(' '));
@@ -301,8 +304,8 @@ async function restartServer() {
 
 function updateServer() {
   return new Promise((resolve, reject) => {
-    if (proc.state !== 'stopped') return reject(new Error('Frissítés előtt állítsd le a szervert.'));
-    if (!fs.existsSync(settings.steamcmd)) return reject(new Error(`Nem található a SteamCMD: ${settings.steamcmd}`));
+    if (proc.state !== 'stopped') return reject(new Error('Stop the server before updating it.'));
+    if (!fs.existsSync(settings.steamcmd)) return reject(new Error(`SteamCMD not found: ${settings.steamcmd}`));
     fs.mkdirSync(settings.serverDir, { recursive: true });
     const args = [];
     if (settings.forceWindowsPlatform) args.push('+@sSteamCmdForcePlatformType', 'windows');
@@ -318,7 +321,7 @@ function updateServer() {
       log('panel', `SteamCMD finished (code ${code})`);
       // SteamCMD often exits with 7 after a successful self-update; check the result instead.
       if (fs.existsSync(exePath())) resolve();
-      else reject(new Error('A telepítés nem sikerült, nézd meg a naplót.'));
+      else reject(new Error('The install did not finish, check the log.'));
     });
   });
 }
@@ -348,6 +351,113 @@ function listAddons() {
     });
 }
 
+// ------------------------------------------------------------------- images --
+// Pictures for tracks, classes and cars. Admins can upload their own; otherwise,
+// when imageSource is "wikipedia", the panel looks up the lead image of the
+// best matching Wikipedia article once and caches it.
+
+const IMAGE_KINDS = new Set(['track', 'vehicle', 'class']);
+const imgDir = () => { const d = path.join(dataDir(), 'images'); fs.mkdirSync(d, { recursive: true }); return d; };
+const imgIndexFile = () => path.join(imgDir(), 'index.json');
+const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg' };
+const UA = `ams2-server-panel/${VERSION} (https://github.com/Csabulator/Public)`;
+
+function readImageIndex() {
+  try { return JSON.parse(fs.readFileSync(imgIndexFile(), 'utf8')); } catch { return {}; }
+}
+function writeImageIndex(ix) { fs.writeFileSync(imgIndexFile(), JSON.stringify(ix, null, 1)); }
+
+function saveImage(kind, id, buf, type, meta) {
+  const key = `${kind}_${id}`;
+  const ix = readImageIndex();
+  if (ix[key]?.file) { try { fs.unlinkSync(path.join(imgDir(), ix[key].file)); } catch { /* gone */ } }
+  const file = `${key}.${EXT[type] || 'img'}`;
+  fs.writeFileSync(path.join(imgDir(), file), buf);
+  ix[key] = { file, type, ...meta, savedAt: new Date().toISOString() };
+  writeImageIndex(ix);
+}
+
+function removeImage(kind, id) {
+  const key = `${kind}_${id}`;
+  const ix = readImageIndex();
+  if (ix[key]?.file) { try { fs.unlinkSync(path.join(imgDir(), ix[key].file)); } catch { /* gone */ } }
+  delete ix[key];
+  writeImageIndex(ix);
+}
+
+async function downloadImage(u) {
+  if (!/^https?:\/\//i.test(u)) throw new Error('the link must start with http:// or https://');
+  const res = await fetch(u, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const type = (res.headers.get('content-type') || '').split(';')[0].trim();
+  if (!EXT[type]) throw new Error('the link is not a PNG, JPEG, WebP, GIF or SVG image');
+  const buf = Buffer.from(await res.arrayBuffer());
+  return { buf, type };
+}
+
+// AMS2 names look like "Interlagos_GP" or "Adelaide_Historic"; strip the layout part.
+const LAYOUT_WORDS = /\b(gp|historic|modern|club|national|international|outer|inner|oval|short|long|full|classic|north|south|east|west|sprint|endurance|rallycross|kart|stt|\d{4}|\d+)\b/gi;
+function wikiQueries(kind, q) {
+  const name = q.replace(/_/g, ' ').trim();
+  if (kind === 'track') {
+    const base = name.replace(LAYOUT_WORDS, '').replace(/\s+/g, ' ').trim() || name;
+    return [`${base} circuit`, `${base} racetrack`, base];
+  }
+  return [name, `${name} car`];
+}
+
+async function wikiLookup(kind, q) {
+  for (const query of wikiQueries(kind, q)) {
+    const api = (process.env.PANEL_WIKI_API || 'https://en.wikipedia.org/w/api.php') + '?action=query&format=json&generator=search&gsrlimit=3'
+      + '&prop=pageimages|info&piprop=thumbnail&pithumbsize=480&inprop=url&gsrsearch=' + encodeURIComponent(query);
+    const res = await fetch(api, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error('Wikipedia HTTP ' + res.status);
+    const pages = Object.values((await res.json())?.query?.pages || {}).sort((a, b) => a.index - b.index);
+    const hit = pages.find((p) => p.thumbnail?.source);
+    if (hit) return { image: hit.thumbnail.source, page: hit.fullurl || '', title: hit.title };
+  }
+  return null;
+}
+
+const inflight = new Map();
+let active = 0;
+const waiting = [];
+async function limited(fn) {
+  // At most two lookups at a time, to be polite to Wikipedia.
+  if (active >= 2) await new Promise((r) => waiting.push(r));
+  active++;
+  try { return await fn(); } finally { active--; waiting.shift()?.(); }
+}
+
+async function getImage(kind, id, q) {
+  const key = `${kind}_${id}`;
+  const ix = readImageIndex();
+  const hit = ix[key];
+  if (hit?.file) {
+    try { return { type: hit.type, data: fs.readFileSync(path.join(imgDir(), hit.file)) }; } catch { /* re-fetch */ }
+  }
+  if (settings.imageSource !== 'wikipedia' || !q) return null;
+  if (hit?.source === 'none' && Date.now() - Date.parse(hit.savedAt) < 7 * 864e5) return null;
+  if (!inflight.has(key)) {
+    inflight.set(key, limited(async () => {
+      try {
+        const found = await wikiLookup(kind, q);
+        if (!found) {
+          const i2 = readImageIndex(); i2[key] = { source: 'none', savedAt: new Date().toISOString() }; writeImageIndex(i2);
+          return null;
+        }
+        const { buf, type } = await downloadImage(found.image);
+        saveImage(kind, id, buf, type, { source: 'wikipedia', page: found.page, title: found.title });
+        return { type, data: buf };
+      } catch (e) {
+        log('panel', `Image lookup for "${q}" failed: ${e.message}`);
+        return null;
+      } finally { inflight.delete(key); }
+    }));
+  }
+  return inflight.get(key);
+}
+
 // ------------------------------------------------------------------- http --
 
 const sessions = new Map(); // token -> expiry
@@ -374,7 +484,7 @@ function send(res, code, obj, headers = {}) {
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', (c) => { data += c; if (data.length > 2e6) { reject(new Error('Too large')); req.destroy(); } });
+    req.on('data', (c) => { data += c; if (data.length > 12e6) { reject(new Error('Too large')); req.destroy(); } });
     req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch (e) { reject(new Error('Bad JSON')); } });
   });
 }
@@ -405,14 +515,14 @@ async function api(req, res, url) {
     const { password } = await readBody(req);
     if (!checkPassword(password, settings.passwordHash)) {
       await sleep(1000);
-      return send(res, 401, { error: 'Hibás jelszó.' });
+      return send(res, 401, { error: 'Wrong password.' });
     }
     const token = crypto.randomBytes(24).toString('hex');
     sessions.set(token, Date.now() + SESSION_MS);
     return send(res, 200, { ok: true }, { 'Set-Cookie': `ams2panel=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_MS / 1000}` });
   }
   if (route === 'GET /api/auth/check') return send(res, 200, { authed: authed(req), version: VERSION });
-  if (!authed(req)) return send(res, 401, { error: 'Bejelentkezés szükséges.' });
+  if (!authed(req)) return send(res, 401, { error: 'Please sign in.' });
 
   if (route === 'POST /api/auth/logout') {
     sessions.delete(getCookie(req, 'ams2panel'));
@@ -428,13 +538,14 @@ async function api(req, res, url) {
     try { cfg = readConfig().config; } catch (e) { cfgError = fs.existsSync(cfgPath()) ? e.message : 'missing'; }
     const warnings = [];
     if (cfg) {
-      if (!cfg.enableHttpApi) warnings.push('Az enableHttpApi ki van kapcsolva, így a panel nem látja és nem vezérli a futó szervert.');
-      if (!cfg.controlGameSetup) warnings.push('A controlGameSetup ki van kapcsolva: a host játékos dönt a beállításokról, a panelből küldött futambeállításokat a szerver figyelmen kívül hagyja.');
+      if (!cfg.enableHttpApi) warnings.push('enableHttpApi is off, so the panel cannot see or control the running server. Turn it on in the Server tab.');
+      if (!cfg.controlGameSetup) warnings.push('controlGameSetup is off: the host player decides the setup, and the server ignores race settings sent from this panel. Turn it on in the Server tab.');
     }
     return send(res, 200, {
       version: VERSION, platform: process.platform,
       process: { state: proc.state, pid: proc.pid, startedAt: proc.startedAt, external: proc.external, busy: proc.busy },
       installed: fs.existsSync(exePath()), cfgPath: cfgPath(), cfgError, status, dsError, warnings,
+      display: { dateFormat: settings.dateFormat, timeFormat: settings.timeFormat, imageSource: settings.imageSource },
     });
   }
 
@@ -446,14 +557,14 @@ async function api(req, res, url) {
   }
   if (route === 'PUT /api/config') {
     const { config } = await readBody(req);
-    if (!config || typeof config !== 'object') return send(res, 400, { error: 'Hiányzó config.' });
+    if (!config || typeof config !== 'object') return send(res, 400, { error: 'Missing config.' });
     fs.mkdirSync(settings.serverDir, { recursive: true });
     const raw = writeConfig(config);
     return send(res, 200, { ok: true, raw, running: proc.state === 'running' });
   }
   if (route === 'PUT /api/config/raw') {
     const { raw } = await readBody(req);
-    try { writeRawConfig(String(raw)); } catch (e) { return send(res, 400, { error: 'Hibás config: ' + e.message }); }
+    try { writeRawConfig(String(raw)); } catch (e) { return send(res, 400, { error: 'The config has an error: ' + e.message }); }
     return send(res, 200, { ok: true, running: proc.state === 'running' });
   }
   if (route === 'GET /api/config/default') return send(res, 200, { config: defaultConfig() });
@@ -472,7 +583,7 @@ async function api(req, res, url) {
   if (route === 'POST /api/session/apply') {
     const { attributes, mode } = await readBody(req);
     const q = attrQuery(attributes || {});
-    if (!q) return send(res, 400, { error: 'Nincs mit beállítani.' });
+    if (!q) return send(res, 400, { error: 'Nothing to send.' });
     const ep = mode === 'now' ? 'set_attributes' : 'set_next_attributes';
     const r = await ds(`/api/session/${ep}?${q}`);
     log('panel', `Session settings sent (${ep})`);
@@ -497,7 +608,7 @@ async function api(req, res, url) {
   if (route === 'GET /api/presets') return send(res, 200, readPresets());
   if (route === 'PUT /api/presets') {
     const { name, attributes } = await readBody(req);
-    if (!name) return send(res, 400, { error: 'Adj nevet az előbeállításnak.' });
+    if (!name) return send(res, 400, { error: 'Give the preset a name.' });
     const p = readPresets();
     p[name] = { attributes, savedAt: new Date().toISOString() };
     writePresets(p);
@@ -510,16 +621,45 @@ async function api(req, res, url) {
     return send(res, 200, { ok: true });
   }
 
+  if (route === 'GET /api/image') {
+    const kind = url.searchParams.get('kind'), id = url.searchParams.get('id');
+    if (!IMAGE_KINDS.has(kind) || !/^-?\d+$/.test(id || '')) return send(res, 400, { error: 'Bad image request.' });
+    const img = await getImage(kind, id, url.searchParams.get('q') || '');
+    if (!img) { res.writeHead(404, { 'Cache-Control': 'no-store' }); return res.end(); }
+    res.writeHead(200, { 'Content-Type': img.type, 'Cache-Control': 'private, max-age=3600', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'", 'X-Content-Type-Options': 'nosniff' });
+    return res.end(img.data);
+  }
+  if (route === 'GET /api/images/meta') return send(res, 200, readImageIndex());
+  if (route === 'PUT /api/image') {
+    const { kind, id, dataUrl, url: imgUrl } = await readBody(req);
+    if (!IMAGE_KINDS.has(kind) || !/^-?\d+$/.test(String(id))) return send(res, 400, { error: 'Bad image request.' });
+    let buf, type;
+    if (dataUrl) {
+      const m = /^data:(image\/(png|jpeg|webp|gif|svg\+xml));base64,(.+)$/.exec(dataUrl);
+      if (!m) return send(res, 400, { error: 'Use a PNG, JPEG, WebP, GIF or SVG image.' });
+      type = m[1]; buf = Buffer.from(m[3], 'base64');
+    } else if (imgUrl) {
+      try { ({ buf, type } = await downloadImage(imgUrl)); } catch (e) { return send(res, 400, { error: 'Could not download the image: ' + e.message }); }
+    } else return send(res, 400, { error: 'Choose a file or paste an image link.' });
+    if (buf.length > 8e6) return send(res, 400, { error: 'The image is larger than 8 MB.' });
+    saveImage(kind, id, buf, type, { source: 'custom', page: imgUrl || '' });
+    return send(res, 200, { ok: true });
+  }
+  if (route === 'DELETE /api/image') {
+    removeImage(url.searchParams.get('kind'), url.searchParams.get('id'));
+    return send(res, 200, { ok: true });
+  }
+
   if (route === 'GET /api/panel/settings') {
     const { password, passwordHash, ...rest } = settings;
     return send(res, 200, { settings: rest, settingsFile: SETTINGS_FILE });
   }
   if (route === 'PUT /api/panel/settings') {
     const body = await readBody(req);
-    const allowed = ['serverDir', 'serverExe', 'launcher', 'launchArgs', 'postStop', 'steamcmd', 'dsApiUrl', 'autoStart', 'autoRestart'];
+    const allowed = ['serverDir', 'serverExe', 'launcher', 'launchArgs', 'postStop', 'steamcmd', 'dsApiUrl', 'autoStart', 'autoRestart', 'dateFormat', 'timeFormat', 'imageSource'];
     for (const k of allowed) if (k in body) settings[k] = body[k];
     if (body.newPassword) {
-      if (!checkPassword(body.currentPassword, settings.passwordHash)) return send(res, 400, { error: 'A jelenlegi jelszó hibás.' });
+      if (!checkPassword(body.currentPassword, settings.passwordHash)) return send(res, 400, { error: 'The current password is wrong.' });
       settings.passwordHash = hashPassword(body.newPassword);
       sessions.clear();
     }
@@ -527,7 +667,7 @@ async function api(req, res, url) {
     return send(res, 200, { ok: true, relogin: !!body.newPassword });
   }
 
-  return send(res, 404, { error: 'Ismeretlen végpont.' });
+  return send(res, 404, { error: 'Unknown endpoint.' });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -545,7 +685,7 @@ const server = http.createServer(async (req, res) => {
 
 async function main() {
   if (!settings.passwordHash) {
-    console.error('Nincs jelszó beállítva. Írd be a "password" mezőbe itt: ' + SETTINGS_FILE + ' (vagy add meg a PANEL_PASSWORD környezeti változót), majd indítsd újra.');
+    console.error('No password set. Put one in the "password" field of ' + SETTINGS_FILE + ' (or set the PANEL_PASSWORD environment variable) and start again.');
     if (!fs.existsSync(SETTINGS_FILE)) saveSettings(settings);
     process.exit(1);
   }
