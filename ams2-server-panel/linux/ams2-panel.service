@@ -1,0 +1,23 @@
+# Template used by install.sh (the @...@ values are filled in there).
+[Unit]
+Description=AMS2 dedicated server web panel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+WorkingDirectory=@DIR@
+Environment=HOME=@HOME@
+Environment=WINEPREFIX=@HOME@/wine
+Environment=WINEDEBUG=-all
+ExecStart=@NODE@ @DIR@/panel.js
+Restart=on-failure
+RestartSec=5
+# Stopping the service also stops the dedicated server and Wine.
+KillMode=mixed
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

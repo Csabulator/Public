@@ -1,0 +1,25 @@
+services:
+  ams2:
+    build: .
+    image: ams2-server-panel
+    container_name: ams2-server
+    restart: unless-stopped
+    init: true                  # reaps Wine's child processes
+    # Host networking is the simplest for a Steam game server: the game ports
+    # and the panel are opened directly on the host (Synology NAS included).
+    network_mode: host
+    # Without host networking, remove the line above and use these instead:
+    # ports:
+    #   - "8080:8080/tcp"
+    #   - "8766:8766/tcp"
+    #   - "8766:8766/udp"
+    #   - "27015:27015/tcp"
+    #   - "27015:27015/udp"
+    #   - "27016:27016/tcp"
+    #   - "27016:27016/udp"
+    environment:
+      PANEL_PASSWORD: "change-me"   # used on the first start, then stored as a hash
+      PANEL_PORT: "8080"
+      TZ: "Europe/Budapest"
+    volumes:
+      - ./data:/data             # dedicated server, server.cfg, Wine prefix, presets, backups
