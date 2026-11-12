@@ -77,25 +77,14 @@
     <section data-panel="session" hidden>
       <p class="muted" id="listsInfo"></p>
       <form id="sessionForm" class="form">
-        <fieldset class="pickers">
+        <fieldset>
           <legend>Track and car</legend>
-          <div class="choice" data-pick="track">
-            <span class="choice-label">Track</span>
-            <button type="button" class="choice-card"><span class="thumb track"></span><span class="choice-name">–</span><span class="choice-meta"></span></button>
-          </div>
-          <div class="choice" data-pick="class">
-            <span class="choice-label">Class</span>
-            <button type="button" class="choice-card"><span class="thumb"></span><span class="choice-name">–</span><span class="choice-meta"></span></button>
-          </div>
-          <div class="choice" data-pick="vehicle">
-            <span class="choice-label">Car</span>
-            <button type="button" class="choice-card"><span class="thumb"></span><span class="choice-name">–</span><span class="choice-meta"></span></button>
-          </div>
-          <div class="checks">
-            <label class="check"><input type="checkbox" data-attr="ServerControlsTrack" data-type="bool01"> The server picks the track</label>
-            <label class="check"><input type="checkbox" data-attr="ServerControlsVehicleClass" data-type="bool01"> The server picks the class</label>
-            <label class="check"><input type="checkbox" data-attr="ServerControlsVehicle" data-type="bool01"> The server picks the car</label>
-          </div>
+          <label class="wide">Track <select id="s_TrackId" data-attr="TrackId" data-type="int"></select></label>
+          <label>Class <select id="s_VehicleClassId" data-attr="VehicleClassId" data-type="int"></select></label>
+          <label>Car <select id="s_VehicleModelId" data-attr="VehicleModelId" data-type="int"></select></label>
+          <label class="check"><input type="checkbox" data-attr="ServerControlsTrack" data-type="bool01"> The server picks the track</label>
+          <label class="check"><input type="checkbox" data-attr="ServerControlsVehicleClass" data-type="bool01"> The server picks the class</label>
+          <label class="check"><input type="checkbox" data-attr="ServerControlsVehicle" data-type="bool01"> The server picks the car</label>
         </fieldset>
         <fieldset>
           <legend>Field</legend>
@@ -231,8 +220,6 @@
             <option value="uk">12/11/2026</option><option value="us">11/12/2026</option></select></label>
           <label>Time format <select data-pkey="timeFormat" id="timeFormat">
             <option value="24h">24-hour (16:45)</option><option value="12h">12-hour (4:45 PM)</option></select></label>
-          <label>Track and car pictures <select data-pkey="imageSource">
-            <option value="wikipedia">Look up on Wikipedia</option><option value="off">Only my own pictures</option></select></label>
           <p class="hint" id="formatPreview"></p>
         </fieldset>
         <fieldset>
@@ -261,34 +248,6 @@
     </section>
   </main>
 </div>
-
-<!-- Picker for track / class / car -->
-<dialog id="picker" class="picker" aria-labelledby="pickerTitle">
-  <header class="picker-head">
-    <h2 id="pickerTitle">Choose</h2>
-    <input id="pickerSearch" type="search" placeholder="Search" aria-label="Search">
-    <label class="check" id="pickerAllWrap"><input type="checkbox" id="pickerAll"> All classes</label>
-    <button class="btn" id="pickerClose" type="button">Close</button>
-  </header>
-  <div class="tiles" id="pickerTiles"></div>
-  <p class="empty" id="pickerEmpty" hidden>Nothing matches the search.</p>
-</dialog>
-
-<!-- Picture editor -->
-<dialog id="imgDialog" class="imgdlg" aria-labelledby="imgTitle">
-  <form method="dialog" id="imgForm">
-    <h2 id="imgTitle">Picture</h2>
-    <div class="imgdlg-preview"><img id="imgPreview" alt=""></div>
-    <p class="muted small" id="imgSource"></p>
-    <label>Upload a file <input type="file" id="imgFile" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"></label>
-    <label>Or paste an image link <input type="url" id="imgUrl" placeholder="https://…"></label>
-    <div class="imgdlg-actions">
-      <button class="btn primary" id="imgSave" value="save">Save picture</button>
-      <button class="btn" id="imgReset" value="reset">Use automatic picture</button>
-      <button class="btn" value="cancel">Cancel</button>
-    </div>
-  </form>
-</dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="app.js"></script>

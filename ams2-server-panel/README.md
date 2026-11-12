@@ -5,8 +5,7 @@ the built-in web tool with a clear interface, so you can:
 
 - see whether the server runs, which track is loaded and who is on it
 - start, stop and restart the server, and update it with SteamCMD
-- pick track, class and car from a grid of pictures (track layouts and car
-  photos) instead of typing numeric IDs
+- pick track, class and car by name from drop-down lists instead of numeric IDs
 - set grid, session lengths, damage, tyre wear, fuel, penalties, weather and the
   race rules as checkboxes instead of one big number
 - send the setup to the **next race** without a restart, or save it into
@@ -87,20 +86,6 @@ panel writes on a fresh install.
 Everything else (ports, Lua addons, session attributes) stays. Unknown keys in
 an existing `server.cfg`, such as black- and whitelists, are kept when the
 panel saves the file.
-
-## Track and car pictures
-
-The dedicated server does not ship any pictures, so the panel finds them
-itself: the first time a track, class or car is shown, it looks up the best
-matching English Wikipedia article and caches its main image (for circuits
-this is usually the layout map). A class uses the picture of its first car.
-
-The match is automatic and can be wrong, especially for fictional or
-historic cars. Hover over a tile in the picker and click **Picture** to upload
-your own image or paste an image link; your own pictures always take priority.
-To never contact Wikipedia, set *Track and car pictures* to
-*Only my own pictures* on the **Panel** tab. Pictures are stored in the panel's
-`data/images` folder.
 
 ## Security
 

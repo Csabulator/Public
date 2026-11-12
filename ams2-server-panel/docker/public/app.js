@@ -6,9 +6,8 @@ let config = null;      // parsed server.cfg
 let sess = {};          // working copy of sessionAttributes
 let lists = {};         // cached lists from the dedicated server
 let state = null;
-let display = { dateFormat: 'iso', timeFormat: '24h', imageSource: 'wikipedia' };
+let display = { dateFormat: 'iso', timeFormat: '24h' };
 let logLast = 0;
-const imgVersion = {};  // bumps after a picture changes, so the browser reloads it
 
 // ------------------------------------------------------------------ helpers --
 
@@ -70,30 +69,6 @@ function fmtTime(ms, seconds) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}${s}`;
 }
 const fmtDateTime = (ms) => `${fmtDate(ms)} ${fmtTime(ms)}`;
-
-// ----------------------------------------------------------------- pictures --
-
-const initials = (name) => pretty(name).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
-function imgSrc(kind, id, q) {
-  const v = imgVersion[`${kind}_${id}`] || 0;
-  return `/api/image?kind=${kind}&id=${encodeURIComponent(id)}&q=${encodeURIComponent(q || '')}&v=${v}`;
-}
-function thumb(kind, id, q, name) {
-  const cls = kind === 'track' ? 'thumb track' : 'thumb';
-  if (id === undefined || id === null) return `<span class="${cls}">?</span>`;
-  return `<span class="${cls}" data-initials="${esc(initials(name))}"><img loading="lazy" alt="" src="${esc(imgSrc(kind, id, q))}"></span>`;
-}
-// A missing picture shows the initials instead.
-document.addEventListener('error', (e) => {
-  const img = e.target;
-  if (img.tagName === 'IMG' && img.parentElement?.classList.contains('thumb')) img.parentElement.textContent = img.parentElement.dataset.initials || '?';
-}, true);
-
-// What to look up for each kind: a class uses its first car.
-function imageQuery(kind, item) {
-  if (kind === 'class') return vehiclesInClass(item)[0]?.name || item.name;
-  return item.name;
-}
 
 // ------------------------------------------------------------------- login --
 
@@ -238,149 +213,13 @@ function fillSelect(sel, items, current) {
 }
 
 function renderChoices() {
-  const t = listOf(lists.tracks).find((x) => idOf(x) === sess.TrackId);
+  const t = tracks().map((x) => ({ ...x, name: pretty(x.name) + (x.gridsize ? ` (up to ${x.gridsize} cars)` : '') }));
+  fillSelect($('#s_TrackId'), t, sess.TrackId);
+  fillSelect($('#s_VehicleClassId'), classes(), sess.VehicleClassId);
   const c = classes().find((x) => idOf(x) === sess.VehicleClassId);
-  const v = vehicles().find((x) => idOf(x) === sess.VehicleModelId);
-  const set = (kind, item, id, metaText) => {
-    const card = $(`[data-pick="${kind}"] .choice-card`);
-    const name = item ? pretty(item.name) : (id !== undefined ? `ID ${id}` : 'Not set');
-    card.querySelector('.thumb').outerHTML = item ? thumb(kind, id, imageQuery(kind, item), item.name) : `<span class="thumb${kind === 'track' ? ' track' : ''}">?</span>`;
-    card.querySelector('.choice-name').textContent = name;
-    card.querySelector('.choice-meta').textContent = metaText;
-    card.setAttribute('aria-label', `${$(`[data-pick="${kind}"] .choice-label`).textContent}: ${name}. Change`);
-  };
-  set('track', t, sess.TrackId, t?.gridsize ? `Up to ${t.gridsize} cars` : '');
-  set('class', c, sess.VehicleClassId, c ? carCount(vehiclesInClass(c).length) : '');
-  set('vehicle', v, sess.VehicleModelId, v ? pretty(classOfVehicle(v)?.name || v.class || '') : '');
+  const cars = vehiclesInClass(c);
+  fillSelect($('#s_VehicleModelId'), cars.length ? cars : vehicles(), sess.VehicleModelId);
 }
-
-// ------------------------------------------------------------------ picker --
-
-let pickKind = null;
-const PICK = {
-  track: { title: 'Choose a track', attr: 'TrackId', items: () => tracks(), meta: (t) => (t.gridsize ? `Up to ${t.gridsize} cars` : '') },
-  class: { title: 'Choose a class', attr: 'VehicleClassId', items: () => classes(), meta: (c) => carCount(vehiclesInClass(c).length) },
-  vehicle: {
-    title: 'Choose a car', attr: 'VehicleModelId',
-    items: () => {
-      const c = classes().find((x) => idOf(x) === sess.VehicleClassId);
-      return $('#pickerAll').checked || !c ? vehicles() : vehiclesInClass(c);
-    },
-    meta: (v) => pretty(classOfVehicle(v)?.name || v.class || ''),
-  },
-};
-
-$$('[data-pick] .choice-card').forEach((card) => card.addEventListener('click', () => {
-  const kind = card.closest('[data-pick]').dataset.pick;
-  if (!PICK[kind].items().length && kind !== 'vehicle') return toast('Start the server once so the panel can load the track and car lists.', true);
-  openPicker(kind);
-}));
-
-function openPicker(kind) {
-  pickKind = kind;
-  $('#pickerTitle').textContent = PICK[kind].title;
-  $('#pickerSearch').value = '';
-  $('#pickerAllWrap').hidden = kind !== 'vehicle';
-  $('#pickerAll').checked = false;
-  renderPicker();
-  $('#picker').showModal();
-  $('#pickerSearch').focus();
-}
-
-function renderPicker() {
-  const p = PICK[pickKind];
-  const q = $('#pickerSearch').value.trim().toLowerCase();
-  const items = p.items().filter((x) => !q || pretty(x.name).toLowerCase().includes(q) || p.meta(x).toLowerCase().includes(q));
-  const current = sess[p.attr];
-  $('#pickerTiles').innerHTML = items.map((x) => {
-    const id = idOf(x);
-    return `<div class="tile${id === current ? ' selected' : ''}">
-      <button type="button" class="tile-pick" data-id="${esc(id)}" aria-pressed="${id === current}">
-        ${thumb(pickKind, id, imageQuery(pickKind, x), x.name)}
-        <b>${esc(pretty(x.name))}</b><small>${esc(p.meta(x))}</small>
-      </button>
-      <button type="button" class="tile-edit" data-edit="${esc(id)}" aria-label="Change the picture of ${esc(pretty(x.name))}">Picture</button>
-    </div>`;
-  }).join('');
-  $('#pickerEmpty').hidden = items.length > 0;
-  $('#pickerEmpty').textContent = p.items().length ? 'Nothing matches the search.' : 'Start the server once so the panel can load the lists.';
-}
-
-$('#pickerSearch').addEventListener('input', renderPicker);
-$('#pickerAll').addEventListener('change', renderPicker);
-$('#pickerClose').addEventListener('click', () => $('#picker').close());
-
-$('#pickerTiles').addEventListener('click', (e) => {
-  const edit = e.target.closest('[data-edit]');
-  if (edit) {
-    const item = PICK[pickKind].items().find((x) => String(idOf(x)) === edit.dataset.edit);
-    return openImageEditor(pickKind, idOf(item), item);
-  }
-  const pick = e.target.closest('[data-id]');
-  if (!pick) return;
-  const item = PICK[pickKind].items().find((x) => String(idOf(x)) === pick.dataset.id);
-  const id = idOf(item);
-  if (pickKind === 'track') sess.TrackId = id;
-  if (pickKind === 'class') {
-    sess.VehicleClassId = id;
-    const cars = vehiclesInClass(item);
-    if (cars.length && !cars.some((v) => idOf(v) === sess.VehicleModelId)) sess.VehicleModelId = idOf(cars[0]);
-  }
-  if (pickKind === 'vehicle') {
-    sess.VehicleModelId = id;
-    const c = classOfVehicle(item);
-    if (c) sess.VehicleClassId = idOf(c);
-  }
-  $('#picker').close();
-  renderSession();
-});
-
-// ----------------------------------------------------------- picture editor --
-
-let imgTarget = null;
-async function openImageEditor(kind, id, item) {
-  imgTarget = { kind, id, q: imageQuery(kind, item) };
-  $('#imgTitle').textContent = 'Picture: ' + pretty(item.name);
-  $('#imgPreview').src = imgSrc(kind, id, imgTarget.q);
-  $('#imgFile').value = '';
-  $('#imgUrl').value = '';
-  const meta = (await api('GET', '/api/images/meta').catch(() => ({})))[`${kind}_${id}`];
-  const src = $('#imgSource');
-  if (meta?.source === 'custom') src.textContent = 'Your own picture.';
-  else if (meta?.source === 'wikipedia') src.innerHTML = `Found automatically on Wikipedia (<a href="${esc(meta.page)}" target="_blank" rel="noopener">${esc(meta.title || 'source')}</a>). It may not be the right one; replace it below if needed.`;
-  else src.textContent = display.imageSource === 'wikipedia' ? 'No picture found yet. Upload one or paste a link.' : 'No picture yet. Upload one or paste a link.';
-  $('#imgDialog').showModal();
-}
-
-$('#imgFile').addEventListener('change', () => {
-  const f = $('#imgFile').files[0];
-  if (f) $('#imgPreview').src = URL.createObjectURL(f);
-});
-
-$('#imgForm').addEventListener('submit', async (e) => {
-  const action = e.submitter?.value;
-  if (action === 'cancel' || !imgTarget) return;
-  e.preventDefault();
-  const { kind, id } = imgTarget;
-  try {
-    if (action === 'reset') {
-      await api('DELETE', `/api/image?kind=${kind}&id=${encodeURIComponent(id)}`);
-      toast('Picture reset to automatic.');
-    } else {
-      const f = $('#imgFile').files[0];
-      const body = { kind, id };
-      if (f) body.dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
-      else if ($('#imgUrl').value.trim()) body.url = $('#imgUrl').value.trim();
-      else return toast('Choose a file or paste an image link.', true);
-      await api('PUT', '/api/image', body);
-      toast('Picture saved.');
-    }
-    imgVersion[`${kind}_${id}`] = Date.now();
-    $('#imgDialog').close();
-    if ($('#picker').open) renderPicker();
-    renderChoices();
-  } catch (err) { toast(err.message, true); }
-});
 
 // ----------------------------------------------------------------- session --
 
@@ -533,6 +372,11 @@ $('#sessionForm').addEventListener('change', (e) => {
   else if (el.value === '') delete sess[k];
   else if (t === 'str') sess[k] = el.value;
   else sess[k] = Number(el.value);
+  if (k === 'VehicleClassId') {
+    const cars = vehiclesInClass(classes().find((x) => idOf(x) === sess.VehicleClassId));
+    if (cars.length && !cars.some((v) => idOf(v) === sess.VehicleModelId)) sess.VehicleModelId = idOf(cars[0]);
+    renderChoices();
+  }
   if (k === 'RaceWeatherSlots') renderWeather();
   updateGridHint();
 });
@@ -751,7 +595,6 @@ $('#panelSave').addEventListener('click', async () => {
     toast('Panel settings saved.');
     if (r.relogin) return showLogin();
     await refreshState();
-    renderChoices();
   } catch (err) { toast(err.message, true); }
 });
 

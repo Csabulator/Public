@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 const cfgfile = require('./cfg');
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const isWin = process.platform === 'win32';
 const APP_DIR = __dirname;
 const SETTINGS_FILE = process.env.PANEL_SETTINGS || path.join(APP_DIR, 'panel.json');
@@ -37,7 +37,6 @@ const DEFAULTS = {
   installIfMissing: false,
   dateFormat: 'iso',     // iso | eu | uk | us
   timeFormat: '24h',     // 24h | 12h
-  imageSource: 'wikipedia', // wikipedia | off (custom images always work)
 };
 
 let settings = loadSettings();
@@ -351,113 +350,6 @@ function listAddons() {
     });
 }
 
-// ------------------------------------------------------------------- images --
-// Pictures for tracks, classes and cars. Admins can upload their own; otherwise,
-// when imageSource is "wikipedia", the panel looks up the lead image of the
-// best matching Wikipedia article once and caches it.
-
-const IMAGE_KINDS = new Set(['track', 'vehicle', 'class']);
-const imgDir = () => { const d = path.join(dataDir(), 'images'); fs.mkdirSync(d, { recursive: true }); return d; };
-const imgIndexFile = () => path.join(imgDir(), 'index.json');
-const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg' };
-const UA = `ams2-server-panel/${VERSION} (https://github.com/Csabulator/Public)`;
-
-function readImageIndex() {
-  try { return JSON.parse(fs.readFileSync(imgIndexFile(), 'utf8')); } catch { return {}; }
-}
-function writeImageIndex(ix) { fs.writeFileSync(imgIndexFile(), JSON.stringify(ix, null, 1)); }
-
-function saveImage(kind, id, buf, type, meta) {
-  const key = `${kind}_${id}`;
-  const ix = readImageIndex();
-  if (ix[key]?.file) { try { fs.unlinkSync(path.join(imgDir(), ix[key].file)); } catch { /* gone */ } }
-  const file = `${key}.${EXT[type] || 'img'}`;
-  fs.writeFileSync(path.join(imgDir(), file), buf);
-  ix[key] = { file, type, ...meta, savedAt: new Date().toISOString() };
-  writeImageIndex(ix);
-}
-
-function removeImage(kind, id) {
-  const key = `${kind}_${id}`;
-  const ix = readImageIndex();
-  if (ix[key]?.file) { try { fs.unlinkSync(path.join(imgDir(), ix[key].file)); } catch { /* gone */ } }
-  delete ix[key];
-  writeImageIndex(ix);
-}
-
-async function downloadImage(u) {
-  if (!/^https?:\/\//i.test(u)) throw new Error('the link must start with http:// or https://');
-  const res = await fetch(u, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const type = (res.headers.get('content-type') || '').split(';')[0].trim();
-  if (!EXT[type]) throw new Error('the link is not a PNG, JPEG, WebP, GIF or SVG image');
-  const buf = Buffer.from(await res.arrayBuffer());
-  return { buf, type };
-}
-
-// AMS2 names look like "Interlagos_GP" or "Adelaide_Historic"; strip the layout part.
-const LAYOUT_WORDS = /\b(gp|historic|modern|club|national|international|outer|inner|oval|short|long|full|classic|north|south|east|west|sprint|endurance|rallycross|kart|stt|\d{4}|\d+)\b/gi;
-function wikiQueries(kind, q) {
-  const name = q.replace(/_/g, ' ').trim();
-  if (kind === 'track') {
-    const base = name.replace(LAYOUT_WORDS, '').replace(/\s+/g, ' ').trim() || name;
-    return [`${base} circuit`, `${base} racetrack`, base];
-  }
-  return [name, `${name} car`];
-}
-
-async function wikiLookup(kind, q) {
-  for (const query of wikiQueries(kind, q)) {
-    const api = (process.env.PANEL_WIKI_API || 'https://en.wikipedia.org/w/api.php') + '?action=query&format=json&generator=search&gsrlimit=3'
-      + '&prop=pageimages|info&piprop=thumbnail&pithumbsize=480&inprop=url&gsrsearch=' + encodeURIComponent(query);
-    const res = await fetch(api, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10000) });
-    if (!res.ok) throw new Error('Wikipedia HTTP ' + res.status);
-    const pages = Object.values((await res.json())?.query?.pages || {}).sort((a, b) => a.index - b.index);
-    const hit = pages.find((p) => p.thumbnail?.source);
-    if (hit) return { image: hit.thumbnail.source, page: hit.fullurl || '', title: hit.title };
-  }
-  return null;
-}
-
-const inflight = new Map();
-let active = 0;
-const waiting = [];
-async function limited(fn) {
-  // At most two lookups at a time, to be polite to Wikipedia.
-  if (active >= 2) await new Promise((r) => waiting.push(r));
-  active++;
-  try { return await fn(); } finally { active--; waiting.shift()?.(); }
-}
-
-async function getImage(kind, id, q) {
-  const key = `${kind}_${id}`;
-  const ix = readImageIndex();
-  const hit = ix[key];
-  if (hit?.file) {
-    try { return { type: hit.type, data: fs.readFileSync(path.join(imgDir(), hit.file)) }; } catch { /* re-fetch */ }
-  }
-  if (settings.imageSource !== 'wikipedia' || !q) return null;
-  if (hit?.source === 'none' && Date.now() - Date.parse(hit.savedAt) < 7 * 864e5) return null;
-  if (!inflight.has(key)) {
-    inflight.set(key, limited(async () => {
-      try {
-        const found = await wikiLookup(kind, q);
-        if (!found) {
-          const i2 = readImageIndex(); i2[key] = { source: 'none', savedAt: new Date().toISOString() }; writeImageIndex(i2);
-          return null;
-        }
-        const { buf, type } = await downloadImage(found.image);
-        saveImage(kind, id, buf, type, { source: 'wikipedia', page: found.page, title: found.title });
-        return { type, data: buf };
-      } catch (e) {
-        log('panel', `Image lookup for "${q}" failed: ${e.message}`);
-        return null;
-      } finally { inflight.delete(key); }
-    }));
-  }
-  return inflight.get(key);
-}
-
 // ------------------------------------------------------------------- http --
 
 const sessions = new Map(); // token -> expiry
@@ -484,7 +376,7 @@ function send(res, code, obj, headers = {}) {
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', (c) => { data += c; if (data.length > 12e6) { reject(new Error('Too large')); req.destroy(); } });
+    req.on('data', (c) => { data += c; if (data.length > 2e6) { reject(new Error('Too large')); req.destroy(); } });
     req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch (e) { reject(new Error('Bad JSON')); } });
   });
 }
@@ -545,7 +437,7 @@ async function api(req, res, url) {
       version: VERSION, platform: process.platform,
       process: { state: proc.state, pid: proc.pid, startedAt: proc.startedAt, external: proc.external, busy: proc.busy },
       installed: fs.existsSync(exePath()), cfgPath: cfgPath(), cfgError, status, dsError, warnings,
-      display: { dateFormat: settings.dateFormat, timeFormat: settings.timeFormat, imageSource: settings.imageSource },
+      display: { dateFormat: settings.dateFormat, timeFormat: settings.timeFormat },
     });
   }
 
@@ -621,42 +513,13 @@ async function api(req, res, url) {
     return send(res, 200, { ok: true });
   }
 
-  if (route === 'GET /api/image') {
-    const kind = url.searchParams.get('kind'), id = url.searchParams.get('id');
-    if (!IMAGE_KINDS.has(kind) || !/^-?\d+$/.test(id || '')) return send(res, 400, { error: 'Bad image request.' });
-    const img = await getImage(kind, id, url.searchParams.get('q') || '');
-    if (!img) { res.writeHead(404, { 'Cache-Control': 'no-store' }); return res.end(); }
-    res.writeHead(200, { 'Content-Type': img.type, 'Cache-Control': 'private, max-age=3600', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'", 'X-Content-Type-Options': 'nosniff' });
-    return res.end(img.data);
-  }
-  if (route === 'GET /api/images/meta') return send(res, 200, readImageIndex());
-  if (route === 'PUT /api/image') {
-    const { kind, id, dataUrl, url: imgUrl } = await readBody(req);
-    if (!IMAGE_KINDS.has(kind) || !/^-?\d+$/.test(String(id))) return send(res, 400, { error: 'Bad image request.' });
-    let buf, type;
-    if (dataUrl) {
-      const m = /^data:(image\/(png|jpeg|webp|gif|svg\+xml));base64,(.+)$/.exec(dataUrl);
-      if (!m) return send(res, 400, { error: 'Use a PNG, JPEG, WebP, GIF or SVG image.' });
-      type = m[1]; buf = Buffer.from(m[3], 'base64');
-    } else if (imgUrl) {
-      try { ({ buf, type } = await downloadImage(imgUrl)); } catch (e) { return send(res, 400, { error: 'Could not download the image: ' + e.message }); }
-    } else return send(res, 400, { error: 'Choose a file or paste an image link.' });
-    if (buf.length > 8e6) return send(res, 400, { error: 'The image is larger than 8 MB.' });
-    saveImage(kind, id, buf, type, { source: 'custom', page: imgUrl || '' });
-    return send(res, 200, { ok: true });
-  }
-  if (route === 'DELETE /api/image') {
-    removeImage(url.searchParams.get('kind'), url.searchParams.get('id'));
-    return send(res, 200, { ok: true });
-  }
-
   if (route === 'GET /api/panel/settings') {
     const { password, passwordHash, ...rest } = settings;
     return send(res, 200, { settings: rest, settingsFile: SETTINGS_FILE });
   }
   if (route === 'PUT /api/panel/settings') {
     const body = await readBody(req);
-    const allowed = ['serverDir', 'serverExe', 'launcher', 'launchArgs', 'postStop', 'steamcmd', 'dsApiUrl', 'autoStart', 'autoRestart', 'dateFormat', 'timeFormat', 'imageSource'];
+    const allowed = ['serverDir', 'serverExe', 'launcher', 'launchArgs', 'postStop', 'steamcmd', 'dsApiUrl', 'autoStart', 'autoRestart', 'dateFormat', 'timeFormat'];
     for (const k of allowed) if (k in body) settings[k] = body[k];
     if (body.newPassword) {
       if (!checkPassword(body.currentPassword, settings.passwordHash)) return send(res, 400, { error: 'The current password is wrong.' });
