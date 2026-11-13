@@ -4,8 +4,14 @@ name: discord-carbot
 
 on:
   schedule:
-    - cron: "17 * * * *"    # hourly: plan, process edits, post when due
+    # GitHub skips scheduled runs when it is busy, so we ask often (every 15 min);
+    # the bot itself decides whether a post is due. See README for an external trigger.
+    - cron: "4,19,34,49 * * * *"
     - cron: "41 3 * * 1"    # Monday: look for new cars on Wikipedia
+  repository_dispatch:
+    types: [carbot-tick]    # optional external trigger (NAS / cron-job.org)
+  issues:
+    types: [opened]         # one-click buttons on the Pages view
   push:
     branches: [main]
     paths:
@@ -25,6 +31,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
   pages: write
   id-token: write
 
@@ -34,6 +41,10 @@ concurrency:
 
 jobs:
   bot:
+    # issue commands: only titles starting with "carbot:" and only from the repo owner
+    if: >-
+      github.event_name != 'issues' ||
+      (startsWith(github.event.issue.title, 'carbot:') && github.event.issue.author_association == 'OWNER')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -59,6 +70,8 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           CARBOT_DAY: ${{ inputs.nap }}
+          CARBOT_COMMAND: ${{ github.event_name == 'issues' && github.event.issue.title || '' }}
+          CARBOT_RESULT_FILE: ${{ runner.temp }}/carbot-result.md
           CARBOT_ACTION: ${{ contains(fromJSON('["masik-auto","uj-kepek","kuldes-most"]'), inputs.muvelet) && inputs.muvelet || '' }}
         run: python -m carbot run
 
@@ -70,7 +83,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add plan cars
+          git add plan cars config.json
           if git diff --cached --quiet; then
             echo "pushed=false" >> "$GITHUB_OUTPUT"
           else
@@ -79,6 +92,16 @@ jobs:
             git push -q
             echo "pushed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Answer and close the issue
+        if: always() && github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ runner.temp }}/carbot-result.md
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          { [ -s "$RESULT" ] && cat "$RESULT" || echo "Lefutott, de nem volt mit jelenteni."; echo; echo "[Futás naplója]($RUN_URL) · A Pages oldal pár percen belül frissül."; } > ../_comment.md
+          gh issue close "${{ github.event.issue.number }}" -R "${{ github.repository }}" --comment "$(cat ../_comment.md)"
 
       - name: Build plan page
         run: python -m carbot site ../_site
@@ -89,7 +112,7 @@ jobs:
 
   pages:
     needs: bot
-    if: needs.bot.outputs.pushed == 'true' || github.event_name != 'schedule'
+    if: needs.bot.outputs.pushed == 'true' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

@@ -2,6 +2,7 @@
 import html
 import os
 from datetime import date
+from urllib.parse import quote
 
 WEEKDAYS = ["hétfő", "kedd", "szerda", "csütörtök", "péntek", "szombat", "vasárnap"]
 STATUS = {"tervezett": "Tervezett", "jovahagyott": "Jóváhagyva", "kihagy": "Kihagyva",
@@ -40,13 +41,22 @@ h2{font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:var(--mute
 .warn{color:#ff6b66;font-size:12px}.over{color:#ff6b66;font-weight:700}
 .actions{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 14px}
 .actions a{font-size:13px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:#22252d;color:var(--text);text-decoration:none}
-.actions a:hover{border-color:#555}a{color:var(--blue)}
+.actions a:hover{border-color:#555}.actions a.go{background:var(--red);border-color:var(--red)}a{color:var(--blue)}
 details{margin:0 24px;color:var(--muted);font-size:14px}details code{background:#000;padding:1px 5px;border-radius:4px;color:#ddd}
 footer{color:var(--muted);font-size:12px;padding:24px}
 """
 
 
-def tile(p, cfg, repo, branch, today, history=False):
+ISSUE_BODY = ("Kattints lent a zöld **Create** / **Submit new issue** gombra. "
+              "A bot pár percen belül végrehajtja, ide visszaírja az eredményt, és lezárja ezt az issue-t.\n\n"
+              "(Időpontnál a címben átírhatod az ÓÓ:PP részt.)")
+
+
+def issue_link(repo, title):
+    return f"https://github.com/{repo}/issues/new?title={quote(title)}&body={quote(ISSUE_BODY)}"
+
+
+def tile(p, cfg, repo, branch, today, history=False, post_time=None):
     imgs = (p.get("kepek") or [])[:3]
     img_html = "".join(f'<img src="{e(i["url"])}" alt="" loading="lazy" title="{e(i.get("szerzo"))}">' for i in imgs) \
         or '<div class="none">nincs kép</div>'
@@ -58,8 +68,21 @@ def tile(p, cfg, repo, branch, today, history=False):
     if p.get("link"):
         acts.append(f'<a href="{e(p["link"])}" target="_blank">Megnyitás Discordon ↗</a>')
     if not history and repo:
+        d = p["nap"]
+        cmd = lambda c: issue_link(repo, f"carbot: {c} {d}")  # noqa: E731
+        sent = p.get("allapot") == "kikuldve"
+        acts.append(f'<a class="go" href="{e(cmd("kuldes-most"))}" target="_blank">🚀 {"Újraküldés" if sent else "Küldés most"}</a>')
+        if not sent:
+            acts.append(f'<a href="{e(cmd("masik-auto"))}" target="_blank">🎲 Másik autó</a>')
+            acts.append(f'<a href="{e(cmd("uj-kepek"))}" target="_blank">🖼️ Más képek</a>')
+            acts.append(f'<a href="{e(issue_link(repo, f"carbot: ido {d} {post_time}"))}" target="_blank">⏰ Időpont</a>')
+            if p.get("allapot") == "kihagy":
+                acts.append(f'<a href="{e(cmd("visszaallit"))}" target="_blank">↩️ Visszaállít</a>')
+            else:
+                acts.append(f'<a href="{e(cmd("kihagy"))}" target="_blank">⏭️ Kihagy</a>')
+            if cfg.get("csak_jovahagyott") and p.get("allapot") != "jovahagyott":
+                acts.append(f'<a href="{e(cmd("jovahagy"))}" target="_blank">✅ Jóváhagy</a>')
         acts.append(f'<a href="https://github.com/{repo}/edit/{branch}/{path}" target="_blank">✏️ Szerkesztés</a>')
-        acts.append(f'<a href="https://github.com/{repo}/blob/{branch}/{path}" target="_blank">📄 Fájl</a>')
     warn = p.get("figyelmeztetes") or (p.get("hiba") if p.get("allapot") == "hiba" else None)
     return f"""<div class="tile {'today' if is_today else ''} {e(p.get('allapot'))}">
   <div class="imgs n{len(imgs)}">{img_html}<div class="badge">#{e(p['sorszam'])}</div>
@@ -68,6 +91,7 @@ def tile(p, cfg, repo, branch, today, history=False):
     <div class="title">{e(p.get('auto_nev'))}<span class="cat">{e(p.get('kategoria'))}</span></div>
     <div class="text">{e(p.get('szoveg'))}</div>
     <div class="meta"><span class="status s-{e(p.get('allapot'))}">{e(STATUS.get(p.get('allapot'), p.get('allapot')))}</span>
+      {f'<span>🕘 {e(post_time)}</span>' if post_time and not history else ''}
       {'<span class="auto">automatikus – ellenőrizd</span>' if p.get('automatikus') else ''}
       <span class="{'over' if n > mx else ''}">{n}/{mx}</span></div>
     {f'<div class="warn">{e(warn)}</div>' if warn else ''}
@@ -80,7 +104,7 @@ def build(bot, out_dir, repo=None, branch="main"):
     today = bot.now().date()
     posts = bot.all_posts()
     upcoming = [posts[d] for d in sorted(posts) if d >= today.isoformat()][: int(bot.cfg["tervezett_napok"])]
-    history = sorted((p for p in posts.values() if p.get("allapot") == "kikuldve"),
+    history = sorted((p for p in list(posts.values()) + bot.extra_posts() if p.get("allapot") == "kikuldve"),
                      key=lambda p: p.get("kikuldve") or "", reverse=True)[:9]
     cfg = bot.cfg
     n_cur = sum(1 for c in bot.cars.values() if not c.get("auto"))
@@ -92,18 +116,22 @@ def build(bot, out_dir, repo=None, branch="main"):
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Autós érdekességek – posztterv</title>
 <style>{CSS}</style></head><body>
 <header><h1>🏁 Autós érdekességek <span>/</span> posztterv</h1>
-<div class="info"><span>Küldés: naponta {e(cfg['kuldes_ideje'])} ({e(cfg['idozona'])})</span>
+<div class="info"><span>Küldés: naponta {e(cfg['kuldes_ideje'])} ({e(cfg['idozona'])})
+<a href="{e(issue_link(repo, 'carbot: alap-ido ' + cfg['kuldes_ideje']))}" target="_blank">módosítás</a></span>
 <span>{'⏸️ SZÜNETEL' if cfg['szunet'] else ('Csak jóváhagyott posztok' if cfg['csak_jovahagyott'] else 'Automatikus küldés')}</span>
 <span>Autók: {n_cur} válogatott + {n_auto} automatikusan talált</span>
 <a href="{actions_url}" target="_blank">Futások ↗</a></div></header>
 <h2>Következő {e(cfg['tervezett_napok'])} nap</h2>
-<div class="grid">{''.join(tile(p, cfg, repo, branch, today.isoformat()) for p in upcoming)}</div>
+<div class="grid">{''.join(tile(p, cfg, repo, branch, today.isoformat(), post_time=bot.post_time(p)) for p in upcoming)}</div>
 <h2>Felülbírálás</h2>
-<details open><summary>Hogyan?</summary><p>Kattints a ✏️ Szerkesztés gombra, írd át a fájlt, majd <b>Commit changes</b>.
-Néhány percen belül feldolgozza, és ez az oldal is frissül.</p><ul>
+<details open><summary>Hogyan?</summary><p><b>Gombokkal:</b> a 🚀 🎲 🖼️ ⏰ ⏭️ gombok egy előre kitöltött GitHub issue-t nyitnak meg –
+csak a zöld <b>Create</b> gombra kell kattintani. A bot pár percen belül végrehajtja, visszaírja az eredményt és lezárja az issue-t.
+A ⏰ Időpontnál a címben írd át az ÓÓ:PP részt. Egy jövőbeli nap posztját a 🚀 azonnal kiküldi, és arra a napra új autót tesz a tervbe.</p>
+<p><b>Kézzel:</b> a ✏️ Szerkesztés gombbal a nap fájlja nyílik meg; írd át, majd <b>Commit changes</b>.</p><ul>
 <li><code>"szoveg"</code>: a leírás (max. {e(cfg['max_karakter'])} karakter)</li>
 <li><code>"allapot": "kihagy"</code>: aznap nem posztol · <code>"jovahagyott"</code>: jóváhagyva</li>
 <li><code>"muvelet": "masik-auto"</code>: új autót sorsol · <code>"uj-kepek"</code>: következő 3 kép · <code>"kuldes-most"</code>: azonnal kiküldi</li>
+<li><code>"kuldes_ideje": "18:30"</code>: csak erre a napra más időpont (üresen az alapértelmezett)</li>
 <li><code>"auto_id"</code>: konkrét autó az autólistából · <code>"kepek"</code>: saját kép URL-ek (max. 3)</li></ul></details>
 <h2>Legutóbb kiküldött</h2><div class="grid">{hist_html}</div>
 <footer>Képek: Wikimedia Commons (szabad licenc, szerzőjelöléssel a Discord-posztban). Frissítve: {e(bot.now().strftime('%Y-%m-%d %H:%M'))}</footer>

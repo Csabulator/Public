@@ -161,7 +161,7 @@ class TestPosting(Base):
         os.environ["DISCORD_WEBHOOK_URL"] = "https://discord.com/api/webhooks/1/abc"
         try:
             self.bot.now = lambda: datetime(2026, 11, 12, 10, 0, tzinfo=self.bot.tz)
-            self.assertEqual(cmd_run(self.bot), 1)
+            self.assertEqual(cmd_run(self.bot), 0)      # error is recorded, not a failing job
             p = self.bot.all_posts()["2026-11-12"]
             self.assertEqual((p["allapot"], p["probalkozas"]), ("hiba", 1))
         finally:
@@ -177,6 +177,70 @@ class TestImages(unittest.TestCase):
         self.assertEqual(r[0]["oldal"].rsplit(":", 1)[1], "Porsche_GT2_RS_IAA_2017.jpg")
 
 
+class TestCommands(Base):
+    def setUp(self):
+        super().setUp()
+        self.calls = []
+
+        def fake_http(url, params=None, data=None, headers=None, method=None, **kw):
+            self.calls.append(data)
+            return {"id": str(len(self.calls)), "channel_id": "2"} if method == "POST" else {"guild_id": "3"}
+
+        self._net, net.http = net.http, fake_http
+        os.environ["DISCORD_WEBHOOK_URL"] = "https://discord.com/api/webhooks/1/abc"
+        self.bot.now = lambda: datetime(2026, 11, 12, 7, 0, tzinfo=self.bot.tz)   # before 09:00
+        self.bot.refresh(self.today)
+
+    def tearDown(self):
+        net.http = self._net
+        os.environ.pop("DISCORD_WEBHOOK_URL", None)
+        os.environ.pop("CARBOT_COMMAND", None)
+        super().tearDown()
+
+    def run_cmd(self, title):
+        os.environ["CARBOT_COMMAND"] = title
+        try:
+            return cmd_run(self.bot)
+        finally:
+            os.environ.pop("CARBOT_COMMAND", None)
+
+    def test_send_future_day_now_archives_and_refills(self):
+        before = self.bot.all_posts()["2026-11-15"]
+        self.assertEqual(self.run_cmd("carbot: kuldes-most 2026-11-15"), 0)
+        self.assertEqual(len([c for c in self.calls if c]), 1)
+        extra = self.bot.extra_posts()
+        self.assertEqual(len(extra), 1)
+        self.assertEqual((extra[0]["auto_id"], extra[0]["allapot"], extra[0]["kuldve_nap"]),
+                         (before["auto_id"], "kikuldve", "2026-11-12"))
+        new = self.bot.all_posts()["2026-11-15"]
+        self.assertNotEqual(new["auto_id"], before["auto_id"])
+        self.assertEqual(new["allapot"], "tervezett")
+        self.assertEqual(new["sorszam"], 10)                    # numbering continues
+        self.assertEqual(self.bot.all_posts()["2026-11-12"]["allapot"], "tervezett")   # today's still pending
+
+    def test_time_commands(self):
+        self.assertEqual(self.run_cmd("carbot: ido 2026-11-12 6:30"), 0)
+        p = self.bot.all_posts()["2026-11-12"]
+        self.assertEqual(p["kuldes_ideje"], "06:30")
+        self.assertEqual(p["allapot"], "kikuldve")              # 07:00 > 06:30 -> sent in the same run
+        self.assertEqual(self.run_cmd("carbot: alap-ido 18:45"), 0)
+        self.assertEqual(json.load(open(os.path.join(self.tmp, "config.json")))["kuldes_ideje"], "18:45")
+        self.assertEqual(core.Bot(self.tmp).post_time(self.bot.all_posts()["2026-11-13"]), "18:45")
+
+    def test_other_commands_and_errors(self):
+        self.run_cmd("carbot: kihagy 2026-11-14")
+        self.assertEqual(self.bot.all_posts()["2026-11-14"]["allapot"], "kihagy")
+        self.run_cmd("carbot: visszaallit 2026-11-14")
+        self.assertEqual(self.bot.all_posts()["2026-11-14"]["allapot"], "tervezett")
+        old = self.bot.all_posts()["2026-11-14"]["auto_id"]
+        self.run_cmd("carbot: masik-auto 2026-11-14")
+        self.assertNotEqual(self.bot.all_posts()["2026-11-14"]["auto_id"], old)
+        self.assertEqual(self.run_cmd("carbot: valami 2026-11-14"), 1)
+        self.assertEqual(self.run_cmd("carbot: kihagy 2030-01-01"), 1)
+        self.assertEqual(self.run_cmd("carbot: ido 2026-11-14 25:00"), 1)
+        self.assertEqual(self.calls, [])                        # nothing was posted
+
+
 class TestSite(Base):
     def test_build(self):
         self.bot.now = lambda: datetime(2026, 11, 12, 7, 0, tzinfo=self.bot.tz)
@@ -188,6 +252,9 @@ class TestSite(Base):
         self.assertIn("MA • 2026. 11. 12. csütörtök", html)
         self.assertIn("github.com/Csabulator/Public/edit/main/discord-carbot/plan/2026-11-12.json", html)
         self.assertTrue(os.path.exists(os.path.join(out, "index.html")))
+        self.assertIn("issues/new?title=carbot%3A%20kuldes-most%202026-11-12", html)
+        self.assertIn("carbot%3A%20ido%202026-11-12%2009%3A00", html)
+        self.assertIn("🕘 09:00", html)
 
 
 WIKITEXT = """{{Short description|Racing car}}

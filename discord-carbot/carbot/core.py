@@ -2,6 +2,7 @@
 import json
 import os
 import random
+import re
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -14,7 +15,7 @@ ACTIONS = ("masik-auto", "uj-kepek", "kuldes-most")
 
 HELP = (
     "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), "
-    "allapot (tervezett / jovahagyott / kihagy). "
+    "allapot (tervezett / jovahagyott / kihagy), kuldes_ideje (pl. \"18:30\", ures = alapertelmezett). "
     "Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz "
     "(ilyenkor a szoveg es a kepek is cserelodnek). "
     "muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". "
@@ -73,6 +74,24 @@ class Bot:
                     out[p["nap"]] = p
         return out
 
+    def extra_posts(self) -> list:
+        """Posts sent ahead of their day ("kuldes-most" on a future day)."""
+        d = os.path.join(self.plan_dir, "elore")
+        if not os.path.isdir(d):
+            return []
+        return [load_json(os.path.join(d, fn)) for fn in sorted(os.listdir(d)) if fn.endswith(".json")]
+
+    def archive_early(self, post, today: date):
+        """A future day's post went out early: keep it in plan/elore/, give the day a new car."""
+        post = dict(post, eredeti_nap=post["nap"], kuldve_nap=today.isoformat())
+        dump_json(os.path.join(self.plan_dir, "elore", f"{post['nap']}_{post['sorszam']}.json"), post)
+        os.remove(self.path(post["nap"]))
+        return self.refresh(today)
+
+    def post_time(self, post) -> str:
+        t = (post or {}).get("kuldes_ideje") or ""
+        return t if re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", t) else self.cfg["kuldes_ideje"]
+
     def save(self, post) -> bool:
         ordered = {"_sugo": HELP}
         ordered.update({k: v for k, v in post.items() if k != "_sugo"})
@@ -84,7 +103,7 @@ class Bot:
     # ---------- choosing ----------
     def pick_car(self, posts: dict, exclude=()) -> str:
         last = {}
-        for p in posts.values():
+        for p in list(posts.values()) + self.extra_posts():
             last[p["auto_id"]] = max(last.get(p["auto_id"], ""), p["nap"])
         pool = [c for c in self.cars if c not in exclude] or list(self.cars)
         fresh = [c for c in pool if c not in last]
@@ -110,7 +129,7 @@ class Bot:
         today = today or self.now().date()
         posts = self.all_posts()
         changed = []
-        next_no = max((p["sorszam"] for p in posts.values()), default=0) + 1
+        next_no = max((p["sorszam"] for p in list(posts.values()) + self.extra_posts()), default=0) + 1
         for i in range(int(self.cfg["tervezett_napok"])):
             day = (today + timedelta(days=i)).isoformat()
             post = posts.get(day)
@@ -160,6 +179,8 @@ class Bot:
             warn = "Ures szoveg - igy nem kuldom ki."
         elif post.get("auto_id") not in self.cars:
             warn = f"Ismeretlen auto_id: {post.get('auto_id')}"
+        elif post.get("kuldes_ideje") and self.post_time(post) != post["kuldes_ideje"]:
+            warn = f"Hibas kuldes_ideje: {post['kuldes_ideje']} (OO:PP kell) - az alapertelmezettet hasznalom."
         post["figyelmeztetes"] = warn
         post["muvelet"] = "kuldes-most" if action == "kuldes-most" else ""
 
@@ -175,7 +196,7 @@ class Bot:
         out = [p for p in posts.values() if p.get("muvelet") == "kuldes-most"]
         p = posts.get(now.date().isoformat())
         if p and p not in out and not self.cfg["szunet"]:
-            hh, mm = (int(x) for x in self.cfg["kuldes_ideje"].split(":"))
+            hh, mm = (int(x) for x in self.post_time(p).split(":"))
             ok_state = p["allapot"] in (("jovahagyott",) if self.cfg["csak_jovahagyott"] else ("tervezett", "jovahagyott"))
             retry = p["allapot"] == "hiba" and p.get("probalkozas", 0) < 3
             if (now.hour, now.minute) >= (hh, mm) and (ok_state or retry):

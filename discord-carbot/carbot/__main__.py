@@ -5,11 +5,20 @@ site     – build the GitHub Pages view into OUT
 discover – look for new cars on Wikipedia (cars/auto.json)
 check    – validate car lists and plan files (non-zero exit on error)
 """
+import json
 import os
+import re
 import sys
 
 from . import discord_post, discover, site
-from .core import Bot
+from .core import Bot, dump_json
+
+RESULT_FILE = os.environ.get("CARBOT_RESULT_FILE", "")
+COMMANDS = {
+    "kuldes-most": "kiküldés most", "masik-auto": "másik autó", "uj-kepek": "új képek",
+    "kihagy": "kihagyás", "jovahagy": "jóváhagyás", "visszaallit": "visszaállítás",
+    "ido": "küldési idő", "alap-ido": "alapértelmezett küldési idő",
+}
 
 
 def gh_output(**kv):
@@ -20,7 +29,64 @@ def gh_output(**kv):
                 f.write(f"{k}={v}\n")
 
 
+def report(msg: str):
+    print(msg)
+    if RESULT_FILE:
+        with open(RESULT_FILE, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+
+
+def apply_command(bot: Bot, text: str) -> bool:
+    """'carbot: <muvelet> [ÉÉÉÉ-HH-NN] [OO:PP]' – from an issue title (Pages buttons)."""
+    m = re.match(r"\s*carbot\s*:\s*([a-z-]+)\s*(\d{4}-\d{2}-\d{2})?\s*(\d{1,2}:\d{2})?", text or "", re.I)
+    if not m or m.group(1).lower() not in COMMANDS:
+        report(f"❌ Ismeretlen parancs: `{text}`. Lehetőségek: {', '.join(COMMANDS)}")
+        return False
+    cmd, day, hhmm = m.group(1).lower(), m.group(2), m.group(3)
+    if hhmm:
+        hhmm = hhmm.zfill(5)
+        if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", hhmm):
+            report(f"❌ Hibás időpont: {hhmm} (ÓÓ:PP kell)")
+            return False
+    if cmd == "alap-ido":
+        if not hhmm:
+            report("❌ Add meg az időpontot, pl. `carbot: alap-ido 18:30`")
+            return False
+        path = os.path.join(bot.root, "config.json")
+        cfg = json.load(open(path, encoding="utf-8"))
+        cfg["kuldes_ideje"] = hhmm
+        dump_json(path, cfg)
+        bot.cfg["kuldes_ideje"] = hhmm
+        report(f"✅ Az alapértelmezett küldési idő mostantól {hhmm}.")
+        return True
+    p = bot.all_posts().get(day or "")
+    if not p:
+        report(f"❌ Nincs ilyen nap a tervben: {day}")
+        return False
+    if p.get("allapot") == "kikuldve" and cmd != "kuldes-most":
+        report(f"❌ A(z) {day} poszt már ki lett küldve, ezen nem változtatok.")
+        return False
+    if cmd in ("kuldes-most", "masik-auto", "uj-kepek"):
+        p["muvelet"] = cmd
+    elif cmd == "kihagy":
+        p["allapot"] = "kihagy"
+    elif cmd == "jovahagy":
+        p["allapot"] = "jovahagyott"
+    elif cmd == "visszaallit":
+        p["allapot"] = "tervezett"
+    elif cmd == "ido":
+        p["kuldes_ideje"] = hhmm or ""
+    bot.save(p)
+    extra = f" ({hhmm or 'alapértelmezett'})" if cmd == "ido" else ""
+    report(f"✅ {COMMANDS[cmd].capitalize()}{extra}: #{p['sorszam']} {p['auto_nev']} – {day}")
+    return True
+
+
 def cmd_run(bot: Bot, force_day=None, force_action=None) -> int:
+    command = os.environ.get("CARBOT_COMMAND")
+    if command and not apply_command(bot, command):
+        gh_output(changed="false")
+        return 1
     if force_day and force_action:          # from the manual "Run workflow" form
         p = bot.all_posts().get(force_day)
         if not p:
@@ -40,16 +106,25 @@ def cmd_run(bot: Bot, force_day=None, force_action=None) -> int:
             continue
         if not discord_post.configured():
             print("::warning::Nincs DISCORD_WEBHOOK_URL (vagy bot token) secret – nem posztolok.")
+            report("⚠️ Nincs DISCORD_WEBHOOK_URL secret, ezért nem posztoltam.")
             break
         try:
             res = discord_post.send(post, car, bot.cfg)
             post.update(allapot="kikuldve", muvelet="", hiba=None, **res)
-            print(f"Posted #{post['sorszam']} {car['nev']}")
+            report(f"🚀 Kiküldve: #{post['sorszam']} {car['nev']}" + (f" – {res['link']}" if res.get("link") else ""))
+            today = bot.now().date()
+            if post["nap"] > today.isoformat():
+                bot.save(post)
+                bot.archive_early(post, today)
+                report(f"ℹ️ A(z) {post['nap']} napra új autó került a tervbe.")
+                changed.append(post["nap"])
+                continue
         except Exception as e:
             post.update(allapot="hiba", muvelet="", hiba=str(e)[:300],
                         probalkozas=post.get("probalkozas", 0) + 1)
+            # not a failing exit code: the error state must still be committed (retry counter)
             print(f"::error::Posting failed: {e}")
-            rc = 1
+            report(f"❌ Nem sikerült kiküldeni: {str(e)[:200]}")
         bot.save(post)
         changed.append(post["nap"])
     gh_output(changed="true" if changed else "false")
