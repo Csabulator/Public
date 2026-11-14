@@ -2,11 +2,11 @@
   "_sugo": "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy), kuldes_ideje (pl. \"18:30\", ures = alapertelmezett). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
   "sorszam": 4,
   "nap": "2026-11-14",
-  "allapot": "tervezett",
+  "allapot": "kikuldve",
   "muvelet": "",
   "probalkozas": 0,
-  "kikuldve": null,
-  "uzenet_id": null,
+  "kikuldve": "2026-11-14T08:05:14+00:00",
+  "uzenet_id": "1571073468148097129",
   "auto_id": "ferrari-312t",
   "auto_nev": "Ferrari 312T",
   "kategoria": "Forma–1",
@@ -31,5 +31,6 @@
   "kep_offset": 0,
   "automatikus": false,
   "hiba": null,
-  "figyelmeztetes": null
+  "figyelmeztetes": null,
+  "link": "https://discord.com/channels/300673031397834762/533042034450104320/1571073468148097129"
 }
