@@ -1,0 +1,35 @@
+{
+  "_sugo": "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy), kuldes_ideje (pl. \"18:30\", ures = alapertelmezett). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
+  "sorszam": 12,
+  "nap": "2026-11-22",
+  "allapot": "tervezett",
+  "muvelet": "",
+  "probalkozas": 0,
+  "kikuldve": null,
+  "uzenet_id": null,
+  "auto_id": "mercedes-190e-evo2",
+  "auto_nev": "Mercedes-Benz 190E 2.5-16 Evolution II",
+  "kategoria": "Túraautó",
+  "szoveg": "Mercedes-Benz 190E 2.5-16 Evo II (1990) – 2,5 l 16 szelepes soros 4, 235 LE, óriási hátsó szárny. 502 db készült a DTM-homologációhoz; 1992-ben bajnok.",
+  "kepek": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/d/d6/Mercedes-Benz_190E_1992_2.5-16_AMG_Evolution_II_DTM_Klaus_Ludwig_LSide_MBMuse_9June2013_%2814796951839%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Mercedes-Benz_190E_1992_2.5-16_AMG_Evolution_II_DTM_Klaus_Ludwig_LSide_MBMuse_9June2013_(14796951839).jpg",
+      "szerzo": "Valder137 (CC BY 2.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Mercedes-Benz_190E_2.5-16_Evo_II_rear_-_Stuttgart_Museum.jpg/1920px-Mercedes-Benz_190E_2.5-16_Evo_II_rear_-_Stuttgart_Museum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Mercedes-Benz_190E_2.5-16_Evo_II_rear_-_Stuttgart_Museum.jpg",
+      "szerzo": "GerdeeX (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Mercedes-Benz_190E_2.5-16_EVO_II_%2853277845349%29.jpg/1920px-Mercedes-Benz_190E_2.5-16_EVO_II_%2853277845349%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Mercedes-Benz_190E_2.5-16_EVO_II_(53277845349).jpg",
+      "szerzo": "Thomas Vogt from Paderborn, Deutschland (CC BY 2.0)"
+    }
+  ],
+  "kep_offset": 0,
+  "automatikus": false,
+  "hiba": null,
+  "figyelmeztetes": null
+}
