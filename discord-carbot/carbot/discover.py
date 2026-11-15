@@ -238,7 +238,7 @@ def claude_text(f: dict, extract: str, label: str, max_len: int, model: str):
         return None
     prompt = (
         "Írj EGYETLEN magyar nyelvű, legfeljebb {n} karakteres leírást egy autós Discord-csatornára, "
-        "benzinvérűeknek. Formátum: Név (év) – motor, LE, Nm (ha van), majd egy rövid versenyes érdekesség. "
+        "benzinvérűeknek. Formátum: Név (év) – motor, LE, Nm (ha van), majd 1-2 mondatban egy versenyes vagy történeti érdekesség, ami egy autórajongót is meglep. "
         "KIZÁRÓLAG az alábbi tényekből dolgozz, semmit ne találj ki; ha valami hiányzik, hagyd ki. "
         "Csak a kész szöveget add vissza.\n\nPéldák:\n- {ex}\n\nKategória: {label}\nTények: {facts}\n"
         "Wikipedia-bevezető (angol): {extract}"

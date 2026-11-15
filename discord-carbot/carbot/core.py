@@ -14,7 +14,7 @@ STATES = ("tervezett", "jovahagyott", "kihagy", "kikuldve", "hiba")
 ACTIONS = ("masik-auto", "uj-kepek", "kuldes-most")
 
 HELP = (
-    "Szerkesztheto: szoveg (max. 180 karakter), kepek (max. 3 URL), "
+    "Szerkesztheto: szoveg (max. a config.json max_karakter erteke, alapbol 300), kepek (max. 3 URL), "
     "allapot (tervezett / jovahagyott / kihagy), kuldes_ideje (pl. \"18:30\", ures = alapertelmezett). "
     "Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz "
     "(ilyenkor a szoveg es a kepek is cserelodnek). "
@@ -47,7 +47,7 @@ class Bot:
         self.root = root
         self.cfg = {
             "kuldes_ideje": "09:00", "idozona": "Europe/Budapest", "tervezett_napok": 9,
-            "max_karakter": 180, "csak_jovahagyott": False, "szunet": False,
+            "max_karakter": 300, "csak_jovahagyott": False, "szunet": False,
             "auto_arany": 0.3, "bot_nev": "Autós érdekességek", "bot_avatar": "",
         }
         self.cfg.update(load_json(os.path.join(root, "config.json"), {}))

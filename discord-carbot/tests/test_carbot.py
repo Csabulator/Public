@@ -91,10 +91,10 @@ class TestPlan(Base):
         self.assertEqual(p["szoveg"], "Saját szöveg")
         self.assertIsNone(p["figyelmeztetes"])
 
-        self.edit(d, szoveg="x" * 181)
+        self.edit(d, szoveg="x" * 301)
         self.bot.refresh(self.today)
         p = self.bot.all_posts()[d]
-        self.assertIn("181", p["figyelmeztetes"])
+        self.assertIn("301", p["figyelmeztetes"])
         self.assertFalse(self.bot.sendable(p))
 
         self.edit(d, allapot="valami")
@@ -255,6 +255,7 @@ class TestSite(Base):
         self.assertIn("issues/new?title=carbot%3A%20kuldes-most%202026-11-12", html)
         self.assertIn("carbot%3A%20ido%202026-11-12%2009%3A00", html)
         self.assertIn("🕘 09:00", html)
+        self.assertIn("/300", html)
 
 
 WIKITEXT = """{{Short description|Racing car}}
@@ -278,9 +279,9 @@ class TestDiscover(Base):
         self.assertEqual(f["nyomatek"], "333 Nm")
         self.assertEqual(f["tomeg"], "960 kg")
         self.assertEqual(f["motor"], "2,0 l kompresszoros soros 4")
-        t = discover.template_text(f, "A B csoport őrült korszakának gyermeke", 180)
+        t = discover.template_text(f, "A B csoport őrült korszakának gyermeke", 300)
         self.assertTrue(t.startswith("Lancia 037 (1982) – 2,0 l kompresszoros soros 4, 325 LE, 333 Nm"))
-        self.assertLessEqual(len(t), 180)
+        self.assertLessEqual(len(t), 300)
 
     def test_units(self):
         self.assertEqual(discover.power_le("500 kW"), "680 LE")

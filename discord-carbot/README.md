@@ -1,12 +1,12 @@
 # discord-carbot 🏁
 
 Egy Discord-bot autószimulátoros közösségeknek. Naponta kitesz egy autós érdekességet: 1–3 fotót
-(Wikimedia Commons) és egy legfeljebb 180 karakteres leírást (motor, LE, Nm, versenymúlt).
+(Wikimedia Commons) és egy legfeljebb 300 karakteres leírást (motor, LE, Nm, versenymúlt és egy-egy érdekesség).
 Az egészet a **GitHub Actions** futtatja, nem kell hozzá szerver. A következő 9 nap terve egy
 **GitHub Pages** oldalon látszik 3×3-as csempén.
 
 *English summary: a GitHub-Actions-only Discord bot that posts one motorsport car fact per day
-(photos from Wikimedia Commons, ≤180-char Hungarian text). The 9-day plan is a folder of JSON
+(photos from Wikimedia Commons, ≤300-char Hungarian text). The 9-day plan is a folder of JSON
 files you edit on GitHub. The plan view is published to GitHub Pages, and new cars are found
 weekly on Wikipedia.*
 
@@ -65,7 +65,7 @@ A ✏️ Szerkesztés gomb megnyitja a nap fájlját. Írd át, majd **Commit ch
 
 | Mező | Mire jó |
 |---|---|
-| `"szoveg"` | a leírás (max. 180 karakter, különben nem küldi ki, és figyelmeztet) |
+| `"szoveg"` | a leírás (max. 300 karakter, különben nem küldi ki, és figyelmeztet) |
 | `"allapot"` | `"tervezett"` · `"jovahagyott"` · `"kihagy"` (aznap nincs poszt) |
 | `"kuldes_ideje"` | pl. `"18:30"` – csak erre a napra; üresen a `config.json` szerinti idő |
 | `"muvelet"` | `"masik-auto"` új autót sorsol · `"uj-kepek"` a következő 3 kép · `"kuldes-most"` azonnal kiküldi |
