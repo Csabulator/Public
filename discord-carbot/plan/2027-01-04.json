@@ -1,0 +1,35 @@
+{
+  "_sugo": "Szerkesztheto: szoveg (max. a config.json max_karakter erteke, alapbol 300), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy), kuldes_ideje (pl. \"18:30\", ures = alapertelmezett). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
+  "sorszam": 13,
+  "nap": "2027-01-04",
+  "allapot": "tervezett",
+  "muvelet": "",
+  "probalkozas": 0,
+  "kikuldve": null,
+  "uzenet_id": null,
+  "auto_id": "jaguar-c-type",
+  "auto_nev": "Jaguar C-Type",
+  "kategoria": "Le Mans",
+  "szoveg": "Jaguar C-Type (1951) – 3,4 l XK soros 6, kb. 200 LE. 1951-ben és 1953-ban nyert Le Mans-ban; 1953-ban Dunlop-tárcsafékekkel, ami akkor forradalmi volt. Ez volt az első Le Mans-győzelem 100 mérföld/óra (161 km/h) feletti átlagsebességgel.",
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Jaguar_C-Type_1953.jpg/1920px-Jaguar_C-Type_1953.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Jaguar_C-Type_1953.jpg",
+      "szerzo": "DeFacto (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Jaguar_C-Type_%281953%29_Solitude_Revival_2022_1X7A0129.jpg/1920px-Jaguar_C-Type_%281953%29_Solitude_Revival_2022_1X7A0129.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Jaguar_C-Type_(1953)_Solitude_Revival_2022_1X7A0129.jpg",
+      "szerzo": "Alexander Migl (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/Jaguar_C-Type.JPG/1920px-Jaguar_C-Type.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Jaguar_C-Type.JPG",
+      "szerzo": "Eagleash (CC BY-SA 4.0)"
+    }
+  ],
+  "kep_offset": 0,
+  "automatikus": false,
+  "hiba": null,
+  "figyelmeztetes": null
+}
