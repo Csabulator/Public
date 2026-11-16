@@ -118,6 +118,32 @@ class TestPlan(Base):
         self.assertEqual([p["nap"] for p in self.bot.due(before)], ["2026-11-15"])
 
 
+class TestWeekly(Base):
+    def test_switch_daily_to_weekly_keeps_order(self):
+        self.bot.refresh(self.today)                         # daily plan, Thu 12 -> Fri 20
+        daily = self.bot.all_posts()
+        self.bot.cfg["kuldesi_napok"] = ["hétfő"]
+        self.bot.refresh(self.today)
+        posts = self.bot.all_posts()
+        days = sorted(posts)
+        self.assertEqual(len(days), 9)
+        self.assertTrue(all(date.fromisoformat(d).weekday() == 0 for d in days))
+        self.assertEqual(days[0], "2026-11-16")
+        # the earliest daily posts moved to the Mondays, in their original order
+        self.assertEqual([posts[d]["auto_id"] for d in days[:8]],
+                         [daily[d]["auto_id"] for d in sorted(daily)[:8]])
+        self.assertEqual(self.bot.schedule_label(), "hétfőnként")
+        self.assertEqual(self.bot.refresh(self.today), [])   # stable afterwards
+
+    def test_due_only_on_posting_days(self):
+        self.bot.cfg["kuldesi_napok"] = ["hétfő"]
+        self.bot.refresh(self.today)
+        tue = datetime(2026, 11, 17, 10, 0, tzinfo=self.bot.tz)
+        mon = datetime(2026, 11, 16, 9, 5, tzinfo=self.bot.tz)
+        self.assertEqual(self.bot.due(tue), [])
+        self.assertEqual([p["nap"] for p in self.bot.due(mon)], ["2026-11-16"])
+
+
 class TestPosting(Base):
     def test_embeds_gallery(self):
         self.bot.refresh(self.today)

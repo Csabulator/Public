@@ -1,5 +1,8 @@
 {
   "kuldes_ideje": "09:00",
+  "kuldesi_napok": [
+    "hétfő"
+  ],
   "idozona": "Europe/Budapest",
   "tervezett_napok": 9,
   "max_karakter": 300,
@@ -9,7 +12,7 @@
   "bot_nev": "Autós érdekességek",
   "bot_avatar": "",
   "felfedezes": {
-    "hetente": 20,
+    "hetente": 5,
     "melyseg": 1,
     "modell": "claude-haiku-5-5",
     "kategoriak": [

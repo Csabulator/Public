@@ -1,11 +1,11 @@
 # discord-carbot 🏁
 
-Egy Discord-bot autószimulátoros közösségeknek. Naponta kitesz egy autós érdekességet: 1–3 fotót
+Egy Discord-bot autószimulátoros közösségeknek. Hetente egyszer (hétfőnként 9:00-kor, állítható) kitesz egy autós érdekességet: 1–3 fotót
 (Wikimedia Commons) és egy legfeljebb 300 karakteres leírást (motor, LE, Nm, versenymúlt és egy-egy érdekesség).
-Az egészet a **GitHub Actions** futtatja, nem kell hozzá szerver. A következő 9 nap terve egy
+Az egészet a **GitHub Actions** futtatja, nem kell hozzá szerver. A következő 9 poszt terve egy
 **GitHub Pages** oldalon látszik 3×3-as csempén.
 
-*English summary: a GitHub-Actions-only Discord bot that posts one motorsport car fact per day
+*English summary: a GitHub-Actions-only Discord bot that posts one motorsport car fact per week (configurable)
 (photos from Wikimedia Commons, ≤300-char Hungarian text). The 9-day plan is a folder of JSON
 files you edit on GitHub. The plan view is published to GitHub Pages, and new cars are found
 weekly on Wikipedia.*
@@ -14,9 +14,9 @@ weekly on Wikipedia.*
 
 | Mikor | Mit csinál |
 |---|---|
-| 15 percenként | megtervezi a következő 9 napot, feldolgozza a kézi módosításokat, és a beállított időpont után kiküldi a napi posztot |
+| hétfő reggelente (és a NAS-ról indítva) | megtervezi a következő 9 posztot, feldolgozza a kézi módosításokat, és a beállított időpont után kiküldi az aktuális posztot |
 | ha megnyomsz egy gombot a Pages oldalon | pár percen belül végrehajtja (küldés most, másik autó, más képek, időpont, kihagyás) |
-| minden hétfőn | új autókat keres a Wikipédián (B csoport, WRC, Le Mans, Can-Am, F1, túraautók, GT-k, szuperautók, hot hatchek, muscle carok…) |
+| minden hónap 1-jén | új autókat keres a Wikipédián (B csoport, WRC, Le Mans, Can-Am, F1, túraautók, GT-k, szuperautók, hot hatchek, muscle carok…) |
 | ha módosítasz valamit | pár percen belül feldolgozza, és frissül a Pages oldal |
 
 - **Autók:** 286 kézzel válogatott autó van (versenyautók és érdekes utcai sport-, szuper- és hiperautók) a `cars/kuralt.json`-ban, a hetente talált újak a `cars/auto.json`-ba kerülnek.
@@ -72,18 +72,18 @@ A ✏️ Szerkesztés gomb megnyitja a nap fájlját. Írd át, majd **Commit ch
 | `"auto_id"` | konkrét autó id-ja a `cars/*.json`-ból (a szöveg és a képek is cserélődnek) |
 | `"kepek"` | saját kép URL-ek, max. 3 (`["https://…", "https://…"]`) |
 
-**Általános beállítások** a `config.json`-ban: `kuldes_ideje` (pl. `"09:00"`), `csak_jovahagyott` (csak a jóváhagyott
+**Általános beállítások** a `config.json`-ban: `kuldes_ideje` (pl. `"09:00"`), `kuldesi_napok` (pl. `["hétfő"]`, `["kedd", "péntek"]` vagy `["minden nap"]` – váltáskor a már tervezett posztok sorrendben átkerülnek az új napokra), `csak_jovahagyott` (csak a jóváhagyott
 posztok mennek ki), `szunet`, `auto_arany`, `bot_nev`, `bot_avatar`, és a felfedezés kategóriái.
 
 ## Jó tudni
 
-- **Időzítés:** a GitHub az ütemezett futásokat terhelés idején késlelteti vagy **ki is hagyja**. Ezért a bot 15 percenként
-  kéri a futást, és a poszt az időpont utáni első lefutó körrel megy ki. Ha ez sem elég megbízható, lásd lent a külső időzítőt.
+- **Időzítés:** a GitHub az ütemezett futásokat terhelés idején késlelteti vagy **ki is hagyja**. Ezért a pontos időzítéshez
+  a lent leírt külső időzítő (pl. a Synology NAS) a megbízható megoldás.
 - **Hibák:** ha a küldés nem sikerül, a csempe pirosan jelzi, és óránként még legfeljebb háromszor újrapróbálja.
 - **Nyilvánosság:** a repó nyilvános, így a terv és a Pages oldal is mindenki számára látható. A webhook URL secretként rejtve marad.
 - **Pontosság:** az adatokat gondosan válogattuk, de ha valami nem stimmel, a `cars/kuralt.json` szabadon javítható.
 - **Inaktivitás:** a GitHub 60 nap inaktivitás után leállítja az ütemezett futásokat egy nyilvános repóban.
-  A bot naponta commitol, ez elvileg aktívan tartja. Ha mégis leállna, az Actions fülön egy kattintással újraindítható.
+  A bot hetente commitol, ez elvileg aktívan tartja. Ha mégis leállna, az Actions fülön egy kattintással újraindítható.
 
 ## Külső időzítő (opcionális, a pontos időzítéshez)
 
@@ -92,7 +92,7 @@ Ha a GitHub saját ütemezője kihagy futásokat, egy külső gép is „megbök
 1. **Token:** GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
    Repository access: *Only select repositories → Public*. Permissions → Repository → **Contents: Read and write**. Lejárat tetszőleges.
 2. **Synology NAS:** *Vezérlőpult → Feladatütemező → Létrehozás → Ütemezett feladat → Felhasználó által megadott parancsfájl*.
-   Ütemezés: naponta, ismétlés 15 percenként. Parancs (a `TOKEN` helyére a tokent):
+   Ütemezés: hetente, hétfőn 09:00 (a `kuldesi_napok` és `kuldes_ideje` szerint). Parancs (a `TOKEN` helyére a tokent):
    ```sh
    curl -s -X POST -H "Authorization: Bearer TOKEN" -H "Accept: application/vnd.github+json" \
      https://api.github.com/repos/Csabulator/Public/dispatches -d '{"event_type":"carbot-tick"}'

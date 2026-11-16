@@ -3,6 +3,7 @@ import json
 import os
 import random
 import re
+import unicodedata
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -47,6 +48,7 @@ class Bot:
         self.root = root
         self.cfg = {
             "kuldes_ideje": "09:00", "idozona": "Europe/Budapest", "tervezett_napok": 9,
+            "kuldesi_napok": ["minden nap"],
             "max_karakter": 300, "csak_jovahagyott": False, "szunet": False,
             "auto_arany": 0.3, "bot_nev": "Autós érdekességek", "bot_avatar": "",
         }
@@ -60,6 +62,39 @@ class Bot:
                 self.cars[c["id"]] = c
         self.plan_dir = os.path.join(root, "plan")
         self.log: list[str] = []
+
+    # ---------- posting days ----------
+    DAY_NAMES = {"hetfo": 0, "kedd": 1, "szerda": 2, "csutortok": 3, "pentek": 4, "szombat": 5, "vasarnap": 6}
+
+    def weekdays(self) -> set[int]:
+        """config "kuldesi_napok": e.g. ["hétfő"], ["kedd", "péntek"], [1, 5] or ["minden nap"]."""
+        out = set()
+        for d in self.cfg.get("kuldesi_napok") or ["minden nap"]:
+            if isinstance(d, int) and 1 <= d <= 7:
+                out.add(d - 1)
+                continue
+            key = unicodedata.normalize("NFKD", str(d)).encode("ascii", "ignore").decode().lower().strip()
+            if key in ("minden nap", "naponta", "mindennap"):
+                return set(range(7))
+            if key in self.DAY_NAMES:
+                out.add(self.DAY_NAMES[key])
+        return out or set(range(7))
+
+    def plan_days(self, today: date) -> list[str]:
+        """The next `tervezett_napok` posting days, starting today."""
+        wd, days, d = self.weekdays(), [], today
+        while len(days) < int(self.cfg["tervezett_napok"]):
+            if d.weekday() in wd:
+                days.append(d.isoformat())
+            d += timedelta(days=1)
+        return days
+
+    def schedule_label(self) -> str:
+        wd = sorted(self.weekdays())
+        if len(wd) == 7:
+            return "naponta"
+        names = ["hétfőnként", "keddenként", "szerdánként", "csütörtökönként", "péntekenként", "szombatonként", "vasárnaponként"]
+        return ", ".join(names[i] for i in wd)
 
     # ---------- plan files ----------
     def path(self, day: str):
@@ -130,8 +165,9 @@ class Bot:
         posts = self.all_posts()
         changed = []
         next_no = max((p["sorszam"] for p in list(posts.values()) + self.extra_posts()), default=0) + 1
-        for i in range(int(self.cfg["tervezett_napok"])):
-            day = (today + timedelta(days=i)).isoformat()
+        days = self.plan_days(today)
+        self._move_stale(posts, days, today, changed)
+        for day in days:
             post = posts.get(day)
             if post is None:
                 window = {posts[d]["auto_id"] for d in posts if d >= today.isoformat()}
@@ -146,6 +182,25 @@ class Bot:
             if self.save(post):
                 changed.append(day)
         return changed
+
+    def _move_stale(self, posts, days, today, changed):
+        """If unsent future posts sit on days that are no longer posting days (e.g. daily -> weekly),
+        re-lay all unsent future posts onto the posting days in their original order.
+        Posts that don't fit are dropped (their cars go back to the pool)."""
+        t = today.isoformat()
+        unsent = [p for d, p in posts.items() if d >= t and p.get("allapot") != "kikuldve"]
+        if not any(p["nap"] not in days for p in unsent):
+            return
+        unsent.sort(key=lambda p: p["sorszam"])
+        for p in unsent:
+            os.remove(self.path(p["nap"]))
+            del posts[p["nap"]]
+            changed.append(p["nap"])
+        slots = [d for d in days if d not in posts]          # posting days without a sent post
+        for p, d in zip(unsent, slots):
+            p["nap"] = d
+            posts[d] = p
+            self.save(p)
 
     def process_edits(self, post, posts):
         action = (post.get("muvelet") or "").strip()
@@ -195,7 +250,7 @@ class Bot:
         posts = self.all_posts()
         out = [p for p in posts.values() if p.get("muvelet") == "kuldes-most"]
         p = posts.get(now.date().isoformat())
-        if p and p not in out and not self.cfg["szunet"]:
+        if p and p not in out and not self.cfg["szunet"] and now.weekday() in self.weekdays():
             hh, mm = (int(x) for x in self.post_time(p).split(":"))
             ok_state = p["allapot"] in (("jovahagyott",) if self.cfg["csak_jovahagyott"] else ("tervezett", "jovahagyott"))
             retry = p["allapot"] == "hiba" and p.get("probalkozas", 0) < 3

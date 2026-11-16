@@ -4,10 +4,10 @@ name: discord-carbot
 
 on:
   schedule:
-    # GitHub skips scheduled runs when it is busy, so we ask often (every 15 min);
-    # the bot itself decides whether a post is due. See README for an external trigger.
-    - cron: "4,19,34,49 * * * *"
-    - cron: "41 3 * * 1"    # Monday: look for new cars on Wikipedia
+    # Backup for the weekly Monday 09:00 (Budapest) post: 07-09 UTC covers summer and
+    # winter time. GitHub often skips scheduled runs, so the NAS trigger is the main one.
+    - cron: "4,34 7-9 * * 1"
+    - cron: "41 3 1 * *"    # 1st of the month: look for new cars on Wikipedia
   repository_dispatch:
     types: [carbot-tick]    # optional external trigger (NAS / cron-job.org)
   issues:
@@ -59,7 +59,7 @@ jobs:
           python-version: "3.12"
 
       - name: Look for new cars
-        if: github.event.schedule == '41 3 * * 1' || inputs.muvelet == 'felfedezes'
+        if: github.event.schedule == '41 3 1 * *' || inputs.muvelet == 'felfedezes'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python -m carbot discover

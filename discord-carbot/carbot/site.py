@@ -116,12 +116,12 @@ def build(bot, out_dir, repo=None, branch="main"):
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Autós érdekességek – posztterv</title>
 <style>{CSS}</style></head><body>
 <header><h1>🏁 Autós érdekességek <span>/</span> posztterv</h1>
-<div class="info"><span>Küldés: naponta {e(cfg['kuldes_ideje'])} ({e(cfg['idozona'])})
+<div class="info"><span>Küldés: {e(bot.schedule_label())} {e(cfg['kuldes_ideje'])} ({e(cfg['idozona'])})
 <a href="{e(issue_link(repo, 'carbot: alap-ido ' + cfg['kuldes_ideje']))}" target="_blank">módosítás</a></span>
 <span>{'⏸️ SZÜNETEL' if cfg['szunet'] else ('Csak jóváhagyott posztok' if cfg['csak_jovahagyott'] else 'Automatikus küldés')}</span>
 <span>Autók: {n_cur} válogatott + {n_auto} automatikusan talált</span>
 <a href="{actions_url}" target="_blank">Futások ↗</a></div></header>
-<h2>Következő {e(cfg['tervezett_napok'])} nap</h2>
+<h2>Következő {e(cfg['tervezett_napok'])} poszt</h2>
 <div class="grid">{''.join(tile(p, cfg, repo, branch, today.isoformat(), post_time=bot.post_time(p)) for p in upcoming)}</div>
 <h2>Felülbírálás</h2>
 <details open><summary>Hogyan?</summary><p><b>Gombokkal:</b> a 🚀 🎲 🖼️ ⏰ ⏭️ gombok egy előre kitöltött GitHub issue-t nyitnak meg –
@@ -129,7 +129,7 @@ csak a zöld <b>Create</b> gombra kell kattintani. A bot pár percen belül vég
 A ⏰ Időpontnál a címben írd át az ÓÓ:PP részt. Egy jövőbeli nap posztját a 🚀 azonnal kiküldi, és arra a napra új autót tesz a tervbe.</p>
 <p><b>Kézzel:</b> a ✏️ Szerkesztés gombbal a nap fájlja nyílik meg; írd át, majd <b>Commit changes</b>.</p><ul>
 <li><code>"szoveg"</code>: a leírás (max. {e(cfg['max_karakter'])} karakter)</li>
-<li><code>"allapot": "kihagy"</code>: aznap nem posztol · <code>"jovahagyott"</code>: jóváhagyva</li>
+<li><code>"allapot": "kihagy"</code>: akkor nem posztol · <code>"jovahagyott"</code>: jóváhagyva</li>
 <li><code>"muvelet": "masik-auto"</code>: új autót sorsol · <code>"uj-kepek"</code>: következő 3 kép · <code>"kuldes-most"</code>: azonnal kiküldi</li>
 <li><code>"kuldes_ideje": "18:30"</code>: csak erre a napra más időpont (üresen az alapértelmezett)</li>
 <li><code>"auto_id"</code>: konkrét autó az autólistából · <code>"kepek"</code>: saját kép URL-ek (max. 3)</li></ul></details>
