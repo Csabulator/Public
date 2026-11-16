@@ -27,7 +27,10 @@ class Base(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
         shutil.copytree(os.path.join(ROOT, "cars"), os.path.join(self.tmp, "cars"))
-        shutil.copy(os.path.join(ROOT, "config.json"), self.tmp)
+        cfg = json.load(open(os.path.join(ROOT, "config.json"), encoding="utf-8"))
+        cfg["kuldesi_napok"] = ["minden nap"]          # most tests use a daily plan
+        cfg["kuldes_ideje"] = "09:00"
+        json.dump(cfg, open(os.path.join(self.tmp, "config.json"), "w", encoding="utf-8"), ensure_ascii=False)
         os.makedirs(os.path.join(self.tmp, "plan"))
         self._orig = commons.for_car
         commons.for_car = fake_commons
