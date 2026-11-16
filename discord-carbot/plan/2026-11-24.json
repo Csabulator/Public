@@ -1,0 +1,35 @@
+{
+  "_sugo": "Szerkesztheto: szoveg (max. a config.json max_karakter erteke, alapbol 300), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy), kuldes_ideje (pl. \"18:30\", ures = alapertelmezett). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
+  "sorszam": 14,
+  "nap": "2026-11-24",
+  "allapot": "tervezett",
+  "muvelet": "",
+  "probalkozas": 0,
+  "kikuldve": null,
+  "uzenet_id": null,
+  "auto_id": "shelby-cobra-427",
+  "auto_nev": "Shelby Cobra 427",
+  "kategoria": "GT",
+  "szoveg": "Shelby Cobra 427 (1965) – 7,0 l Ford FE V8, kb. 425 LE, alig 1100 kg. Brit AC-karosszéria, amerikai izom; a Cobra Daytona Coupé 1965-ben GT-világbajnok.",
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/AC_Shelby_Cobra_427_Oldtimertreffen_Ebern_2019_6200154.jpg/1920px-AC_Shelby_Cobra_427_Oldtimertreffen_Ebern_2019_6200154.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:AC_Shelby_Cobra_427_Oldtimertreffen_Ebern_2019_6200154.jpg",
+      "szerzo": "Ermell (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/Shelby_427_S-C_Cobra_1966_6170717.jpg/1920px-Shelby_427_S-C_Cobra_1966_6170717.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Shelby_427_S-C_Cobra_1966_6170717.jpg",
+      "szerzo": "Ermell (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/1966_Shelby_427_S-C_Cobra_6170718.jpg/1920px-1966_Shelby_427_S-C_Cobra_6170718.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:1966_Shelby_427_S-C_Cobra_6170718.jpg",
+      "szerzo": "Ermell (CC BY-SA 4.0)"
+    }
+  ],
+  "kep_offset": 0,
+  "automatikus": false,
+  "hiba": null,
+  "figyelmeztetes": null
+}
