@@ -1,6 +1,6 @@
 # Pit Stop Manager
 
-**Play online:** https://csabulator.github.io/public/pit-stop-manager/ (after GitHub Pages is enabled for this repository)  
+**Play online:** https://csabulator.github.io/Public/pit-stop-manager/ (after GitHub Pages is enabled for this repository)  
 **Play offline:** download `index.html` and open it in any modern browser. It is a single file, no server or internet needed.
 
 A browser-based racing team manager game. Start with a small team in a regional series and work your way up to a world title.
