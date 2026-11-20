@@ -1,0 +1,54 @@
+# Pit Stop Manager (pit-stop-manager/): publishes the game to GitHub Pages at /pit-stop-manager/.
+# The Pages site is shared with discord-carbot and every deploy replaces the whole site,
+# so this workflow also rebuilds the carbot plan page (build only, nothing is posted).
+name: pit-stop-manager
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pit-stop-manager/**"
+      - ".github/workflows/pit-stop-manager.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-pit-stop-manager
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build carbot plan page
+        working-directory: discord-carbot
+        run: python -m carbot site ../_site
+
+      - name: Add the game
+        run: |
+          mkdir -p _site/pit-stop-manager
+          cp pit-stop-manager/index.html _site/pit-stop-manager/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  pages:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}pit-stop-manager/
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

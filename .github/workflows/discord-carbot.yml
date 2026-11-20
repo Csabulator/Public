@@ -106,6 +106,12 @@ jobs:
       - name: Build plan page
         run: python -m carbot site ../_site
 
+      - name: Add Pit Stop Manager to the site
+        working-directory: .
+        run: |
+          # The Pages site is shared: every deploy replaces the whole site, so the game is copied in here too.
+          if [ -f pit-stop-manager/index.html ]; then mkdir -p _site/pit-stop-manager && cp pit-stop-manager/index.html _site/pit-stop-manager/; fi
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
