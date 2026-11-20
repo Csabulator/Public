@@ -5,7 +5,7 @@
 
 A browser-based racing team manager game. Start with a small team in a regional series and work your way up to a world title.
 
-- **Two disciplines:** road racing (GT cars in the lower tiers, LMDh/Hypercar-style prototypes at the top) and ovals (Gen 4-style stock cars, cautions, drafting).
+- **Three disciplines:** road racing (GT cars in the lower tiers, LMDh/Hypercar-style prototypes at the top), ovals (Gen 4-style stock cars, cautions, drafting) and rally with rallycross rounds (stages, service park, co-driver, joker lap).
 - **Four tiers per discipline**, 11–12 races per season, 8 teams with two cars each, team and driver championships, promotion (top 2) and relegation (bottom 2).
 - **Team management:** two drivers with morale, contracts and training; team orders during the race (free / hold / swap); other teams try to poach your drivers; a persistent rival team that follows you through the tiers.
 - **Race weekend:** practice with car setup (wing, gearing, ride height, tyre pressure) and engineer feedback, then qualifying and the race. Each season has a headline event: an endurance race with a night stint (road) or the Big Race (oval).
@@ -36,6 +36,9 @@ src/
   geometry.js     track splines, ovals, curvature
   art.js          SVG artwork: part generations, cars, helmets, telemetry
   race.js         race weekend, simulation, canvas rendering, race controls
+  rally.js        rally stages: generation, timing model, live stage view
+  rallyui.js      rally weekend: shakedown, service park, stage results, rally results
+  rx.js           rallycross: heats, semi-finals, final, joker lap
   ui.js           screens, modals, results, season end
   main.js         boot
 build.mjs         concatenates src into index.html

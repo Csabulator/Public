@@ -95,6 +95,7 @@ const ACCENT = { '#e8392f': '#2f7bf5', '#ff8a1e': '#1b3a6b', '#f5c518': '#16181c
 const accentFor = c => ACCENT[c] || '#f2f2f2';
 const GT_BODY = 'M35 167 C31 150 30 120 31 104 Q31 88 36 80 L46 70 Q50 66 60 66 L144 64 C176 56 196 38 222 33 Q254 27 286 28 Q318 29 339 34 C356 40 384 60 416 78 C460 86 514 96 556 103 Q574 106 579 114 Q582 132 580 150 L576 166 Q572 170 562 170 L543.3 170 A43 43 0 1 0 460.7 170 L188.3 170 A43 43 0 1 0 105.7 170 L44 169 Q37 169 35 167 Z';
 const PROTO_BODY = 'M40 182 L40 160 Q38 128 44 116 L56 110 Q96 100 120 102 Q150 104 172 106 Q220 100 252 96 Q262 80 298 78 Q334 79 350 98 L364 116 Q400 122 430 120 L460 114 Q500 92 530 104 Q556 116 572 140 Q588 156 598 168 L600 182 L539 182 A44 44 0 1 0 465 182 L173 182 A44 44 0 1 0 99 182 Z';
+const RALLY_BODY = 'M560 178 L560 163 Q560 140 554 128 L548 118 Q544 110 534 107 L441 85 Q400 50 362 27 Q340 24 314 24 L152 26 Q136 28 130 32 L100 72 L87 92 Q80 104 77 118 L75 163 Q76 174 87 176 L111.9 176 A44 44 0 1 1 192.1 176 L425.9 176 A44 44 0 1 1 506.1 176 L548 178 Z';
 const STOCK_BODY = 'M48 596 L44 560 Q44 520 70 500 Q90 478 130 468 C200 455 280 446 330 438 L420 384 Q440 372 480 370 L630 370 Q662 372 692 396 L790 436 L884 440 L912 446 L922 454 Q930 492 922 530 L912 552 L758 574 A66 66 0 1 0 642 578 L636 592 L272 592 L264 586 A66 66 0 1 0 162 586 L150 592 L60 600 Z';
 function sideWheel(x, y, o) {
   const n = 10; let spokes = '';
@@ -205,6 +206,38 @@ function carSideSVG(opts) {
     ${wing}
     </g>${W(136, 158)}${W(502, 158)}
     <clipPath id="clip${id}"><path d="${PROTO_BODY}" transform="translate(0 ${-rideH * .6})"/></clipPath>`;
+  } else if (kind === 'rally') {   // modern rally hatchback (Rally4 ... Rally1 style)
+    const wing = [
+      `<path d="M160 25 L126 28 L124 34 L152 31 Z" fill="${carbon}"/>`,
+      `<path d="M162 24 L116 24 L112 31 L150 31 Z" fill="${carbon}"/><path d="M116 24 L112 31" stroke="${accent}" stroke-width="2"/>`,
+      `<path d="M150 27 L146 16 L152 16 L158 27 Z" fill="${carbon}"/><path d="M160 14 L108 12 L104 19 L156 21 Z" fill="${carbon}"/><path d="M104 6 L112 6 L114 30 L106 32 Z" fill="${mid}" stroke="${carbon}" stroke-width="1.5"/>`,
+      `<path d="M150 27 L144 10 L152 10 L160 27 Z" fill="${carbon}"/><path d="M164 8 L96 4 L92 12 L160 16 Z" fill="${carbon}"/><path d="M160 2 L100 -1 L98 3 L158 5 Z" fill="${carbon}"/><path d="M90 -4 L100 -4 L104 34 L94 38 Z" fill="${mid}" stroke="${carbon}" stroke-width="1.5"/>`][aS];
+    const flap = (x) => `<path d="M${x} 162 L${x + 7} 162 L${x + 9} 190 L${x + 1} 190 Z" fill="#141518"/><path d="M${x + 1} 170 h7" stroke="${accent}" stroke-width="2"/>`;
+    body = `<ellipse cx="318" cy="197" rx="262" ry="9" fill="#000" opacity=".7" filter="url(#blur${id})"/>
+    <circle cx="152" cy="158" r="42" fill="#070708"/><circle cx="466" cy="158" r="42" fill="#070708"/>
+    <g transform="translate(0 ${-rideH * .8})">
+    <path d="${RALLY_BODY}" fill="url(#body${id})"/>
+    <g clip-path="url(#clip${id})">${stripes(['M560 148 C450 138 300 118 70 96 L70 103 C300 125 450 145 560 155 Z', 'M560 155 C450 145 300 125 70 104 L70 109 C300 131 450 151 560 161 Z', 'M560 161 C450 151 300 131 70 110 L70 115 C300 137 450 157 560 167 Z'])}${shine}</g>
+    <path d="M107 176 A48 48 0 0 1 197 176 M421 176 A48 48 0 0 1 511 176" fill="none" stroke="${dark}" stroke-width="7" opacity=".55"/>
+    <path d="M428 88 L368 36 Q362 32 352 32 L175 33 L132 78 Q130 86 140 88 Z" fill="url(#glass${id})" stroke="#0d0f12" stroke-width="2.5"/>
+    <path d="M300 36 L322 36 L292 84 L272 84 Z" fill="#fff" opacity=".07"/>
+    <path d="M256 33 L260 88" stroke="#0d0f12" stroke-width="9"/><path d="M175 33 L150 88" stroke="#0d0f12" stroke-width="6"/>
+    <path d="M240 46 L218 80 M232 44 L214 70" stroke="#3b4048" stroke-width="2" opacity=".6"/>
+    <path d="M410 92 Q412 132 410 170 M256 92 Q258 132 256 170" stroke="#000" stroke-opacity=".4" stroke-width="1.2" fill="none"/>
+    <path d="M432 96 L414 92 Q408 86 416 82 L434 88 Z" fill="${mid}" stroke="#0d0f12" stroke-width="1"/>
+    <path d="M350 25 Q340 13 318 12 L286 13 Q280 17 282 24 Z" fill="${mid}" stroke="${carbon}" stroke-width="1.5"/><path d="M290 18 h26" stroke="#0d0f12" stroke-width="3"/>
+    <path d="M330 24 L334 4 L336 4 L334 24 Z" fill="${carbon}"/>
+    <path d="M548 118 L524 111 Q518 114 522 120 L546 127 Z" fill="#eef3f8"/><path d="M528 115 L544 120" stroke="#7aa6d6" stroke-width="1.5" opacity=".7"/>
+    <path d="M78 98 L92 96 L94 122 L79 124 Z" fill="#c8232b"/><path d="M82 102 L90 101" stroke="#ff8a80" stroke-width="1.5"/>
+    <path d="M520 140 L556 138 L558 156 L522 158 Z" fill="#0d0f12"/><path d="M526 145 h28 M526 151 h28" stroke="#30343a" stroke-width="1.5"/>
+    <path d="M196 172 L422 172 L420 182 L198 182 Z" fill="${carbon}"/>
+    ${aS >= 2 ? `<path d="M520 178 L572 178 L572 183 L516 183 Z" fill="${carbon}"/>` : ''}${aS >= 1 ? `<path d="M556 150 L570 147 L569 151 L556 155 Z" fill="${carbon}"/>` : ''}
+    ${flap(96)}${flap(412)}
+    <path d="M76 168 h12 v5 h-12z" fill="#3a3a3a"/>${flame(76, 170.5, -1)}
+    ${numPanel(296, 96, 52, 28, 23)}${spText(206, 122, 12, 90)}${decals(272, 160)}
+    ${wing}
+    </g>${W(152, 158)}${W(466, 158)}
+    <clipPath id="clip${id}"><path d="${RALLY_BODY}" transform="translate(0 ${-rideH * .8})"/></clipPath>`;
   } else {   // stock car (Gen 4 / ARCA silhouette). Drawn in 980px reference coords, mirrored so the nose faces right.
     const M = 'matrix(-0.636 0 0 0.636 628.6 -188.6)';
     const sh = 14 + aS * 11;   // spoiler blade height grows with aero

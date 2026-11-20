@@ -17,7 +17,7 @@ function shade(hex, amt) {
 }
 
 /* ===================== balance constants ===================== */
-const VERSION = '3.4.0';
+const VERSION = '3.6.3';
 const TEAM_COLORS = ['#e8392f', '#ff8a1e', '#f5c518', '#2fbf71', '#14b8c4', '#2f7bf5', '#7a4cf0', '#e64598', '#f2f2f2', '#2b2f36'];
 const TIER_BASE = [24, 45, 67, 88];          // AI performance level per tier
 const TIER_MULT = [1.25, 2.1, 3.6, 6.0];     // money multiplier per tier
@@ -62,18 +62,62 @@ const OVAL_TRACKS = [
   { id: 'storm', laps: 16, lt: 5.4, ratio: .94, wear: .85, rain: .12, bump: .1, o: { p: .42, rx: .45, ry: .29, tri: .05 } },
   { id: 'dawn', laps: 18, lt: 4.5, ratio: .84, wear: 1.0, rain: .07, bump: .15, o: { p: .5, rx: .42, ry: .3, tri: .1 } },
 ];
-const POOLS = { road: ROAD_TRACKS, oval: OVAL_TRACKS };
+/* ===================== rally =====================
+   Surfaces: grip = base grip, rough = how rough the road is (punctures, bottoming).
+   Rally events: mix = surface share, rain / snow = chance of rain or fresh snow per loop,
+   jumps / twist = how many jumps and how twisty the stages are, scen = scenery. */
+const SURF = {
+  A: { grip: 1.0, rough: .12, col: '#555a63', edge: '#e4e7ec' },
+  G: { grip: .84, rough: .5, col: '#a8875b', edge: '#6e593b', dust: '196,164,118' },
+  S: { grip: .8, rough: .36, col: '#d9c08a', edge: '#a88f5e', dust: '230,210,160' },
+  N: { grip: .68, rough: .22, col: '#e9eef4', edge: '#aab6c6', dust: '245,248,252' },
+};
+const RALLY_EVENTS = [
+  { id: 'mecsek', type: 'rally', mix: { A: .85, G: .15 }, rain: .35, snow: 0, rough: .25, jumps: .1, twist: .85, scen: 'forest' },
+  { id: 'bakony', type: 'rally', mix: { G: 1 }, rain: .3, snow: 0, rough: .6, jumps: .35, twist: .6, scen: 'forest' },
+  { id: 'lapland', type: 'rally', mix: { N: 1 }, rain: 0, snow: .45, rough: .25, jumps: .45, twist: .4, scen: 'snow' },
+  { id: 'fjord', type: 'rally', mix: { N: .6, G: .4 }, rain: .3, snow: .3, rough: .35, jumps: .3, twist: .55, scen: 'snow' },
+  { id: 'smeralda', type: 'rally', mix: { G: .75, S: .25 }, rain: .1, snow: 0, rough: .75, jumps: .3, twist: .7, scen: 'coast' },
+  { id: 'dune', type: 'rally', mix: { S: .7, G: .3 }, rain: .03, snow: 0, rough: .5, jumps: .5, twist: .35, scen: 'desert' },
+  { id: 'alpwinter', type: 'rally', mix: { A: .7, N: .3 }, rain: .3, snow: .35, rough: .2, jumps: .05, twist: .95, scen: 'snow' },
+  { id: 'lakes', type: 'rally', mix: { G: 1 }, rain: .25, snow: 0, rough: .35, jumps: .95, twist: .3, scen: 'forest' },
+  { id: 'vinetarmac', type: 'rally', mix: { A: 1 }, rain: .3, snow: 0, rough: .15, jumps: .05, twist: .9, scen: 'coast' },
+  { id: 'highland', type: 'rally', mix: { G: .9, A: .1 }, rain: .6, snow: 0, rough: .5, jumps: .4, twist: .6, scen: 'forest' },
+  { id: 'redrock', type: 'rally', mix: { G: 1 }, rain: .05, snow: 0, rough: .85, jumps: .4, twist: .55, scen: 'desert' },
+  { id: 'island', type: 'rally', mix: { G: .5, A: .5 }, rain: .25, snow: 0, rough: .55, jumps: .3, twist: .7, scen: 'coast' },
+];
+/* rallycross circuits: pts = layout (0..1), size = metres across, grav = lap fractions on gravel,
+   joker = alternative route between lap fractions a and b, bulging out by `out` (longer = bigger bulge) */
+const RX_TRACKS = [
+  { id: 'rx_pannon', type: 'rx', size: 260, rain: .3, ice: false, grav: [[.3, .62]], joker: { a: .66, b: .8, out: .16 }, pts: [[.1, .75], [.12, .3], [.35, .18], [.55, .35], [.8, .2], [.92, .5], [.75, .62], [.82, .86], [.45, .88]] },
+  { id: 'rx_quarry', type: 'rx', size: 240, rain: .25, ice: false, grav: [[.1, .45], [.7, .85]], joker: { a: .48, b: .6, out: .22 }, pts: [[.12, .55], [.2, .16], [.6, .14], [.9, .3], [.7, .5], [.9, .78], [.5, .9], [.35, .66]] },
+  { id: 'rx_frost', type: 'rx', size: 250, rain: 0, ice: true, grav: [[0, 1]], joker: { a: .2, b: .34, out: .14 }, pts: [[.1, .5], [.25, .15], [.62, .2], [.88, .4], [.78, .8], [.42, .86], [.3, .62]] },
+  { id: 'rx_coast', type: 'rx', size: 270, rain: .35, ice: false, grav: [[.45, .78]], joker: { a: .82, b: .95, out: .1 }, pts: [[.08, .7], [.18, .22], [.5, .12], [.66, .4], [.92, .3], [.9, .78], [.6, .7], [.4, .9]] },
+  { id: 'rx_valley', type: 'rx', size: 230, rain: .3, ice: false, grav: [[.05, .3], [.55, .72]], joker: { a: .34, b: .5, out: .2 }, pts: [[.15, .8], [.1, .35], [.4, .14], [.65, .3], [.9, .15], [.88, .6], [.6, .62], [.55, .88]] },
+];
+const RALLY_POOL = [...RALLY_EVENTS, ...RX_TRACKS];
+const POOLS = { road: ROAD_TRACKS, oval: OVAL_TRACKS, rally: RALLY_POOL };
 
 /* disciplines: pool = which track list, rounds per season, tank = fuel tank size as a fraction of a
    normal race distance; special = the round index of the season's headline event */
 const DISC = {
   road: { pool: 'road', rounds: 12, lapTime: 6.2, tank: .6, laps: t => t.laps, special: { round: 6, kind: 'endurance', laps: 2.2, prize: 2, points: 2 } },
   oval: { pool: 'oval', rounds: 11, tank: .45, laps: t => t.laps, special: { round: 0, kind: 'bigrace', laps: 1.5, prize: 3, points: 1, track: 'sunrise' } },
+  // rally: 8 rallies + 3 rallycross rounds (at rxRounds); no headline event
+  rally: { pool: 'rally', rounds: 11, tank: 1, laps: t => t.type === 'rx' ? RX_LAPS.final : RALLY_STAGES, special: { round: -1, kind: 'none', laps: 1, prize: 1, points: 1 }, rxRounds: [3, 6, 9] },
 };
-const DISC_KEYS = ['road', 'oval'];
+const DISC_KEYS = ['road', 'oval', 'rally'];
+const RALLY_STAGES = 9;                       // 3 loops of 3 stages; the last stage is the Power Stage
+const RALLY_LOOPS = 3;
+const SERVICE_MIN = [15, 30, 45];             // service before loop 1 / after loop 1 / evening service
+const POWER_PTS = [5, 4, 3, 2, 1];
+const RX_LAPS = { heat: 4, final: 6 };
+const RX_PEN = 30;                            // seconds added if the joker lap is skipped
+const TYRES = { AS: 'A', AH: 'A', AW: 'A', GS: 'G', GH: 'G', SN: 'N' };   // tyre -> surface it is made for
+const CO_TRAIN = ['notes', 'calm'];
 const racesPerSeason = d => DISC[d].rounds;
 // car body style: GT cars in the lower road tiers, prototypes at the top, stock cars on ovals
-const carKind = (disc, tier) => disc === 'oval' ? 'stock' : tier >= 2 ? 'proto' : 'gt';
+const carKind = (disc, tier) => disc === 'oval' ? 'stock' : disc === 'rally' ? 'rally' : tier >= 2 ? 'proto' : 'gt';
 
 const PARTS = ['engine', 'gearbox', 'aero', 'chassis', 'brakes', 'tires'];
 const STAFF = ['eng', 'pit', 'shop', 'sim', 'mkt'];
@@ -111,4 +155,5 @@ const SPONSORS = [['Pannon Olaj', '#d4a017'], ['Kocka Bank', '#1f4fb5'], ['Turb√
 const GOALS = [{ t: 'finish', n: FIELD, f: .5 }, { t: 'top', n: 10, f: 1 }, { t: 'top', n: 6, f: 1.6 }, { t: 'top', n: 3, f: 2.6 }, { t: 'top', n: 1, f: 4.2 }];
 const AI_COLORS = ['#d63031', '#0984e3', '#00b894', '#fdcb6e', '#e17055', '#6c5ce7', '#fd79a8', '#00cec9', '#a29bfe', '#55efc4', '#74b9ff', '#b2bec3'];
 const ACHIEVEMENTS = ['first_finish', 'first_points', 'first_podium', 'first_win', 'pole', 'rain_win', 'comeback', 'one_two', 'double_podium', 'ten_wins',
-  'promotion', 'title', 'world_title', 'both_titles', 'endurance_win', 'bigrace_win', 'clean_season', 'millionaire', 'full_pro', 'beat_rival'];
+  'promotion', 'title', 'world_title', 'both_titles', 'endurance_win', 'bigrace_win', 'clean_season', 'millionaire', 'full_pro', 'beat_rival',
+  'rally_win', 'power_stage', 'rx_win', 'super_rally'];

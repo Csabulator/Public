@@ -248,7 +248,7 @@ label.l{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;font
 .boxb.req.busy{animation:none;background:#5a4a1a;color:#ffd48a;opacity:1}
 .news li .nd{flex:none;width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--dim)}
 .nd.start{background:var(--amber)}.nd.win{background:#e0b54a}.nd.race{background:var(--blue)}.nd.bad{background:var(--red)}.nd.money{background:var(--green)}.nd.driver{background:#a78bfa}.nd.info{background:var(--muted)}
-@media(min-width:640px){.disc{grid-template-columns:1fr 1fr}}
+@media(min-width:640px){.disc{grid-template-columns:1fr 1fr 1fr}}
 
 /* v3.2: two-car teams, practice, career */
 .nat{display:inline-block;font-family:var(--fc);font-weight:700;font-size:10.5px;letter-spacing:.5px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;vertical-align:1px}
@@ -280,3 +280,22 @@ label.l{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;font
 .ivq{font-size:16px;font-style:italic}
 .ivo{text-align:left;justify-content:flex-start}
 @media(max-width:380px){.statgrid{grid-template-columns:repeat(2,1fr)}.achgrid{grid-template-columns:1fr}}
+
+/* ---- rally / rallycross ---- */
+.rally .tele.rt{display:block}
+.rtele .trow{display:grid;grid-template-columns:92px 1fr 40px;gap:8px;align-items:center;font-size:12.5px;margin:3px 0}
+.rtele .trow .bar{height:7px}
+.rally .prompt{margin:8px 10px 0;background:#2a1a0c;border:1px solid #6a3c12;border-radius:10px;padding:10px 12px}
+.rally .rxrow{display:block;padding:8px 10px 0}.rally .rxrow .boxb{width:100%}
+.lbr{display:grid;grid-template-columns:22px 10px 1fr auto;gap:7px;align-items:center;padding:4px 2px;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,.05)}
+.lbr .p{font-family:var(--fc);font-weight:800;color:var(--muted);text-align:right}.lbr .dot{width:9px;height:9px;border-radius:50%}
+.lbr.me{background:rgba(255,178,30,.1);border-radius:6px}.lbr .gap{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
+.svcrow{margin:6px 0 10px}.svcrow .seg button small{display:block;font-weight:600;font-size:10.5px;opacity:.8}
+.wrapseg{flex-wrap:wrap}.wrapseg button{min-width:30%}
+.res.cut{border-bottom:2px dashed var(--amber)}
+.ev-surf{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:6px 0}
+.ev-surf i{display:block;height:100%}
+.tv.rl svg{max-height:100px}
+details.card summary{cursor:pointer;list-style:none}details.card summary::-webkit-details-marker{display:none}
+.ev-ico{width:52px;height:40px;display:flex;align-items:center;justify-content:center;gap:3px;font-family:var(--fc);font-weight:800;color:var(--amber);background:var(--card2);border-radius:8px}
+.ev-ico i{width:9px;height:24px;border-radius:3px;display:block}

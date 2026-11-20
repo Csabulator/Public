@@ -5,7 +5,7 @@ function catmull(pts, sub = 24, sharp = false) {
     const q = [];
     for (let i = 0; i < P.length; i++) {
       const a = P[i], b = P[(i + 1) % P.length];
-      q.push(a, [lerp(a[0], b[0], .2), lerp(a[1], b[1], .2)], [lerp(a[0], b[0], .8), lerp(a[1], b[1], .8)]);
+      q.push(a, [lerp(a[0], b[0], .3), lerp(a[1], b[1], .3)], [lerp(a[0], b[0], .7), lerp(a[1], b[1], .7)]);
     }
     P = q;
   }
@@ -32,11 +32,37 @@ function ovalPts(o) {
   }
   return out;
 }
+// sharp (street / airfield) layouts: straight lines joined by circular arcs of radius r, so every corner has a real radius
+function filletPath(pts, r) {
+  const n = pts.length, out = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[(i - 1 + n) % n], b = pts[i], c = pts[(i + 1) % n];
+    const u = [a[0] - b[0], a[1] - b[1]], v = [c[0] - b[0], c[1] - b[1]], lu = Math.hypot(...u), lv = Math.hypot(...v);
+    const ux = u[0] / lu, uy = u[1] / lu, vx = v[0] / lv, vy = v[1] / lv;
+    const th = Math.acos(clamp(ux * vx + uy * vy, -1, 1));   // angle between the two legs
+    let tl = r / Math.tan(th / 2); tl = Math.min(tl, lu * .45, lv * .45);
+    const rr = tl * Math.tan(th / 2);
+    const p1 = [b[0] + ux * tl, b[1] + uy * tl], p2 = [b[0] + vx * tl, b[1] + vy * tl];
+    const bx = ux + vx, by = uy + vy, bl = Math.hypot(bx, by) || 1, dc = rr / Math.sin(th / 2);
+    const cc = [b[0] + bx / bl * dc, b[1] + by / bl * dc];
+    let a1 = Math.atan2(p1[1] - cc[1], p1[0] - cc[0]), a2 = Math.atan2(p2[1] - cc[1], p2[0] - cc[0]);
+    let d = a2 - a1; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    const steps = 14;
+    for (let k = 0; k <= steps; k++) { const an = a1 + d * k / steps; out.push([cc[0] + Math.cos(an) * rr, cc[1] + Math.sin(an) * rr]); }
+  }
+  // densify the straights
+  const dense = [];
+  for (let i = 0; i < out.length; i++) {
+    const a = out[i], b = out[(i + 1) % out.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.ceil(L / .01));
+    for (let k = 0; k < m; k++) dense.push([lerp(a[0], b[0], k / m), lerp(a[1], b[1], k / m)]);
+  }
+  return dense;
+}
 const TRACK_CACHE = {};
 function buildTrack(pool, idx) {
   const key = pool + idx; if (TRACK_CACHE[key]) return TRACK_CACHE[key];
   const T = POOLS[pool][idx];
-  const raw = T.o ? ovalPts(T.o) : catmull(T.pts, 24, T.sharp);
+  const raw = T.o ? ovalPts(T.o) : T.sharp ? filletPath(T.pts, .065) : catmull(T.pts, 24);
   // resample by arc length into N equally spaced points
   const N = 800, seg = [0];
   for (let i = 1; i <= raw.length; i++) { const a = raw[i - 1], b = raw[i % raw.length]; seg.push(seg[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1])); }

@@ -1,6 +1,7 @@
 /* ===================== boot ===================== */
 initLang();
 bindRaceControls();
+bindRallyControls();
 SND.paint();
 S = load();
 render();

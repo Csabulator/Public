@@ -53,14 +53,10 @@ function trackChars(tr) {
 
 /* ---------- home ---------- */
 function vHome() {
+  if (isRally()) return vHomeWrap(rallyNextCard());
   const D = DISC[S.disc], tr = curTrack(), sp = isSpecial(S.disc, S.round) ? D.special : null;
-  const rows = teamStandings(), pos = rows.findIndex(r => r.me) + 1;
-  const cs = carStats(S.parts, S.staff.eng, S.rule);
-  const fieldAvg = S.field.reduce((a, f) => a + (f.P + f.H + f.B) / 3, 0) / S.field.length;
   const laps = Math.round(D.laps(tr) * (sp ? sp.laps : 1));
-  return `<div class="cols"><div>
-  <h2 class="sec">${t('home.next')}</h2>
-  <div class="card next ${sp ? 'special' : ''}">
+  return vHomeWrap(`<div class="card next ${sp ? 'special' : ''}">
     <div class="tv ${tr.oval ? 'oval' : ''}">${trackSVG(tr.pool, tr.idx, 140, 100, '#e6e9ef', 5)}${sp ? `<span class="sptag">${t('sp.' + sp.kind)}</span>` : ''}</div>
     <div class="body">
       <div class="round">${t('home.round', { r: S.round + 1, n: D.rounds, laps })}</div>
@@ -69,7 +65,41 @@ function vHome() {
       ${trackChars(tr)}
       <button class="btn pri block" style="margin-top:12px" data-act="weekend">${t('home.start')}</button>
     </div>
-  </div>
+  </div>`);
+}
+function rallyNextCard() {
+  const ev = curEvent(), D = DISC.rally, rx = ev.type === 'rx';
+  const thumb = rx ? rxSVG(ev, 140, 100) : stageThumb(ev);
+  const mix = rx ? (ev.ice ? { N: 1 } : (() => { const tr = buildRx(ev), g = tr.grav.filter(Boolean).length / tr.N; return { A: 1 - g, G: g }; })()) : ev.mix;
+  const bar = `<div class="ev-surf">${Object.entries(mix).filter(([k, v]) => v > .01).map(([k, v]) => `<i style="width:${v * 100}%;background:${SURF[k].col}"></i>`).join('')}</div><div class="small muted">${surfText(mix)}</div>`;
+  return `<div class="card next">
+    <div class="tv rl">${thumb}${rx ? '<span class="sptag">RX</span>' : ''}</div>
+    <div class="body">
+      <div class="round">${t('rw.round', { r: S.round + 1, n: D.rounds, k: rx ? 'Rallycross' : t('rw.ssN', { n: RALLY_STAGES }) })}</div>
+      <div class="name">${esc(t('track.' + ev.id))}</div>
+      <div class="small muted" style="margin-bottom:8px">${esc(t('trackd.' + ev.id))}</div>
+      ${bar}
+      ${rx ? statRow(t('rx.jokerS'), ev.joker.out * 50, 'b') + statRow(t('trk.rain'), ev.rain * 100, 'w', 100, '%')
+           : statRow(t('rw.rough'), ev.rough * 10, 'r') + statRow(t('rw.jumps'), ev.jumps * 10, 'b') + statRow(t('trk.rain'), (ev.rain + ev.snow) * 100, 'w', 100, '%')}
+      <button class="btn pri block" style="margin-top:12px" data-act="weekend">${rx ? t('rw.startRx') : t('rw.start')}</button>
+    </div>
+  </div>`;
+}
+function stageThumb(ev) {
+  const st = genStage(ev, hashStr(ev.id) * 7 + 3, 9), w = 140, h = 100;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < st.N; i += 8) { x0 = Math.min(x0, st.x[i]); x1 = Math.max(x1, st.x[i]); y0 = Math.min(y0, st.y[i]); y1 = Math.max(y1, st.y[i]); }
+  const s = Math.min((w - 12) / (x1 - x0 || 1), (h - 12) / (y1 - y0 || 1)), P = i => `${(6 + (st.x[i] - x0) * s).toFixed(1)} ${(6 + (st.y[i] - y0) * s).toFixed(1)}`;
+  let d = ''; for (let i = 0; i < st.N; i += 6) d += (i ? 'L' : 'M') + P(i);
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><path d="${d}" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="6" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="#e6e9ef" stroke-width="3.5" stroke-linejoin="round"/><circle cx="${P(0).split(' ')[0]}" cy="${P(0).split(' ')[1]}" r="4" fill="#2fbf71"/><circle cx="${P(st.N - 1).split(' ')[0]}" cy="${P(st.N - 1).split(' ')[1]}" r="4" fill="#ffb21e"/></svg>`;
+}
+function vHomeWrap(card) {
+  const rows = teamStandings(), pos = rows.findIndex(r => r.me) + 1;
+  const cs = carStats(S.parts, S.staff.eng, S.rule);
+  const fieldAvg = S.field.reduce((a, f) => a + (f.P + f.H + f.B) / 3, 0) / S.field.length;
+  return `<div class="cols"><div>
+  <h2 class="sec">${isRally() ? t('rw.next') : t('home.next')}</h2>
+  ${card}
   <div class="grid2" style="margin-top:10px">
     <div class="kpi"><small>${t('kpi.pos')}</small><b>${t('kpi.posV', { n: pos })}</b><div class="small muted">${t('kpi.pts', { n: S.points.me || 0 })}</div></div>
     <div class="kpi"><small>${t('kpi.car')}</small><b class="${cs.ovr >= fieldAvg ? 'pos' : 'neg'}">${cs.ovr >= fieldAvg ? '+' : ''}${(cs.ovr - fieldAvg).toFixed(1)}</b><div class="small muted">${t('kpi.carSub')}</div></div>
@@ -135,18 +165,20 @@ function vGarage() {
 
 /* ---------- team ---------- */
 function driverCard(d, i) {
-  const ml = moraleLabel(d.morale);
+  const ml = moraleLabel(d.morale), co = d.role === 'co', tr = co ? CO_TRAIN : TRAIN;
+  const stats = co ? statRow(t('drv.notes'), d.skill, '', 100) + statRow(t('drv.calm'), d.cons, 'g', 100)
+    : statRow(t('drv.skill'), d.skill, '', 100) + statRow(t('drv.cons'), d.cons, 'g', 100) + statRow(isRally() ? t('drv.slip') : t('drv.wet'), d.wet, 'w', 100);
   return `<div class="card"><div class="drv">${helmetSVG(d)}<div>
-    <div class="h" style="font-size:21px;font-weight:700">#${i ? S.num2 : S.num} ${esc(d.name)} ${natTag(d.nat)}</div>
+    <div class="h" style="font-size:21px;font-weight:700">${co ? `<span class="tag a">${t('team.co')}</span>` : '#' + (i ? S.num2 : S.num)} ${esc(d.name)} ${natTag(d.nat)}</div>
     <div class="small muted">${t('team.age', { n: d.age })} · ${money(d.salary)}${t('u.perRace')} · ${t('team.contract', { n: d.contract })} · ${t('team.pot')} <span class="stars">${stars(d.pot)}</span></div></div></div>
-    <div style="margin-top:10px">${statRow(t('drv.skill'), d.skill, '', 100)}${statRow(t('drv.cons'), d.cons, 'g', 100)}${statRow(t('drv.wet'), d.wet, 'w', 100)}${statRow(t('drv.morale'), d.morale, 'm ' + ml, 100)}</div>
-    <div class="small muted" style="margin:2px 0 8px">${t('morale.' + ml)}</div>
-    <div class="seg" data-trainseg="${i}">${TRAIN.map(k => `<button data-tr="${k}" data-seat="${i}" class="${S.train[i] === k ? 'on' : ''}">${t('train.' + k)}</button>`).join('')}</div>
+    <div style="margin-top:10px">${stats}${statRow(t('drv.morale'), d.morale, 'm ' + ml, 100)}</div>
+    <div class="small muted" style="margin:2px 0 8px">${t('morale.' + ml)}${co ? ' ' + t('team.coInfo') : ''}</div>
+    <div class="seg" data-trainseg="${i}">${tr.map(k => `<button data-tr="${k}" data-seat="${i}" class="${S.train[i] === k ? 'on' : ''}">${t(isRally() && k === 'wet' ? 'train.slip' : 'train.' + k)}</button>`).join('')}</div>
   </div>`;
 }
 function vTeam() {
   return `<div class="cols"><div>
-  <h2 class="sec">${t('team.drivers')}</h2>
+  <h2 class="sec">${isRally() ? t('team.crew') : t('team.drivers')}</h2>
   ${S.drivers.map(driverCard).join('')}
   <div class="small muted" style="margin:6px 2px">${t('team.trainInfo')}</div>
   <h2 class="sec">${t('team.staff')}</h2>
@@ -164,8 +196,8 @@ function vTeam() {
   ${S.market.map((m, i) => {
     const locked = S.rep < m.minRep;
     return `<div class="card drv mk">${helmetSVG(m, 52)}
-    <div><b>${esc(m.name)}</b> ${natTag(m.nat)} <span class="small muted">${t('team.age', { n: m.age })}</span>
-      <div class="small">${t('drv.skillS')} <b>${m.skill}</b> · ${t('drv.consS')} <b>${m.cons}</b> · ${t('drv.wetS')} <b>${m.wet}</b></div>
+    <div><b>${esc(m.name)}</b> ${natTag(m.nat)} ${m.role === 'co' ? `<span class="tag a">${t('team.co')}</span>` : ''} <span class="small muted">${t('team.age', { n: m.age })}</span>
+      <div class="small">${m.role === 'co' ? `${t('drv.notesS')} <b>${m.skill}</b> · ${t('drv.calmS')} <b>${m.cons}</b>` : `${t('drv.skillS')} <b>${m.skill}</b> · ${t('drv.consS')} <b>${m.cons}</b> · ${t('drv.wetS')} <b>${m.wet}</b>`}</div>
       <div class="small muted">${money(m.salary)}${t('u.perRace')} · <span class="stars">${stars(m.pot)}</span></div></div>
     <div style="text-align:right">${locked ? `<span class="tag r">★ ${m.minRep}</span>` : `<button class="btn sm team" data-sign="${i}">${t('team.offer')}</button><div class="small muted" style="margin-top:3px">${t('team.from', { m: money(feeFor(m, 1)) })}</div>`}</div></div>`;
   }).join('')}</div></div>`;
@@ -203,6 +235,7 @@ function vChamp() {
   <div class="card" style="margin-top:8px">${CHAMP_TAB === 'team' ? standTable(teamStandings()) : standTable(driverStandings(), 0, true)}</div>
   <h2 class="sec">${t('champ.cal')}</h2>
   <div class="card">${S.calendar.map((ti, i) => {
+    if (isRally()) return rallyCalRow(ti, i, badge);
     const tr = buildTrack(pool, ti), r = S.results[i], sp = isSpecial(S.disc, i);
     const res = r ? r.pos.map((p, k) => badge(p, r.dnf[k])).join(' ') : i === S.round ? `<span class="tag a">${t('champ.next')}</span>` : '';
     const laps = Math.round(D.laps(tr) * (sp ? D.special.laps : 1));
@@ -210,12 +243,18 @@ function vChamp() {
   }).join('')}</div>
   </div><div>
   <h2 class="sec">${t('champ.stats')}</h2>
-  <div class="card statgrid">${[['starts', st.starts], ['wins', st.wins], ['podiums', st.podiums], ['poles', st.poles], ['points', st.points], ['laps', st.laps], ['dnfs', st.dnfs], ['titles', S.titles]].map(([k, v]) => `<div><b>${v}</b><small>${t('stat.' + k)}</small></div>`).join('')}</div>
+  <div class="card statgrid">${[['starts', st.starts], ['wins', st.wins], ['podiums', st.podiums], isRally() || st.sw ? ['sw', st.sw || 0] : ['poles', st.poles], ['points', st.points], ['laps', st.laps], ['dnfs', st.dnfs], ['titles', S.titles]].map(([k, v]) => `<div><b>${v}</b><small>${t('stat.' + k)}</small></div>`).join('')}</div>
   <h2 class="sec">${t('champ.ach')} · ${Object.keys(S.ach).length}/${ACHIEVEMENTS.length}</h2>
   <div class="card achgrid">${ACHIEVEMENTS.map(k => `<div class="ach ${S.ach[k] ? 'on' : ''}"><b>${t('ach.' + k)}</b><small>${t('ach.' + k + '.d')}</small></div>`).join('')}</div>
   <h2 class="sec">${t('champ.hof')}</h2>
   <div class="card">${S.history.length ? S.history.map(h => `<div class="money-line"><span>${t('top.season', { n: h.season })} · ${esc(h.label || tierName(h.disc, h.tier))}<br><span class="small muted">${t('champ.champion')}: ${esc(h.champ || '–')}</span></span><b>${t('kpi.posV', { n: h.pos })} ${h.move ? t('move.' + h.move) : ''}</b></div>`).join('') : `<div class="small muted">${t('champ.first')}</div>`}</div>
   </div></div>`;
+}
+
+function rallyCalRow(ti, i, badge) {
+  const ev = RALLY_POOL[ti], r = S.results[i], rx = ev.type === 'rx';
+  const res = r ? r.pos.map((p, k) => badge(p, r.dnf[k])).join(' ') : i === S.round ? `<span class="tag a">${t('champ.next')}</span>` : '';
+  return `<div class="cal ${i === S.round ? 'cur' : ''}"><div class="ev-ico">${rx ? 'RX' : Object.keys(ev.mix).map(k => `<i style="background:${SURF[k].col}"></i>`).join('')}</div><div><b>${esc(t('track.' + ev.id))}</b>${rx ? ' <span class="tag a">RX</span>' : ''}<div class="small muted">${rx ? t('rx.short') : t('rw.ssN', { n: RALLY_STAGES }) + ' · ' + surfText(ev.mix)}</div></div><div class="cres">${res}</div></div>`;
 }
 
 /* ---------- actions ---------- */
@@ -226,7 +265,7 @@ function orderPart(id, rush) {
 }
 function bindView() {
   const v = $('#view');
-  v.querySelectorAll('[data-act]').forEach(b => b.onclick = () => ({ weekend: openWeekend, export: openExport, import: openImport, reset: confirmReset, sound: () => { SND.toggle(); render(); } }[b.dataset.act])());
+  v.querySelectorAll('[data-act]').forEach(b => b.onclick = () => ({ weekend: isRally() ? openRallyWeekend : openWeekend, export: openExport, import: openImport, reset: confirmReset, sound: () => { SND.toggle(); render(); } }[b.dataset.act])());
   const ls = v.querySelector('[data-act-lang]'); if (ls) ls.onchange = () => setLang(ls.value);
   v.querySelectorAll('[data-up],[data-rush]').forEach(b => b.onclick = () => {
     const id = b.dataset.up || b.dataset.rush;
@@ -251,11 +290,12 @@ function bindView() {
   });
 }
 function openSign(mi) {
-  const m = S.market[mi]; let seat = S.drivers[0].skill <= S.drivers[1].skill ? 0 : 1, years = 2;
+  const m = S.market[mi], seats = [0, 1].filter(i => (S.drivers[i].role === 'co') === (m.role === 'co'));
+  let seat = seats.length === 1 ? seats[0] : S.drivers[0].skill <= S.drivers[1].skill ? 0 : 1, years = 2;
   const draw = () => {
     const fee = feeFor(m, years);
     modal(`<h3>${t('team.signT')}</h3><p>${t('team.signP', { n: esc(m.name), a: m.age, s: m.skill, c: m.cons, w: m.wet, sal: money(m.salary) })}</p>
-    <label class="l">${t('team.replace')}</label><div class="seg" id="sgSeat">${S.drivers.map((d, i) => `<button data-v="${i}" class="${seat === i ? 'on' : ''}">#${i ? S.num2 : S.num} ${esc(lastName(d.name))} (${Math.round(d.skill)})</button>`).join('')}</div>
+    <label class="l">${t('team.replace')}</label><div class="seg" id="sgSeat">${seats.map(i => { const d = S.drivers[i]; return `<button data-v="${i}" class="${seat === i ? 'on' : ''}">${d.role === 'co' ? t('team.co') : '#' + (i ? S.num2 : S.num)} ${esc(lastName(d.name))} (${Math.round(d.skill)})</button>`; }).join('')}</div>
     <label class="l">${t('team.length')}</label><div class="seg" id="sgYears">${[1, 2, 3].map(y => `<button data-v="${y}" class="${years === y ? 'on' : ''}">${t('team.years', { n: y })}</button>`).join('')}</div>
     <div class="money-line t" style="margin-top:14px"><span>${t('team.fee')}</span><b>${money(fee)}</b></div>
     <div class="small muted" style="margin-bottom:12px">${t('team.signLeave', { n: esc(S.drivers[seat].name) })}</div>
@@ -301,12 +341,12 @@ function renderIntro() {
     <label class="l">${t('intro.num')}</label><input type="number" id="iNum" min="1" max="99" value="7">
     </div><div>
     <label class="l">${t('intro.series')}</label>
-    <div class="disc" id="iDisc">${DISC_KEYS.map(d => `<button data-d="${d}" class="${INTRO.disc === d ? 'on' : ''}">${carSideSVG({ kind: d === 'oval' ? 'stock' : 'gt', color: '#8d96a8', num: '', parts: DEMO_PARTS, bg: false })}<div><b>${t('disc.' + d)}</b><small>${t('disc.' + d + '.d')}</small></div></button>`).join('')}</div>
+    <div class="disc" id="iDisc">${DISC_KEYS.map(d => `<button data-d="${d}" class="${INTRO.disc === d ? 'on' : ''}">${carSideSVG({ kind: carKind(d, 0), color: '#8d96a8', num: '', parts: DEMO_PARTS, bg: false })}<div><b>${t('disc.' + d)}</b><small>${t('disc.' + d + '.d')}</small></div></button>`).join('')}</div>
     </div></div>
     <button class="btn pri block" style="margin:18px 0 30px;padding:15px;font-size:17px" id="iGo">${t('intro.go')}</button>
   </div>`;
   const ls = $('#view [data-act-lang]'); ls.onchange = () => setLang(ls.value);
-  const upd = () => { const n = clamp(parseInt($('#iNum').value) || 7, 1, 99); $('#introCar').innerHTML = carSideSVG({ kind: INTRO.disc === 'oval' ? 'stock' : 'gt', color: INTRO.color, num: n, parts: DEMO_PARTS, team: $('#iName').value }); };
+  const upd = () => { const n = clamp(parseInt($('#iNum').value) || 7, 1, 99); $('#introCar').innerHTML = carSideSVG({ kind: carKind(INTRO.disc, 0), color: INTRO.color, num: n, parts: DEMO_PARTS, team: $('#iName').value }); };
   upd();
   $('#iCol').querySelectorAll('button').forEach(b => b.onclick = () => { INTRO.color = b.dataset.c; $('#iCol').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); upd(); });
   $('#iDisc').querySelectorAll('button').forEach(b => b.onclick = () => { INTRO.disc = b.dataset.d; $('#iDisc').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); upd(); });
@@ -432,7 +472,7 @@ function checkBankrupt() {
 }
 function seasonEnd() {
   const res = seasonResolve();
-  const cur = tierName(S.disc, S.tier), other = DISC_KEYS.find(d => d !== S.disc), ot = Math.max(0, S.tier - 1);
+  const cur = tierName(S.disc, S.tier), other = DISC_KEYS.filter(d => d !== S.disc), ot = Math.max(0, S.tier - 1);
   modal(`<h3>${res.pos === 1 ? t('se.champ') : t('se.t')}</h3>
    <div style="text-align:center;margin:8px 0"><span class="h bigpos">${res.pos}.</span><div class="muted">${t('se.pts', { n: S.points.me })}</div></div>
    <div class="card"><div class="money-line"><span>${t('se.prize')}</span><span class="pos">+${money(res.prize)}</span></div>
@@ -456,9 +496,10 @@ function chooseNext(cur, other, ot) {
   modal(`<h3>${t('se.next')}</h3>
    <div class="row col">
     <button class="btn pri" id="stay">${t('se.continue', { s: esc(cur) })}</button>
-    <button class="btn" id="sw">${t('se.switch', { s: esc(tierName(other, ot)), d: t('disc.' + other) })}</button>
-   </div>`);
+    ${other.map(o => `<button class="btn" data-sw="${o}">${t('se.switch', { s: esc(tierName(o, ot)), d: t('disc.' + o) })}</button>`).join('')}
+   </div>
+   <div class="small muted" style="margin-top:8px">${t('se.coNote')}</div>`);
   const fin = () => { closeModal(); VIEW = 'home'; render(); if (S.rule !== 'none') toast(t('rule.' + S.rule)); };
   $('#stay').onclick = () => { nextSeason(S.disc, S.tier); fin(); };
-  $('#sw').onclick = () => { addNews('start', 'news.switch', { d: 'disc.' + other }); nextSeason(other, ot); fin(); };
+  $('#mc').querySelectorAll('[data-sw]').forEach(b => b.onclick = () => { const o = b.dataset.sw; addNews('start', 'news.switch', { d: 'disc.' + o }); nextSeason(o, ot); fin(); });
 }

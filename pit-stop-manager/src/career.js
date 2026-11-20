@@ -144,7 +144,7 @@ function resolvePoach(ev, keep) {
   else {
     const comp = Math.round(feeFor(d) * .5 / 50) * 50; addMoney(comp);
     addNews('driver', 'news.left', { n: d.name, t: ev.from, m: money(comp) });
-    S.drivers[ev.seat] = rookie(S.tier);
+    S.drivers[ev.seat] = replacementFor(ev.seat);
   }
   save();
 }
@@ -156,7 +156,8 @@ function teamStandings() {
   rows.sort((a, b) => b.pts - a.pts || (a.me ? -1 : 1)); return rows;
 }
 function driverStandings() {
-  const rows = S.drivers.map((d, i) => ({ id: 'me_' + i, name: d.name, nat: d.nat, team: S.teamName, color: S.color, pts: S.dpoints['me_' + i] || 0, me: true }));
+  // rally: the co-driver does not have a row of their own
+  const rows = S.drivers.filter(d => d.role !== 'co').map((d, i) => ({ id: 'me_' + i, name: d.name, nat: d.nat, team: S.teamName, color: S.color, pts: S.dpoints['me_' + i] || 0, me: true }));
   S.field.forEach(f => f.drivers.forEach((d, i) => rows.push({ id: f.id + '_' + i, name: d.name, nat: d.nat, team: f.name, color: f.color, pts: S.dpoints[f.id + '_' + i] || 0, rival: f.id === 'rv' })));
   rows.sort((a, b) => b.pts - a.pts || (a.me ? -1 : 1)); return rows;
 }
@@ -182,8 +183,16 @@ function seasonResolve() {
 }
 const renewSalary = d => Math.round(salaryFor(Math.round(d.skill)) * (d.morale < 45 ? 1.3 : 1.1) / 50) * 50;
 function renewDriver(i, years) { const d = S.drivers[i]; d.salary = renewSalary(d); d.contract = years; d.morale = clamp(d.morale + 5, 0, 100); }
-function releaseDriver(i) { addNews('driver', 'news.released', { n: S.drivers[i].name }); S.drivers[i] = rookie(S.tier); }
+function releaseDriver(i) { addNews('driver', 'news.released', { n: S.drivers[i].name }); S.drivers[i] = replacementFor(i); }
 function nextSeason(disc, tier) {
+  // switching into or out of rally: the second seat changes role (race driver <-> co-driver)
+  const wasRally = S.disc === 'rally', toRally = disc === 'rally';
+  if (wasRally !== toRally) {
+    const old = S.drivers[1];
+    S.drivers[1] = toRally ? makeCo(tier, { contract: 2 }) : makeDriver(tier, { skill: Math.max(18, TIER_BASE[tier] - 6), contract: 2 });
+    S.train[1] = toRally ? 'notes' : 'skill';
+    addNews('driver', toRally ? 'news.coJoin' : 'news.coLeave', { o: old.name, n: S.drivers[1].name });
+  }
   S.disc = disc; S.tier = tier; S.season++; S.round = 0; S.seasonDnf = false;
   S.field = makeField(tier); S.calendar = newCalendar(disc); resetPoints();
   S.drivers.forEach(d => { d.age++; if (d.age > 33) d.skill = Math.max(15, d.skill - rnd(.5, 2)); d.morale = clamp(d.morale + (60 - d.morale) * .5, 0, 100); });

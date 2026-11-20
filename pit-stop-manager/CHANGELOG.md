@@ -1,5 +1,47 @@
 # Changelog
 
+## 3.6.3 – 2026-11-20
+- Circuit: a car that makes a mistake (!) now slides off the track on the outside of the corner (towards the wall on ovals), leaves brown marks on the grass and rejoins.
+- Rally: trees, rocks and spectators are kept clear of every part of the road, also where the road passes close to itself (checked on 360 stages: nothing on the road).
+
+## 3.6.2 – 2026-11-20
+- Kerbs only on the inside of corners and following the corner's radius (they no longer fold over themselves in tight corners).
+- Right-angle street / airfield layouts now have real corner radii (straights joined by circular arcs) instead of near-pointed corners.
+
+## 3.6.1 – 2026-11-20
+- Rally car moves a lot more on every surface: much bigger slides on tarmac too, a bit more on gravel and snow, and a slight weave on the straights.
+
+## 3.6.0 – 2026-11-20
+- Circuit races: cars follow a racing line (outside before a corner, inside at the apex, out again on the exit), each driver with a slightly different line; overtaking lanes still work on top of it.
+- Slip angle: cars turn in a little in corners (GT more than prototypes and stock cars, more in the wet) and swing round when they slide.
+- Skid marks: circuits get marks only on slides and lock-ups (heavy braking into corners); they stay for the whole race and get darker where it happens often. Rally leaves tyre marks all the time (darker when drifting; a stage's second pass drives over the first pass's marks). Rallycross builds up marks on the gravel lap after lap.
+- Weather forecast: rain, heavier or lighter rain and the end of the rain are announced 1–2 laps ahead with a radio message and a blinking red/yellow icon on the map; weather icons on every map (circuit, rally minimap, rallycross).
+- Rain: light spray curtain behind cars in the wet (does not hide the cars behind); rain and snowfall drawn on rally stages and rallycross.
+- Fix: the rally mistake routine replaced the circuit one (since 3.5.0) and broke circuit races when a car made a mistake.
+- Fix: three rally events shared ids with circuit/oval tracks and showed the wrong name.
+
+## 3.5.2 – 2026-11-20
+- Rally camera: smooth. The car heading is interpolated between track samples and the camera look-ahead turns gradually (frame-time based), so it no longer jumps in corners.
+- Water splashes: little pixel drops fly out when the car goes through water.
+
+## 3.5.1 – 2026-11-20
+- Rally stage view: much slower on screen (½× is now about 3× real time), shorter stages (5–11 km, Power Stage 4–7 km), closer camera.
+- The car no longer runs on rails: it takes a line towards the apex and the rear steps out in corners (more on gravel and snow, little on tarmac, more in attack mode), with dust spray from the slide. Rallycross cars drift too.
+- Jumps: the car lifts off (grows, its shadow moves away) and lands with a dust burst.
+
+## 3.5.0 – 2026-11-20
+- New discipline: **Rally · Rallycross** (third career series, four tiers from Regional Rally Cup to World Rally Championship).
+- Rally events: 9 special stages in 3 loops over 2 days, point-to-point stages generated per event (tarmac, gravel, sand, snow/ice and mixes), jumps, water splashes, hairpins.
+- Live top-down stage view with follow camera, co-driver pace notes, minimap, splits and a ghost of the fastest crew; driving style (conserve / normal / attack) can be changed on the stage.
+- Damage (suspension, bodywork, engine/cooling, gearbox) from slides, spins, offs, rolls, jump landings and bottoming out; punctures with a choice to change the wheel or drive on.
+- Service park with time budget (15 / 30 / 45 min) and CR cost per repair, partial repairs, 10 s per minute overrun, tyre choice per loop (tarmac soft/hard/wet, gravel soft/hard, studded), spare wheels, setup change. Roadside repairs between stages by the crew.
+- Shakedown with ride height, springs and gearing; low ride height on rough roads and jumps means more damage.
+- Running order and road sweeping on gravel (day 1 championship order, day 2 reverse of the top 10), weather changes between loops with a forecast, Power Stage bonus points, Super Rally restart (fastest time + 10 min per missed stage).
+- Co-driver instead of a second driver: pace-note accuracy and calm, own training, contracts and market.
+- Rallycross rounds (3 per season): two qualifying rounds of 4-lap heats, two semi-finals and a final over 6 laps, compulsory joker lap (+30 s if skipped) with short and long jokers, contact, repairs between races.
+- Rally hatchback side-view artwork; the roof wing grows with aero upgrades.
+- Team points in rally: best crew of each team. New achievements: rally win, Power Stage, rallycross win, Super Rally comeback.
+
 ## 3.4.0 – 2026-11-20
 - The game is now called **Pit Stop Manager** (new title and logo). Saves from earlier versions still load.
 - Moved to the public repository.

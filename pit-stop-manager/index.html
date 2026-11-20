@@ -258,7 +258,7 @@ label.l{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;font
 .boxb.req.busy{animation:none;background:#5a4a1a;color:#ffd48a;opacity:1}
 .news li .nd{flex:none;width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--dim)}
 .nd.start{background:var(--amber)}.nd.win{background:#e0b54a}.nd.race{background:var(--blue)}.nd.bad{background:var(--red)}.nd.money{background:var(--green)}.nd.driver{background:#a78bfa}.nd.info{background:var(--muted)}
-@media(min-width:640px){.disc{grid-template-columns:1fr 1fr}}
+@media(min-width:640px){.disc{grid-template-columns:1fr 1fr 1fr}}
 
 /* v3.2: two-car teams, practice, career */
 .nat{display:inline-block;font-family:var(--fc);font-weight:700;font-size:10.5px;letter-spacing:.5px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;vertical-align:1px}
@@ -290,6 +290,25 @@ label.l{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;font
 .ivq{font-size:16px;font-style:italic}
 .ivo{text-align:left;justify-content:flex-start}
 @media(max-width:380px){.statgrid{grid-template-columns:repeat(2,1fr)}.achgrid{grid-template-columns:1fr}}
+
+/* ---- rally / rallycross ---- */
+.rally .tele.rt{display:block}
+.rtele .trow{display:grid;grid-template-columns:92px 1fr 40px;gap:8px;align-items:center;font-size:12.5px;margin:3px 0}
+.rtele .trow .bar{height:7px}
+.rally .prompt{margin:8px 10px 0;background:#2a1a0c;border:1px solid #6a3c12;border-radius:10px;padding:10px 12px}
+.rally .rxrow{display:block;padding:8px 10px 0}.rally .rxrow .boxb{width:100%}
+.lbr{display:grid;grid-template-columns:22px 10px 1fr auto;gap:7px;align-items:center;padding:4px 2px;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,.05)}
+.lbr .p{font-family:var(--fc);font-weight:800;color:var(--muted);text-align:right}.lbr .dot{width:9px;height:9px;border-radius:50%}
+.lbr.me{background:rgba(255,178,30,.1);border-radius:6px}.lbr .gap{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
+.svcrow{margin:6px 0 10px}.svcrow .seg button small{display:block;font-weight:600;font-size:10.5px;opacity:.8}
+.wrapseg{flex-wrap:wrap}.wrapseg button{min-width:30%}
+.res.cut{border-bottom:2px dashed var(--amber)}
+.ev-surf{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:6px 0}
+.ev-surf i{display:block;height:100%}
+.tv.rl svg{max-height:100px}
+details.card summary{cursor:pointer;list-style:none}details.card summary::-webkit-details-marker{display:none}
+.ev-ico{width:52px;height:40px;display:flex;align-items:center;justify-content:center;gap:3px;font-family:var(--fc);font-weight:800;color:var(--amber);background:var(--card2);border-radius:8px}
+.ev-ico i{width:9px;height:24px;border-radius:3px;display:block}
 
 </style>
 </head>
@@ -350,6 +369,27 @@ label.l{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;font
     </div>
   </div>
 </div>
+<div class="race rally hidden" id="rally">
+  <div class="rh">
+    <button class="btn sm" id="rlQuit" aria-label="skip">⏭</button>
+    <div class="grow" style="min-width:0"><b id="rlTitle">SS1</b><div class="small muted ell" id="rlSub"></div></div>
+    <div class="rwx" id="rlWx"></div>
+    <div class="lap" id="rlCnt">1/9</div>
+  </div>
+  <div class="rbody">
+    <div class="stage" id="rlStage"><canvas id="rlCv"></canvas><div class="ticker" id="rlTick"></div></div>
+    <div class="side">
+      <div class="ctrl" id="rlModeRow">
+        <div class="seg mode" id="rlMode"><button data-m="0" data-t="mode.0"></button><button data-m="1" class="on" data-t="mode.1"></button><button data-m="2" data-t="mode.2"></button></div>
+        <div class="seg" id="rlSpeed"><button data-s="0" aria-label="pause">❚❚</button><button data-s="0.5" class="on">½×</button><button data-s="1">1×</button><button data-s="2">2×</button><button data-s="4">4×</button><button data-s="99">⏭</button></div>
+      </div>
+      <div class="pitrow rxrow"><button id="rlJoker" class="boxb hidden">JOKER</button></div>
+      <div class="prompt hidden" id="rlPrompt"></div>
+      <div class="tele rt"><div id="rlTele"></div></div>
+      <div class="lb" id="rlLb"></div>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 <script>
 (() => {
@@ -374,7 +414,7 @@ function shade(hex, amt) {
 }
 
 /* ===================== balance constants ===================== */
-const VERSION = '3.4.0';
+const VERSION = '3.6.3';
 const TEAM_COLORS = ['#e8392f', '#ff8a1e', '#f5c518', '#2fbf71', '#14b8c4', '#2f7bf5', '#7a4cf0', '#e64598', '#f2f2f2', '#2b2f36'];
 const TIER_BASE = [24, 45, 67, 88];          // AI performance level per tier
 const TIER_MULT = [1.25, 2.1, 3.6, 6.0];     // money multiplier per tier
@@ -419,18 +459,62 @@ const OVAL_TRACKS = [
   { id: 'storm', laps: 16, lt: 5.4, ratio: .94, wear: .85, rain: .12, bump: .1, o: { p: .42, rx: .45, ry: .29, tri: .05 } },
   { id: 'dawn', laps: 18, lt: 4.5, ratio: .84, wear: 1.0, rain: .07, bump: .15, o: { p: .5, rx: .42, ry: .3, tri: .1 } },
 ];
-const POOLS = { road: ROAD_TRACKS, oval: OVAL_TRACKS };
+/* ===================== rally =====================
+   Surfaces: grip = base grip, rough = how rough the road is (punctures, bottoming).
+   Rally events: mix = surface share, rain / snow = chance of rain or fresh snow per loop,
+   jumps / twist = how many jumps and how twisty the stages are, scen = scenery. */
+const SURF = {
+  A: { grip: 1.0, rough: .12, col: '#555a63', edge: '#e4e7ec' },
+  G: { grip: .84, rough: .5, col: '#a8875b', edge: '#6e593b', dust: '196,164,118' },
+  S: { grip: .8, rough: .36, col: '#d9c08a', edge: '#a88f5e', dust: '230,210,160' },
+  N: { grip: .68, rough: .22, col: '#e9eef4', edge: '#aab6c6', dust: '245,248,252' },
+};
+const RALLY_EVENTS = [
+  { id: 'mecsek', type: 'rally', mix: { A: .85, G: .15 }, rain: .35, snow: 0, rough: .25, jumps: .1, twist: .85, scen: 'forest' },
+  { id: 'bakony', type: 'rally', mix: { G: 1 }, rain: .3, snow: 0, rough: .6, jumps: .35, twist: .6, scen: 'forest' },
+  { id: 'lapland', type: 'rally', mix: { N: 1 }, rain: 0, snow: .45, rough: .25, jumps: .45, twist: .4, scen: 'snow' },
+  { id: 'fjord', type: 'rally', mix: { N: .6, G: .4 }, rain: .3, snow: .3, rough: .35, jumps: .3, twist: .55, scen: 'snow' },
+  { id: 'smeralda', type: 'rally', mix: { G: .75, S: .25 }, rain: .1, snow: 0, rough: .75, jumps: .3, twist: .7, scen: 'coast' },
+  { id: 'dune', type: 'rally', mix: { S: .7, G: .3 }, rain: .03, snow: 0, rough: .5, jumps: .5, twist: .35, scen: 'desert' },
+  { id: 'alpwinter', type: 'rally', mix: { A: .7, N: .3 }, rain: .3, snow: .35, rough: .2, jumps: .05, twist: .95, scen: 'snow' },
+  { id: 'lakes', type: 'rally', mix: { G: 1 }, rain: .25, snow: 0, rough: .35, jumps: .95, twist: .3, scen: 'forest' },
+  { id: 'vinetarmac', type: 'rally', mix: { A: 1 }, rain: .3, snow: 0, rough: .15, jumps: .05, twist: .9, scen: 'coast' },
+  { id: 'highland', type: 'rally', mix: { G: .9, A: .1 }, rain: .6, snow: 0, rough: .5, jumps: .4, twist: .6, scen: 'forest' },
+  { id: 'redrock', type: 'rally', mix: { G: 1 }, rain: .05, snow: 0, rough: .85, jumps: .4, twist: .55, scen: 'desert' },
+  { id: 'island', type: 'rally', mix: { G: .5, A: .5 }, rain: .25, snow: 0, rough: .55, jumps: .3, twist: .7, scen: 'coast' },
+];
+/* rallycross circuits: pts = layout (0..1), size = metres across, grav = lap fractions on gravel,
+   joker = alternative route between lap fractions a and b, bulging out by `out` (longer = bigger bulge) */
+const RX_TRACKS = [
+  { id: 'rx_pannon', type: 'rx', size: 260, rain: .3, ice: false, grav: [[.3, .62]], joker: { a: .66, b: .8, out: .16 }, pts: [[.1, .75], [.12, .3], [.35, .18], [.55, .35], [.8, .2], [.92, .5], [.75, .62], [.82, .86], [.45, .88]] },
+  { id: 'rx_quarry', type: 'rx', size: 240, rain: .25, ice: false, grav: [[.1, .45], [.7, .85]], joker: { a: .48, b: .6, out: .22 }, pts: [[.12, .55], [.2, .16], [.6, .14], [.9, .3], [.7, .5], [.9, .78], [.5, .9], [.35, .66]] },
+  { id: 'rx_frost', type: 'rx', size: 250, rain: 0, ice: true, grav: [[0, 1]], joker: { a: .2, b: .34, out: .14 }, pts: [[.1, .5], [.25, .15], [.62, .2], [.88, .4], [.78, .8], [.42, .86], [.3, .62]] },
+  { id: 'rx_coast', type: 'rx', size: 270, rain: .35, ice: false, grav: [[.45, .78]], joker: { a: .82, b: .95, out: .1 }, pts: [[.08, .7], [.18, .22], [.5, .12], [.66, .4], [.92, .3], [.9, .78], [.6, .7], [.4, .9]] },
+  { id: 'rx_valley', type: 'rx', size: 230, rain: .3, ice: false, grav: [[.05, .3], [.55, .72]], joker: { a: .34, b: .5, out: .2 }, pts: [[.15, .8], [.1, .35], [.4, .14], [.65, .3], [.9, .15], [.88, .6], [.6, .62], [.55, .88]] },
+];
+const RALLY_POOL = [...RALLY_EVENTS, ...RX_TRACKS];
+const POOLS = { road: ROAD_TRACKS, oval: OVAL_TRACKS, rally: RALLY_POOL };
 
 /* disciplines: pool = which track list, rounds per season, tank = fuel tank size as a fraction of a
    normal race distance; special = the round index of the season's headline event */
 const DISC = {
   road: { pool: 'road', rounds: 12, lapTime: 6.2, tank: .6, laps: t => t.laps, special: { round: 6, kind: 'endurance', laps: 2.2, prize: 2, points: 2 } },
   oval: { pool: 'oval', rounds: 11, tank: .45, laps: t => t.laps, special: { round: 0, kind: 'bigrace', laps: 1.5, prize: 3, points: 1, track: 'sunrise' } },
+  // rally: 8 rallies + 3 rallycross rounds (at rxRounds); no headline event
+  rally: { pool: 'rally', rounds: 11, tank: 1, laps: t => t.type === 'rx' ? RX_LAPS.final : RALLY_STAGES, special: { round: -1, kind: 'none', laps: 1, prize: 1, points: 1 }, rxRounds: [3, 6, 9] },
 };
-const DISC_KEYS = ['road', 'oval'];
+const DISC_KEYS = ['road', 'oval', 'rally'];
+const RALLY_STAGES = 9;                       // 3 loops of 3 stages; the last stage is the Power Stage
+const RALLY_LOOPS = 3;
+const SERVICE_MIN = [15, 30, 45];             // service before loop 1 / after loop 1 / evening service
+const POWER_PTS = [5, 4, 3, 2, 1];
+const RX_LAPS = { heat: 4, final: 6 };
+const RX_PEN = 30;                            // seconds added if the joker lap is skipped
+const TYRES = { AS: 'A', AH: 'A', AW: 'A', GS: 'G', GH: 'G', SN: 'N' };   // tyre -> surface it is made for
+const CO_TRAIN = ['notes', 'calm'];
 const racesPerSeason = d => DISC[d].rounds;
 // car body style: GT cars in the lower road tiers, prototypes at the top, stock cars on ovals
-const carKind = (disc, tier) => disc === 'oval' ? 'stock' : tier >= 2 ? 'proto' : 'gt';
+const carKind = (disc, tier) => disc === 'oval' ? 'stock' : disc === 'rally' ? 'rally' : tier >= 2 ? 'proto' : 'gt';
 
 const PARTS = ['engine', 'gearbox', 'aero', 'chassis', 'brakes', 'tires'];
 const STAFF = ['eng', 'pit', 'shop', 'sim', 'mkt'];
@@ -468,7 +552,8 @@ const SPONSORS = [['Pannon Olaj', '#d4a017'], ['Kocka Bank', '#1f4fb5'], ['Turb�
 const GOALS = [{ t: 'finish', n: FIELD, f: .5 }, { t: 'top', n: 10, f: 1 }, { t: 'top', n: 6, f: 1.6 }, { t: 'top', n: 3, f: 2.6 }, { t: 'top', n: 1, f: 4.2 }];
 const AI_COLORS = ['#d63031', '#0984e3', '#00b894', '#fdcb6e', '#e17055', '#6c5ce7', '#fd79a8', '#00cec9', '#a29bfe', '#55efc4', '#74b9ff', '#b2bec3'];
 const ACHIEVEMENTS = ['first_finish', 'first_points', 'first_podium', 'first_win', 'pole', 'rain_win', 'comeback', 'one_two', 'double_podium', 'ten_wins',
-  'promotion', 'title', 'world_title', 'both_titles', 'endurance_win', 'bigrace_win', 'clean_season', 'millionaire', 'full_pro', 'beat_rival'];
+  'promotion', 'title', 'world_title', 'both_titles', 'endurance_win', 'bigrace_win', 'clean_season', 'millionaire', 'full_pro', 'beat_rival',
+  'rally_win', 'power_stage', 'rx_win', 'super_rally'];
 
 /* ---- i18n.js ---- */
 /* ===================== translations =====================
@@ -476,6 +561,250 @@ const ACHIEVEMENTS = ['first_finish', 'first_points', 'first_podium', 'first_win
 const I18N = {
   hu: {
     _name: 'Magyar',
+    "rt.rainSoon": "Eső közeleg: kb. {n} kör múlva megérkezik. Készüljetek az esőgumira!",
+    "rt.heavySoon": "Kb. {n} kör múlva erősödik az eső.",
+    "rt.lightSoon": "Kb. {n} kör múlva gyengül az eső.",
+    "rt.drySoon": "Kb. {n} kör múlva eláll az eső, utána szárad a pálya. Slick idő jön!",
+    "rt.rainSoonOval": "Eső közeleg: kb. {n} kör múlva piros zászló jöhet.",
+    "disc.rally": "Rally · Rallycross",
+    "disc.rally.d": "Kis hatchbackekkel szakaszról szakaszra: murva, aszfalt, hó. Szerviz, sérülések, navigátor, néha rallycross.",
+    "tier.rally.0": "Regionális Rally Kupa",
+    "tier.rally.1": "Nemzeti Rallybajnokság",
+    "tier.rally.2": "Európai Rally Trófea",
+    "tier.rally.3": "Rally Világbajnokság",
+    "track.mecsek": "Mecsek Rallye",
+    "trackd.mecsek": "Szűk, kanyargós aszfalt a hegyekben, néhol murvás átkötésekkel.",
+    "track.bakony": "Bakony Rally",
+    "trackd.bakony": "Kemény, köves murva az erdőben, sok defektveszéllyel.",
+    "track.lapland": "Arctic Lapland Rally",
+    "trackd.lapland": "Hó és jég, szöges gumi. Hosszú, gyors szakaszok hófalak között.",
+    "track.fjord": "Fjord Winter Rally",
+    "trackd.fjord": "Havas és murvás utak keveréke, gyakran friss hóval.",
+    "track.smeralda": "Rally Costa Smeralda",
+    "trackd.smeralda": "Szűk, durva murva és homok a tengerparton, nagyon igénybe veszi az autót.",
+    "track.dune": "Desert Dune Rally",
+    "trackd.dune": "Homok és murva, nagy ugratások, alig esik.",
+    "track.alpwinter": "Alpine Winter Rally",
+    "trackd.alpwinter": "Aszfalt havas foltokkal a hágókon. A gumiválasztás itt kulcskérdés.",
+    "track.lakes": "Thousand Lakes Rally",
+    "trackd.lakes": "Nagyon gyors murva rengeteg ugratással. Itt a hasmagasság sokat számít.",
+    "track.vinetarmac": "Vineyard Tarmac Rally",
+    "trackd.vinetarmac": "Tiszta aszfalt a szőlők között, rengeteg hajtűvel.",
+    "track.highland": "Highland Rally",
+    "trackd.highland": "Sáros murva és sok eső a felföldön.",
+    "track.redrock": "Red Canyon Rally",
+    "trackd.redrock": "A szezon legdurvább murvája: kövek, kátyúk, forróság.",
+    "track.island": "Island Rally",
+    "trackd.island": "Fele aszfalt, fele murva: a gumiválasztás mindig kompromisszum.",
+    "track.rx_pannon": "Pannon RX Arena",
+    "trackd.rx_pannon": "Rallycross-pálya aszfalttal és egy murvás szakasszal.",
+    "track.rx_quarry": "Quarry RX",
+    "trackd.rx_quarry": "Kőbányai pálya két murvás résszel és nagyon hosszú Joker körrel.",
+    "track.rx_frost": "Frozen Lake RX",
+    "trackd.rx_frost": "Téli rallycross jégen, szöges gumikkal.",
+    "track.rx_coast": "Coastline RX",
+    "trackd.rx_coast": "Gyors tengerparti pálya rövid Joker körrel.",
+    "track.rx_valley": "Valley RX Park",
+    "trackd.rx_valley": "Szűk völgyi pálya két murvás szakasszal és hosszú Joker körrel.",
+    "ty.AS": "Aszfalt puha",
+    "ty.AH": "Aszfalt kemény",
+    "ty.AW": "Aszfalt esős",
+    "ty.GS": "Murva puha",
+    "ty.GH": "Murva kemény",
+    "ty.SN": "Szöges (hó)",
+    "tyd.AS": "A leggyorsabb száraz aszfalton, de hamar kopik.",
+    "tyd.AH": "Kicsit lassabb, de tovább bírja.",
+    "tyd.AW": "Vizes aszfaltra. Szárazon gyorsan elkopik.",
+    "tyd.GS": "Gyors murván, de könnyebben defektel.",
+    "tyd.GH": "Strapabíró, durva és köves murvára.",
+    "tyd.SN": "Hóra és jégre. Aszfalton a szögek gyorsan elkopnak.",
+    "rdmg.susp": "Futómű",
+    "rdmg.body": "Karosszéria",
+    "rdmg.engine": "Motor, hűtés",
+    "rdmg.gear": "Váltó",
+    "surf.A": "Aszfalt",
+    "surf.G": "Murva",
+    "surf.S": "Homok",
+    "surf.N": "Hó/jég",
+    "rwx.dry": "Száraz",
+    "rwx.wet": "Eső",
+    "rwx.snow": "Havazás",
+    "rset.ride": "Hasmagasság",
+    "rset.ride.lo": "alacsony: gyors aszfalton",
+    "rset.ride.hi": "magas: bírja az ugratásokat",
+    "rset.spring": "Rugózás",
+    "rset.spring.lo": "puha: tapad a rázós murván",
+    "rset.spring.hi": "kemény: pontos aszfalton",
+    "rset.gear": "Áttétel",
+    "rset.gear.lo": "rövid: gyorsulás a szűk részeken",
+    "rset.gear.hi": "hosszú: végsebesség a gyors részeken",
+    "rfb.rideLo": "A has többször felkoppant, az ugratásoknál nagyot üt a futómű.",
+    "rfb.rideHi": "Túl magasan áll, billeg és lomha a kanyarokban.",
+    "rfb.springLo": "Túl puha, imbolyog a gyors irányváltásoknál.",
+    "rfb.springHi": "Túl kemény, pattog a bukkanókon, nem tapad.",
+    "rfb.gearLo": "Leszabályoz a gyors részeken, kevés a végsebesség.",
+    "rfb.gearHi": "A szűk kanyarokból lassan gyorsul ki.",
+    "rfb.ok": "A pilóta elégedett, az autó jól fekszik.",
+    "rw.round": "{r}. forduló / {n} · {k}",
+    "rw.ssN": "{n} gyorsasági szakasz",
+    "rw.stages": "Gyorsasági szakaszok",
+    "rw.format": "Felépítés",
+    "rw.formatV": "2 nap · 3 kör · szervizekkel",
+    "rw.rough": "Durva út",
+    "rw.jumps": "Ugratások",
+    "rw.shake": "Shakedown (beállítás)",
+    "rw.shakeInfo": "Próbáld ki a beállításokat egy rövid próbaszakaszon. A pilóta visszajelzéséből látod, merre kell állítani.",
+    "rw.run": "Shakedown ({n} maradt)",
+    "rw.runN": "{n}. próba",
+    "rw.toService": "Tovább a szervizparkba",
+    "rw.fcRain": "Eső esélye: {p}%",
+    "rw.fcSnow": "Havazás esélye: {p}%",
+    "rw.fcDry": "Száraz idő várható",
+    "rw.next": "Következő verseny",
+    "rw.start": "Rally indítása",
+    "rw.startRx": "Rallycross indítása",
+    "svc.title": "Szervizpark · {m} perc",
+    "svc.srInfo": "Super Rally: az autót éjszaka teljesen meg kell javítani. Ennek nincs időkorlátja, csak pénzbe kerül.",
+    "svc.info": "A szerelőknek kevés idejük van. Amit nem javítanak meg, azzal mész tovább. Időtúllépésnél percenként 10 mp büntetés jár.",
+    "svc.lv0": "Nem",
+    "svc.lv1": "Részben",
+    "svc.lv2": "Teljesen",
+    "svc.next": "A következő kör ({n}.)",
+    "svc.stagesNext": "Szakaszok: {s}",
+    "svc.tyre": "Gumi a következő körre",
+    "svc.spares": "Pótkerék",
+    "svc.sparesInfo": "Több pótkerék több súly, de defektnél kicserélheted. Pótkerék nélkül csak defekttel mehetsz tovább.",
+    "svc.setup": "Beállítás módosítása",
+    "svc.setupCost": "(+5 perc)",
+    "svc.time": "Szerelési idő",
+    "u.min": "perc",
+    "svc.late": "Időbüntetés",
+    "svc.cost": "Javítás költsége",
+    "svc.tyreCost": "Gumik ({n} db)",
+    "svc.tooLate": "Ennyi munka nem fér bele: legfeljebb 15 percet csúszhatsz.",
+    "svc.go": "Indulás: {n}. kör",
+    "svc.penToast": "Szerviz-túllépés: +{s} mp büntetés",
+    "rl.ssName": "GYS{n} · {name}",
+    "rl.startPos": "Rajtsorrend: {p}. a(z) {n} autóból.",
+    "rl.sweepNote": "Elöl indulsz: neked kell „söpörni” a laza murvát.",
+    "rl.go": "Rajt!",
+    "rl.split": "{n}. részidő: {g} az élhez képest",
+    "rl.hardLanding": "Kemény landolás, ütött a futómű!",
+    "rl.bottom": "Felkoppant a has!",
+    "rl.engineFail": "A motor feladta!",
+    "rl.gearFail": "Eltört a váltó!",
+    "rl.mech": "Műszaki hiba!",
+    "rl.retired": "Kiestünk a szakaszon.",
+    "rl.noteErr": "Hibás itiner!",
+    "rl.wheelChanged": "Kerékcsere kész, mehetünk!",
+    "rl.driveFlat": "Defekttel megyünk tovább!",
+    "rl.tyreNow": "Gumi: {t} · pótkerék: {n}",
+    "rl.flat": "DEFEKT",
+    "rl.puncture": "Defekt!",
+    "rl.punctureP": "Kicseréled a kereket (kb. 1,5 perc), vagy defekttel mész tovább? Defekttel lassabb vagy, és sérül a futómű.",
+    "rl.change": "Kerékcsere ({n} pótkerék)",
+    "rl.drive": "Megyek tovább",
+    "rl.liveTimes": "Szakaszidők (eddig beérkezett)",
+    "rl.slide": "Kicsúszás, −{s} mp",
+    "rl.spin": "Megpördültünk! −{s} mp",
+    "rl.off": "Lementünk az útról! −{s} mp",
+    "rl.roll": "Bukás! −{s} mp",
+    "rl.pass2": "második áthaladás, kijárt nyomvályúk",
+    "rl.startPosK": "Rajtsorrend",
+    "rl.overall": "Összetett",
+    "rl.powerInfo": "Az utolsó szakasz a Power Stage: az öt leggyorsabb extra pontot kap (5-4-3-2-1).",
+    "rl.howto": "Menet közben választhatsz tempót: kímélő, normál vagy támadó. Támadáskor gyorsabb vagy, de többet hibázol, és jobban sérül az autó. A navigátor a kép alján olvassa az itinert. A szaggatott körvonal az eddigi leggyorsabb versenyző.",
+    "rl.start": "Rajt",
+    "rl.leading": "vezetünk",
+    "rl.stagePos": "Szakasz",
+    "rl.srInfo": "Super Rally: holnap visszaállhatsz, de minden kihagyott szakaszért a legjobb idő + 10 perc jár.",
+    "rl.stageRes": "Szakaszeredmény",
+    "rl.overallRes": "Összetett állás",
+    "rl.skipT": "Átugrod?",
+    "rl.skipP": "A szimuláció a végéig lefut, a defekteknél automatikusan döntünk.",
+    "rl.skipOk": "Átugrás",
+    "rl.srOut": "Kiesés – holnap Super Rally szabállyal visszaállhatsz.",
+    "rlev.rl.slide": "kicsúszás",
+    "rlev.rl.spin": "pörgés",
+    "rlev.rl.off": "letérés az útról",
+    "rlev.rl.roll": "bukás",
+    "rlev.puncture": "defekt",
+    "note.jump": "Ugrató!",
+    "note.splash": "Vízátfolyás!",
+    "note.straight": "Egyenes, nyomd!",
+    "note.hairpin": "{d} hajtű",
+    "note.long": "hosszú",
+    "note.L": "Bal",
+    "note.R": "Jobb",
+    "road.t": "Útszakasz",
+    "road.p": "A következő szakaszig csak a pilóta és a navigátor szerelhet, az autóban lévő szerszámokkal és alkatrészekkel.",
+    "road.fix": "Gyors javítás az út szélén",
+    "road.go": "Tovább a következő szakaszra",
+    "road.fixed": "Megjavították, amit lehetett.",
+    "rres.ps": "Szakaszgyőzelmek: {n}",
+    "rres.service": "Szerviz és gumik",
+    "rx.lap": "Kör",
+    "rx.gravel": "{p}% murva",
+    "rx.joker": "Joker kör",
+    "rx.jLong": "hosszú",
+    "rx.jShort": "rövid",
+    "rx.wx": "Időjárás",
+    "rx.ice": "Jég",
+    "rx.format": "Két selejtező kör ({h} körös, ötautós futamok), majd két elődöntő és a döntő ({f} kör). Minden futamban egyszer kötelező a Joker kör, különben +{p} mp.",
+    "rx.toQ1": "Indulás: 1. selejtező",
+    "rx.heat": "{q}. selejtező · {h}. futam",
+    "rx.qDone": "{n}. selejtező vége",
+    "rx.qInfo": "A futamidők sorrendjében pontot kap mindenki. Jön a 2. selejtező.",
+    "rx.semiInfo": "Az első 12 jut az elődöntőbe.",
+    "rx.toQ2": "Tovább: 2. selejtező",
+    "rx.toSemi": "Tovább: elődöntők",
+    "rx.semi": "{n}. elődöntő",
+    "rx.outQ": "Nem jutottál az elődöntőbe.",
+    "rx.final": "Döntő",
+    "rx.inFinal": "Döntőben vagy!",
+    "rx.outSemi": "Kiestél az elődöntőben.",
+    "rx.toFinal": "Tovább a döntőre",
+    "rx.repairT": "Javítás",
+    "rx.repair": "Teljes javítás ({m})",
+    "rx.repaired": "Megjavítva.",
+    "rx.slide": "Kicsúsztunk!",
+    "rx.jokerDone": "Joker kör megvan!",
+    "rx.jokerIn": "Joker körbe fordulunk!",
+    "rx.noJoker": "Kimaradt a Joker kör: +{s} mp!",
+    "rx.lastJoker": "Utolsó lehetőség a Joker körre!",
+    "rx.contact": "Ütközés!",
+    "rx.laps": "{n} kör",
+    "rx.howto": "A JOKER gombbal jelzed, melyik körben vegye a pilóta a Joker kört. Ha kimarad, +{p} mp büntetés jár. Korán akkor jó Jokerezni, ha beragadtál; a végén, ha szabad előtted a pálya.",
+    "rx.grid": "Felálltak a rajtrácsra…",
+    "rx.jokerCalled": "Joker a(z) {n}. körben.",
+    "rx.jDone": "JOKER ✓",
+    "rx.jNow": "JOKER…",
+    "rx.jPlanned": "JOKER: {n}. kör",
+    "rx.lapN": "{n}. kör",
+    "rx.jokerS": "Joker hossza",
+    "rx.short": "Rallycross · selejtezők, elődöntő, döntő",
+    "drv.notes": "Itiner pontosság",
+    "drv.calm": "Nyugalom, időbeosztás",
+    "drv.slip": "Csúszós út (eső, hó)",
+    "drv.notesS": "Itiner",
+    "drv.calmS": "Nyug.",
+    "team.co": "Navigátor",
+    "team.coInfo": "A jó navigátor ritkábban hibázik az itinerrel, és gyorsabban cserél kereket.",
+    "team.crew": "Pilóta és navigátor",
+    "train.notes": "Itiner", "train.slip": "Csúszós út",
+    "train.calm": "Nyugalom",
+    "stat.sw": "szakaszgyőzelem",
+    "ach.rally_win": "Rallygyőztes",
+    "ach.rally_win.d": "Megnyertél egy rallit.",
+    "ach.power_stage": "Power Stage",
+    "ach.power_stage.d": "A leggyorsabb voltál a Power Stage-en.",
+    "ach.rx_win": "Rallycross-győztes",
+    "ach.rx_win.d": "Megnyertél egy rallycross-fordulót.",
+    "ach.super_rally": "Feltámadás",
+    "ach.super_rally.d": "Kiesés után, Super Rallyval pontot szereztél.",
+    "news.coJoin": "{o} távozott, az új navigátorod {n}.",
+    "news.coLeave": "A navigátorod, {o} távozott. Új második pilóta: {n}.",
+    "se.coNote": "Ha rallyra váltasz vagy onnan el, a második ülés szerepet cserél: pilóta helyett navigátor jön, illetve fordítva.",
     'nav.home': 'Főoldal', 'nav.garage': 'Garázs', 'nav.team': 'Csapat', 'nav.sponsors': 'Szponzorok', 'nav.champ': 'Bajnokság',
     'u.perRace': '/futam', 'u.s': 'mp',
     'ui.cancel': 'Mégse', 'ui.close': 'Bezár', 'ui.copy': 'Másolás', 'ui.copied': 'Vágólapra másolva', 'ui.copyManual': 'Jelöld ki és másold kézzel', 'ui.back': 'Vissza', 'ui.continue': 'Tovább', 'ui.great': 'Rendben', 'ui.level': '{l}/{m}. szint',
@@ -759,6 +1088,250 @@ const I18N = {
     'dev.ordered.1': 'Ordered: {p} (1 race)',
     'champ.laps.1': '1 lap',
     _name: 'English',
+    "rt.rainSoon": "Rain is coming: about {n} laps away. Get ready for wet tyres!",
+    "rt.heavySoon": "The rain will get heavier in about {n} laps.",
+    "rt.lightSoon": "The rain will ease in about {n} laps.",
+    "rt.drySoon": "The rain stops in about {n} laps, then the track dries. Slick time is coming!",
+    "rt.rainSoonOval": "Rain is coming: a red flag is likely in about {n} laps.",
+    "disc.rally": "Rally · Rallycross",
+    "disc.rally.d": "Small hatchbacks, stage by stage: gravel, tarmac, snow. Service, damage, a co-driver, and some rallycross.",
+    "tier.rally.0": "Regional Rally Cup",
+    "tier.rally.1": "National Rally Championship",
+    "tier.rally.2": "European Rally Trophy",
+    "tier.rally.3": "World Rally Championship",
+    "track.mecsek": "Mecsek Rallye",
+    "trackd.mecsek": "Narrow, twisty mountain tarmac with a few gravel links.",
+    "track.bakony": "Bakony Rally",
+    "trackd.bakony": "Hard, rocky forest gravel with a high puncture risk.",
+    "track.lapland": "Arctic Lapland Rally",
+    "trackd.lapland": "Snow and ice on studded tyres. Long, fast stages between snowbanks.",
+    "track.fjord": "Fjord Winter Rally",
+    "trackd.fjord": "A mix of snowy and gravel roads, often with fresh snow.",
+    "track.smeralda": "Rally Costa Smeralda",
+    "trackd.smeralda": "Narrow, rough gravel and sand by the sea. Very hard on the car.",
+    "track.dune": "Desert Dune Rally",
+    "trackd.dune": "Sand and gravel, big jumps, hardly ever rains.",
+    "track.alpwinter": "Alpine Winter Rally",
+    "trackd.alpwinter": "Tarmac with snowy patches on the mountain passes. Tyre choice is everything.",
+    "track.lakes": "Thousand Lakes Rally",
+    "trackd.lakes": "Very fast gravel with lots of jumps. Ride height matters here.",
+    "track.vinetarmac": "Vineyard Tarmac Rally",
+    "trackd.vinetarmac": "Clean tarmac through the vineyards, full of hairpins.",
+    "track.highland": "Highland Rally",
+    "trackd.highland": "Muddy gravel and plenty of rain in the highlands.",
+    "track.redrock": "Red Canyon Rally",
+    "trackd.redrock": "The roughest gravel of the season: rocks, potholes, heat.",
+    "track.island": "Island Rally",
+    "trackd.island": "Half tarmac, half gravel: tyre choice is always a compromise.",
+    "track.rx_pannon": "Pannon RX Arena",
+    "trackd.rx_pannon": "Rallycross circuit with tarmac and one gravel section.",
+    "track.rx_quarry": "Quarry RX",
+    "trackd.rx_quarry": "Quarry circuit with two gravel sections and a very long joker.",
+    "track.rx_frost": "Frozen Lake RX",
+    "trackd.rx_frost": "Winter rallycross on ice, on studded tyres.",
+    "track.rx_coast": "Coastline RX",
+    "trackd.rx_coast": "Fast seaside circuit with a short joker lap.",
+    "track.rx_valley": "Valley RX Park",
+    "trackd.rx_valley": "Tight valley circuit with two gravel sections and a long joker.",
+    "ty.AS": "Tarmac soft",
+    "ty.AH": "Tarmac hard",
+    "ty.AW": "Tarmac wet",
+    "ty.GS": "Gravel soft",
+    "ty.GH": "Gravel hard",
+    "ty.SN": "Studded (snow)",
+    "tyd.AS": "Fastest on dry tarmac, but wears quickly.",
+    "tyd.AH": "A little slower, lasts longer.",
+    "tyd.AW": "For wet tarmac. Wears fast in the dry.",
+    "tyd.GS": "Fast on gravel, punctures more easily.",
+    "tyd.GH": "Tough, for rough and rocky gravel.",
+    "tyd.SN": "For snow and ice. The studs wear fast on tarmac.",
+    "rdmg.susp": "Suspension",
+    "rdmg.body": "Bodywork",
+    "rdmg.engine": "Engine, cooling",
+    "rdmg.gear": "Gearbox",
+    "surf.A": "Tarmac",
+    "surf.G": "Gravel",
+    "surf.S": "Sand",
+    "surf.N": "Snow/ice",
+    "rwx.dry": "Dry",
+    "rwx.wet": "Rain",
+    "rwx.snow": "Snowfall",
+    "rset.ride": "Ride height",
+    "rset.ride.lo": "low: quick on tarmac",
+    "rset.ride.hi": "high: survives the jumps",
+    "rset.spring": "Springs",
+    "rset.spring.lo": "soft: grip on bumpy gravel",
+    "rset.spring.hi": "stiff: precise on tarmac",
+    "rset.gear": "Gearing",
+    "rset.gear.lo": "short: acceleration in tight sections",
+    "rset.gear.hi": "long: top speed on fast sections",
+    "rfb.rideLo": "The car keeps bottoming out and the suspension takes a beating on the jumps.",
+    "rfb.rideHi": "It sits too high, rolls and feels lazy in the corners.",
+    "rfb.springLo": "Too soft, it wallows in quick direction changes.",
+    "rfb.springHi": "Too stiff, it bounces over the bumps and loses grip.",
+    "rfb.gearLo": "Hits the limiter on the fast sections, not enough top speed.",
+    "rfb.gearHi": "Slow to accelerate out of tight corners.",
+    "rfb.ok": "The driver is happy, the car feels good.",
+    "rw.round": "Round {r} / {n} · {k}",
+    "rw.ssN": "{n} special stages",
+    "rw.stages": "Special stages",
+    "rw.format": "Format",
+    "rw.formatV": "2 days · 3 loops · with service",
+    "rw.rough": "Rough roads",
+    "rw.jumps": "Jumps",
+    "rw.shake": "Shakedown (setup)",
+    "rw.shakeInfo": "Try your setup on a short test stage. The driver feedback tells you which way to adjust.",
+    "rw.run": "Shakedown ({n} left)",
+    "rw.runN": "Run {n}",
+    "rw.toService": "On to the service park",
+    "rw.fcRain": "Chance of rain: {p}%",
+    "rw.fcSnow": "Chance of snow: {p}%",
+    "rw.fcDry": "Dry weather expected",
+    "rw.next": "Next event",
+    "rw.start": "Start rally",
+    "rw.startRx": "Start rallycross",
+    "svc.title": "Service park · {m} min",
+    "svc.srInfo": "Super Rally: the car must be fully rebuilt overnight. There is no time limit, it only costs money.",
+    "svc.info": "The mechanics have little time. Whatever is not fixed stays broken. Overrunning the service costs 10 s per minute.",
+    "svc.lv0": "No",
+    "svc.lv1": "Partly",
+    "svc.lv2": "Fully",
+    "svc.next": "Next loop ({n})",
+    "svc.stagesNext": "Stages: {s}",
+    "svc.tyre": "Tyres for the next loop",
+    "svc.spares": "Spare wheels",
+    "svc.sparesInfo": "More spares means more weight, but you can change a puncture. Without a spare you can only drive on a flat.",
+    "svc.setup": "Change setup",
+    "svc.setupCost": "(+5 min)",
+    "svc.time": "Work time",
+    "u.min": "min",
+    "svc.late": "Time penalty",
+    "svc.cost": "Repair cost",
+    "svc.tyreCost": "Tyres ({n})",
+    "svc.tooLate": "That much work does not fit: you can overrun by 15 minutes at most.",
+    "svc.go": "Start loop {n}",
+    "svc.penToast": "Service overrun: +{s} s penalty",
+    "rl.ssName": "SS{n} · {name}",
+    "rl.startPos": "Running order: {p} of {n}.",
+    "rl.sweepNote": "You run near the front: you have to sweep the loose gravel.",
+    "rl.go": "Go!",
+    "rl.split": "Split {n}: {g} to the fastest",
+    "rl.hardLanding": "Hard landing, the suspension took a hit!",
+    "rl.bottom": "Bottomed out!",
+    "rl.engineFail": "The engine has gone!",
+    "rl.gearFail": "Gearbox failure!",
+    "rl.mech": "Mechanical problem!",
+    "rl.retired": "We are out of the stage.",
+    "rl.noteErr": "Pace note error!",
+    "rl.wheelChanged": "Wheel changed, go go go!",
+    "rl.driveFlat": "Driving on with a flat!",
+    "rl.tyreNow": "Tyres: {t} · spares: {n}",
+    "rl.flat": "FLAT",
+    "rl.puncture": "Puncture!",
+    "rl.punctureP": "Change the wheel (about 1.5 minutes) or drive on with the flat? On a flat you are slower and the suspension gets damaged.",
+    "rl.change": "Change wheel ({n} spares)",
+    "rl.drive": "Drive on",
+    "rl.liveTimes": "Stage times (finished so far)",
+    "rl.slide": "Slide, −{s} s",
+    "rl.spin": "Spin! −{s} s",
+    "rl.off": "Off the road! −{s} s",
+    "rl.roll": "Rolled! −{s} s",
+    "rl.pass2": "second pass, rutted roads",
+    "rl.startPosK": "Running order",
+    "rl.overall": "Overall",
+    "rl.powerInfo": "The last stage is the Power Stage: the five fastest get bonus points (5-4-3-2-1).",
+    "rl.howto": "While driving you can choose the pace: conserve, normal or attack. Attacking is faster but means more mistakes and more damage. The co-driver reads the pace notes at the bottom of the screen. The dashed outline is the fastest time so far.",
+    "rl.start": "Start",
+    "rl.leading": "leading",
+    "rl.stagePos": "Stage",
+    "rl.srInfo": "Super Rally: you can restart tomorrow, but each missed stage counts as the fastest time + 10 minutes.",
+    "rl.stageRes": "Stage result",
+    "rl.overallRes": "Overall",
+    "rl.skipT": "Skip?",
+    "rl.skipP": "The simulation runs to the end; punctures are decided automatically.",
+    "rl.skipOk": "Skip",
+    "rl.srOut": "Out – you can restart tomorrow under Super Rally rules.",
+    "rlev.rl.slide": "slide",
+    "rlev.rl.spin": "spin",
+    "rlev.rl.off": "off the road",
+    "rlev.rl.roll": "roll",
+    "rlev.puncture": "puncture",
+    "note.jump": "Jump!",
+    "note.splash": "Water splash!",
+    "note.straight": "Straight, flat out!",
+    "note.hairpin": "{d} hairpin",
+    "note.long": "long",
+    "note.L": "Left",
+    "note.R": "Right",
+    "road.t": "Road section",
+    "road.p": "Until the next stage only the driver and co-driver can work on the car, with the tools and parts carried on board.",
+    "road.fix": "Quick roadside repair",
+    "road.go": "On to the next stage",
+    "road.fixed": "Fixed what they could.",
+    "rres.ps": "Stage wins: {n}",
+    "rres.service": "Service and tyres",
+    "rx.lap": "Lap",
+    "rx.gravel": "{p}% gravel",
+    "rx.joker": "Joker lap",
+    "rx.jLong": "long",
+    "rx.jShort": "short",
+    "rx.wx": "Weather",
+    "rx.ice": "Ice",
+    "rx.format": "Two qualifying rounds ({h}-lap heats of five cars), then two semi-finals and the final ({f} laps). The joker lap is compulsory once in every race, otherwise +{p} s.",
+    "rx.toQ1": "Start: qualifying 1",
+    "rx.heat": "Qualifying {q} · heat {h}",
+    "rx.qDone": "End of qualifying {n}",
+    "rx.qInfo": "Everyone scores points in order of heat times. Qualifying 2 is next.",
+    "rx.semiInfo": "The top 12 go through to the semi-finals.",
+    "rx.toQ2": "Next: qualifying 2",
+    "rx.toSemi": "Next: semi-finals",
+    "rx.semi": "Semi-final {n}",
+    "rx.outQ": "You did not make the semi-finals.",
+    "rx.final": "Final",
+    "rx.inFinal": "You are in the final!",
+    "rx.outSemi": "Out in the semi-final.",
+    "rx.toFinal": "On to the final",
+    "rx.repairT": "Repairs",
+    "rx.repair": "Full repair ({m})",
+    "rx.repaired": "Repaired.",
+    "rx.slide": "We slid wide!",
+    "rx.jokerDone": "Joker lap done!",
+    "rx.jokerIn": "Into the joker lap!",
+    "rx.noJoker": "Joker lap missed: +{s} s!",
+    "rx.lastJoker": "Last chance for the joker lap!",
+    "rx.contact": "Contact!",
+    "rx.laps": "{n} laps",
+    "rx.howto": "Use the JOKER button to tell the driver which lap to take the joker on. If it is skipped, +{p} s. Take it early if you are stuck in traffic, late if the track ahead is clear.",
+    "rx.grid": "Cars on the grid…",
+    "rx.jokerCalled": "Joker on lap {n}.",
+    "rx.jDone": "JOKER ✓",
+    "rx.jNow": "JOKER…",
+    "rx.jPlanned": "JOKER: lap {n}",
+    "rx.lapN": "lap {n}",
+    "rx.jokerS": "Joker length",
+    "rx.short": "Rallycross · qualifying, semi-finals, final",
+    "drv.notes": "Pace notes",
+    "drv.calm": "Calm, time keeping",
+    "drv.slip": "Slippery roads (rain, snow)",
+    "drv.notesS": "Notes",
+    "drv.calmS": "Calm",
+    "team.co": "Co-driver",
+    "team.coInfo": "A good co-driver makes fewer pace note errors and changes wheels faster.",
+    "team.crew": "Driver and co-driver",
+    "train.notes": "Pace notes", "train.slip": "Slippery roads",
+    "train.calm": "Calm",
+    "stat.sw": "stage wins",
+    "ach.rally_win": "Rally winner",
+    "ach.rally_win.d": "Win a rally.",
+    "ach.power_stage": "Power Stage",
+    "ach.power_stage.d": "Be fastest on the Power Stage.",
+    "ach.rx_win": "Rallycross winner",
+    "ach.rx_win.d": "Win a rallycross round.",
+    "ach.super_rally": "Back from the dead",
+    "ach.super_rally.d": "Score points after a Super Rally restart.",
+    "news.coJoin": "{o} has left, your new co-driver is {n}.",
+    "news.coLeave": "Your co-driver {o} has left. New second driver: {n}.",
+    "se.coNote": "Switching to or from rally changes the second seat: a co-driver replaces the second driver, or the other way round.",
     'nav.home': 'Home', 'nav.garage': 'Garage', 'nav.team': 'Team', 'nav.sponsors': 'Sponsors', 'nav.champ': 'Standings',
     'u.perRace': '/race', 'u.s': 's',
     'ui.cancel': 'Cancel', 'ui.close': 'Close', 'ui.copy': 'Copy', 'ui.copied': 'Copied to clipboard', 'ui.copyManual': 'Select and copy it manually', 'ui.back': 'Back', 'ui.continue': 'Continue', 'ui.great': 'OK', 'ui.level': 'Level {l}/{m}',
@@ -1105,6 +1678,18 @@ function makeDriver(tier, opts = {}) {
   };
 }
 const rookie = tier => makeDriver(tier, { skill: Math.max(18, TIER_BASE[tier] - 10), age: 19, contract: 1 });
+/* rally co-driver: same record as a driver, role 'co'. skill = pace-note accuracy, cons = calm / time keeping.
+   Co-drivers are paid less than drivers. */
+function makeCo(tier, opts = {}) {
+  const d = makeDriver(tier, opts);
+  d.role = 'co'; d.age = opts.age ?? ri(22, 44); d.salary = Math.round(salaryFor(d.skill) * .55 / 50) * 50;
+  d.pot = Math.round(clamp(d.skill + (d.age < 28 ? rnd(4, 16) : rnd(0, 6)), d.skill, 99));
+  return d;
+}
+const coRookie = tier => makeCo(tier, { skill: Math.max(18, TIER_BASE[tier] - 8), age: 23, contract: 1 });
+// a replacement for seat i that fits the seat's role
+const replacementFor = i => S.drivers[i] && S.drivers[i].role === 'co' ? coRookie(S.tier) : rookie(S.tier);
+const isRally = () => S && S.disc === 'rally';
 function makeTeam(tier, id, name, color, boost = 0) {
   const lvl = TIER_BASE[tier] + rnd(-9, 9) + boost;
   const drv = () => { const p = randomPerson(), D = clamp(lvl + rnd(-4, 10), 15, 98); return { ...p, D, W: clamp(D * rnd(.7, 1.05), 10, 98), K: rnd(40, 88), num: 0 }; };
@@ -1126,6 +1711,12 @@ function makeField(tier) {
   return out;
 }
 function newCalendar(disc) {
+  if (disc === 'rally') {   // 8 rallies, rallycross rounds at fixed places in the season
+    const ra = shuffle(RALLY_EVENTS.map((e, i) => i)).slice(0, DISC.rally.rounds - DISC.rally.rxRounds.length);
+    const rx = shuffle(RX_TRACKS.map((e, i) => RALLY_EVENTS.length + i));
+    DISC.rally.rxRounds.forEach((r, k) => ra.splice(r, 0, rx[k % rx.length]));
+    return ra;
+  }
   const pool = tracksOf(disc), sp = DISC[disc].special;
   let idx = shuffle(pool.map((t, i) => i)).slice(0, DISC[disc].rounds);
   if (sp.track) {   // the headline race always runs at its own track
@@ -1142,14 +1733,14 @@ function newGame(teamName, color, num, disc) {
     v: 5, teamName, color, num, num2: num < 99 ? num + 1 : 98, disc, tier: 0, season: 1, round: 0, money: START_MONEY, earned: 0, spent: 0, rep: 5,
     parts: { engine: 2, gearbox: 2, aero: 2, chassis: 2, brakes: 2, tires: 2 },
     staff: { eng: 1, pit: 1, shop: 1, sim: 1, mkt: 1 },
-    drivers: [makeDriver(0, { skill: 26, age: 21, cons: 44, wet: 22 }), makeDriver(0, { skill: 22, age: 19, cons: 40, wet: 18, contract: 1 })],
-    train: ['skill', 'skill'], sponsors: [], offers: [], market: [],
+    drivers: [makeDriver(0, { skill: 26, age: 21, cons: 44, wet: 22 }), disc === 'rally' ? makeCo(0, { skill: 30, age: 27, cons: 48, wet: 30 }) : makeDriver(0, { skill: 22, age: 19, cons: 40, wet: 18, contract: 1 })],
+    train: ['skill', disc === 'rally' ? 'notes' : 'skill'], sponsors: [], offers: [], market: [],
     rival: { name: rv, color: '#9b59b6' }, feud: 0, h2h: { me: 0, rv: 0 },
     field: [], calendar: newCalendar(disc), results: [], points: {}, dpoints: {},
     dev: [], rule: 'none', setups: {}, stats: { starts: 0, wins: 0, podiums: 0, poles: 0, dnfs: 0, points: 0, laps: 0 }, ach: {},
     news: [], history: [], titles: 0, titleDiscs: []
   };
-  S.drivers.forEach(d => { d.salary = salaryFor(d.skill); d.pot = Math.max(d.pot, 60); });
+  S.drivers.forEach(d => { d.salary = Math.round(salaryFor(d.skill) * (d.role === 'co' ? .55 : 1) / 50) * 50; d.pot = Math.max(d.pot, 60); });
   S.field = makeField(0);
   resetPoints(); genOffers(); genMarket();
   addNews('start', 'news.founded', { team: teamName, series: 'tier.' + disc + '.0' });
@@ -1174,8 +1765,10 @@ function genOffers() {
   });
 }
 function genMarket() {
-  S.market = Array.from({ length: 6 }, () => makeDriver(Math.min(3, S.tier + (Math.random() < .25 ? 1 : 0)), { contract: 2 }));
-  S.market.sort((a, b) => a.skill - b.skill);
+  const tierPick = () => Math.min(3, S.tier + (Math.random() < .25 ? 1 : 0));
+  S.market = Array.from({ length: S.disc === 'rally' ? 4 : 6 }, () => makeDriver(tierPick(), { contract: 2 }));
+  if (S.disc === 'rally') for (let i = 0; i < 3; i++) S.market.push(makeCo(tierPick(), { contract: 2 }));
+  S.market.sort((a, b) => (a.role === 'co') - (b.role === 'co') || a.skill - b.skill);
 }
 function addMoney(n) { n = Math.round(n); S.money += n; if (n >= 0) S.earned += n; else S.spent -= n; }
 
@@ -1291,7 +1884,7 @@ function catmull(pts, sub = 24, sharp = false) {
     const q = [];
     for (let i = 0; i < P.length; i++) {
       const a = P[i], b = P[(i + 1) % P.length];
-      q.push(a, [lerp(a[0], b[0], .2), lerp(a[1], b[1], .2)], [lerp(a[0], b[0], .8), lerp(a[1], b[1], .8)]);
+      q.push(a, [lerp(a[0], b[0], .3), lerp(a[1], b[1], .3)], [lerp(a[0], b[0], .7), lerp(a[1], b[1], .7)]);
     }
     P = q;
   }
@@ -1318,11 +1911,37 @@ function ovalPts(o) {
   }
   return out;
 }
+// sharp (street / airfield) layouts: straight lines joined by circular arcs of radius r, so every corner has a real radius
+function filletPath(pts, r) {
+  const n = pts.length, out = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[(i - 1 + n) % n], b = pts[i], c = pts[(i + 1) % n];
+    const u = [a[0] - b[0], a[1] - b[1]], v = [c[0] - b[0], c[1] - b[1]], lu = Math.hypot(...u), lv = Math.hypot(...v);
+    const ux = u[0] / lu, uy = u[1] / lu, vx = v[0] / lv, vy = v[1] / lv;
+    const th = Math.acos(clamp(ux * vx + uy * vy, -1, 1));   // angle between the two legs
+    let tl = r / Math.tan(th / 2); tl = Math.min(tl, lu * .45, lv * .45);
+    const rr = tl * Math.tan(th / 2);
+    const p1 = [b[0] + ux * tl, b[1] + uy * tl], p2 = [b[0] + vx * tl, b[1] + vy * tl];
+    const bx = ux + vx, by = uy + vy, bl = Math.hypot(bx, by) || 1, dc = rr / Math.sin(th / 2);
+    const cc = [b[0] + bx / bl * dc, b[1] + by / bl * dc];
+    let a1 = Math.atan2(p1[1] - cc[1], p1[0] - cc[0]), a2 = Math.atan2(p2[1] - cc[1], p2[0] - cc[0]);
+    let d = a2 - a1; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    const steps = 14;
+    for (let k = 0; k <= steps; k++) { const an = a1 + d * k / steps; out.push([cc[0] + Math.cos(an) * rr, cc[1] + Math.sin(an) * rr]); }
+  }
+  // densify the straights
+  const dense = [];
+  for (let i = 0; i < out.length; i++) {
+    const a = out[i], b = out[(i + 1) % out.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.ceil(L / .01));
+    for (let k = 0; k < m; k++) dense.push([lerp(a[0], b[0], k / m), lerp(a[1], b[1], k / m)]);
+  }
+  return dense;
+}
 const TRACK_CACHE = {};
 function buildTrack(pool, idx) {
   const key = pool + idx; if (TRACK_CACHE[key]) return TRACK_CACHE[key];
   const T = POOLS[pool][idx];
-  const raw = T.o ? ovalPts(T.o) : catmull(T.pts, 24, T.sharp);
+  const raw = T.o ? ovalPts(T.o) : T.sharp ? filletPath(T.pts, .065) : catmull(T.pts, 24);
   // resample by arc length into N equally spaced points
   const N = 800, seg = [0];
   for (let i = 1; i <= raw.length; i++) { const a = raw[i - 1], b = raw[i % raw.length]; seg.push(seg[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1])); }
@@ -1526,6 +2145,7 @@ const ACCENT = { '#e8392f': '#2f7bf5', '#ff8a1e': '#1b3a6b', '#f5c518': '#16181c
 const accentFor = c => ACCENT[c] || '#f2f2f2';
 const GT_BODY = 'M35 167 C31 150 30 120 31 104 Q31 88 36 80 L46 70 Q50 66 60 66 L144 64 C176 56 196 38 222 33 Q254 27 286 28 Q318 29 339 34 C356 40 384 60 416 78 C460 86 514 96 556 103 Q574 106 579 114 Q582 132 580 150 L576 166 Q572 170 562 170 L543.3 170 A43 43 0 1 0 460.7 170 L188.3 170 A43 43 0 1 0 105.7 170 L44 169 Q37 169 35 167 Z';
 const PROTO_BODY = 'M40 182 L40 160 Q38 128 44 116 L56 110 Q96 100 120 102 Q150 104 172 106 Q220 100 252 96 Q262 80 298 78 Q334 79 350 98 L364 116 Q400 122 430 120 L460 114 Q500 92 530 104 Q556 116 572 140 Q588 156 598 168 L600 182 L539 182 A44 44 0 1 0 465 182 L173 182 A44 44 0 1 0 99 182 Z';
+const RALLY_BODY = 'M560 178 L560 163 Q560 140 554 128 L548 118 Q544 110 534 107 L441 85 Q400 50 362 27 Q340 24 314 24 L152 26 Q136 28 130 32 L100 72 L87 92 Q80 104 77 118 L75 163 Q76 174 87 176 L111.9 176 A44 44 0 1 1 192.1 176 L425.9 176 A44 44 0 1 1 506.1 176 L548 178 Z';
 const STOCK_BODY = 'M48 596 L44 560 Q44 520 70 500 Q90 478 130 468 C200 455 280 446 330 438 L420 384 Q440 372 480 370 L630 370 Q662 372 692 396 L790 436 L884 440 L912 446 L922 454 Q930 492 922 530 L912 552 L758 574 A66 66 0 1 0 642 578 L636 592 L272 592 L264 586 A66 66 0 1 0 162 586 L150 592 L60 600 Z';
 function sideWheel(x, y, o) {
   const n = 10; let spokes = '';
@@ -1636,6 +2256,38 @@ function carSideSVG(opts) {
     ${wing}
     </g>${W(136, 158)}${W(502, 158)}
     <clipPath id="clip${id}"><path d="${PROTO_BODY}" transform="translate(0 ${-rideH * .6})"/></clipPath>`;
+  } else if (kind === 'rally') {   // modern rally hatchback (Rally4 ... Rally1 style)
+    const wing = [
+      `<path d="M160 25 L126 28 L124 34 L152 31 Z" fill="${carbon}"/>`,
+      `<path d="M162 24 L116 24 L112 31 L150 31 Z" fill="${carbon}"/><path d="M116 24 L112 31" stroke="${accent}" stroke-width="2"/>`,
+      `<path d="M150 27 L146 16 L152 16 L158 27 Z" fill="${carbon}"/><path d="M160 14 L108 12 L104 19 L156 21 Z" fill="${carbon}"/><path d="M104 6 L112 6 L114 30 L106 32 Z" fill="${mid}" stroke="${carbon}" stroke-width="1.5"/>`,
+      `<path d="M150 27 L144 10 L152 10 L160 27 Z" fill="${carbon}"/><path d="M164 8 L96 4 L92 12 L160 16 Z" fill="${carbon}"/><path d="M160 2 L100 -1 L98 3 L158 5 Z" fill="${carbon}"/><path d="M90 -4 L100 -4 L104 34 L94 38 Z" fill="${mid}" stroke="${carbon}" stroke-width="1.5"/>`][aS];
+    const flap = (x) => `<path d="M${x} 162 L${x + 7} 162 L${x + 9} 190 L${x + 1} 190 Z" fill="#141518"/><path d="M${x + 1} 170 h7" stroke="${accent}" stroke-width="2"/>`;
+    body = `<ellipse cx="318" cy="197" rx="262" ry="9" fill="#000" opacity=".7" filter="url(#blur${id})"/>
+    <circle cx="152" cy="158" r="42" fill="#070708"/><circle cx="466" cy="158" r="42" fill="#070708"/>
+    <g transform="translate(0 ${-rideH * .8})">
+    <path d="${RALLY_BODY}" fill="url(#body${id})"/>
+    <g clip-path="url(#clip${id})">${stripes(['M560 148 C450 138 300 118 70 96 L70 103 C300 125 450 145 560 155 Z', 'M560 155 C450 145 300 125 70 104 L70 109 C300 131 450 151 560 161 Z', 'M560 161 C450 151 300 131 70 110 L70 115 C300 137 450 157 560 167 Z'])}${shine}</g>
+    <path d="M107 176 A48 48 0 0 1 197 176 M421 176 A48 48 0 0 1 511 176" fill="none" stroke="${dark}" stroke-width="7" opacity=".55"/>
+    <path d="M428 88 L368 36 Q362 32 352 32 L175 33 L132 78 Q130 86 140 88 Z" fill="url(#glass${id})" stroke="#0d0f12" stroke-width="2.5"/>
+    <path d="M300 36 L322 36 L292 84 L272 84 Z" fill="#fff" opacity=".07"/>
+    <path d="M256 33 L260 88" stroke="#0d0f12" stroke-width="9"/><path d="M175 33 L150 88" stroke="#0d0f12" stroke-width="6"/>
+    <path d="M240 46 L218 80 M232 44 L214 70" stroke="#3b4048" stroke-width="2" opacity=".6"/>
+    <path d="M410 92 Q412 132 410 170 M256 92 Q258 132 256 170" stroke="#000" stroke-opacity=".4" stroke-width="1.2" fill="none"/>
+    <path d="M432 96 L414 92 Q408 86 416 82 L434 88 Z" fill="${mid}" stroke="#0d0f12" stroke-width="1"/>
+    <path d="M350 25 Q340 13 318 12 L286 13 Q280 17 282 24 Z" fill="${mid}" stroke="${carbon}" stroke-width="1.5"/><path d="M290 18 h26" stroke="#0d0f12" stroke-width="3"/>
+    <path d="M330 24 L334 4 L336 4 L334 24 Z" fill="${carbon}"/>
+    <path d="M548 118 L524 111 Q518 114 522 120 L546 127 Z" fill="#eef3f8"/><path d="M528 115 L544 120" stroke="#7aa6d6" stroke-width="1.5" opacity=".7"/>
+    <path d="M78 98 L92 96 L94 122 L79 124 Z" fill="#c8232b"/><path d="M82 102 L90 101" stroke="#ff8a80" stroke-width="1.5"/>
+    <path d="M520 140 L556 138 L558 156 L522 158 Z" fill="#0d0f12"/><path d="M526 145 h28 M526 151 h28" stroke="#30343a" stroke-width="1.5"/>
+    <path d="M196 172 L422 172 L420 182 L198 182 Z" fill="${carbon}"/>
+    ${aS >= 2 ? `<path d="M520 178 L572 178 L572 183 L516 183 Z" fill="${carbon}"/>` : ''}${aS >= 1 ? `<path d="M556 150 L570 147 L569 151 L556 155 Z" fill="${carbon}"/>` : ''}
+    ${flap(96)}${flap(412)}
+    <path d="M76 168 h12 v5 h-12z" fill="#3a3a3a"/>${flame(76, 170.5, -1)}
+    ${numPanel(296, 96, 52, 28, 23)}${spText(206, 122, 12, 90)}${decals(272, 160)}
+    ${wing}
+    </g>${W(152, 158)}${W(466, 158)}
+    <clipPath id="clip${id}"><path d="${RALLY_BODY}" transform="translate(0 ${-rideH * .8})"/></clipPath>`;
   } else {   // stock car (Gen 4 / ARCA silhouette). Drawn in 980px reference coords, mirrored so the nose faces right.
     const M = 'matrix(-0.636 0 0 0.636 628.6 -188.6)';
     const sh = 14 + aS * 11;   // spoiler blade height grows with aero
@@ -1837,10 +2489,12 @@ function startRace(startTires, opts = {}) {
       dmg: { a: 0, s: 0, e: 0 }, dmgTotal: 0, mode: 1, pitReq: false, pitFrom: 0, box: boxOf(bi), boxIdx: bi,
       entryN: Math.floor((prog + tr.pitE) / N), mistT: 0, lane: i % 2 ? .55 : -.55,
       finished: false, fin: 0, dnf: false, why: '', stops: 0, noise: 1, thr: rnd(.5, .75), wetThr: rnd(.35, .55), evt: '', warn: {}, grid: i + 1,
-      auto: !!(e.isMe && opts.auto), led: 0
+      auto: !!(e.isMe && opts.auto), led: 0, lineK: rnd(.75, 1.1), yaw: 0, lock: 0, mk: null
     };
   });
+  const RLINE = racingLine(tr);
   R = {
+    line: RLINE.line, sc: RLINE.sc, wxNext: null,
     tr, disc: W.disc, kind: W.kind, laps: W.laps, special: W.special, cars, lapTime, vScale, t: 0, speed: 1, done: false, leaderDone: false, order: [],
     startT: 2.2, raf: 0, finished: false, rain: W.wx.rain, wet: W.wx.wet, wetSum: 0, caution: 0, redFlag: false, leaderLap: 0, called: false, lastUI: 0,
     plans: [{ tire: startTires[0], fuel: 'need' }, { tire: startTires[1], fuel: 'need' }], orders: 'free', orderUsed: null, swapNote: false,
@@ -2122,20 +2776,44 @@ function caution() {
   R.caution = R.lapTime * rnd(1.3, 1.9);
   tick(t(R.tr.oval ? 'rt.yellow' : 'rt.sc'), 'warn');
 }
+/* weather is forecast 1-2 laps ahead (blinking icon + radio), then it arrives */
 function weatherTick() {
+  if (R.wxNext) { if (R.leaderLap >= R.wxNext.lap) { applyWx(R.wxNext.rain); R.wxNext = null; } return; }
   if (R.tr.oval) {
-    if (R.rain === 0 && !R.redFlag && Math.random() < R.tr.rain * .05) {
-      if (R.leaderLap >= R.laps / 2) { tick(t('rt.rainCalled'), 'warn'); callRace(); }
-      else { R.redFlag = true; R.caution = R.lapTime * 2.4; R.rain = .5; tick(t('rt.redFlag'), 'bad'); }
-    }
+    if (R.rain === 0 && !R.redFlag && Math.random() < R.tr.rain * .05) scheduleWx(.5);
     return;
   }
-  if (R.rain === 0) { if (Math.random() < R.tr.rain * .04) { R.rain = Math.random() < .35 ? 1 : .5; tick(t('rt.rainStart'), 'warn'); } }
+  if (R.rain === 0) { if (Math.random() < R.tr.rain * .04) scheduleWx(Math.random() < .35 ? 1 : .5); }
   else {
     const r = Math.random();
-    if (r < .12) { R.rain = 0; tick(t('rt.rainStop'), 'info'); }
-    else if (r < .27) { R.rain = R.rain === 1 ? .5 : 1; tick(t(R.rain === 1 ? 'rt.rainHeavy' : 'rt.rainLight'), 'warn'); }
+    if (r < .12) scheduleWx(0);
+    else if (r < .27) scheduleWx(R.rain === 1 ? .5 : 1);
   }
+}
+function scheduleWx(level) {
+  const n = ri(1, 2); R.wxNext = { rain: level, lap: R.leaderLap + n };
+  tick(t(R.tr.oval ? 'rt.rainSoonOval' : level === 0 ? 'rt.drySoon' : R.rain === 0 ? 'rt.rainSoon' : level > R.rain ? 'rt.heavySoon' : 'rt.lightSoon', { n }), level === 0 ? 'good' : 'warn');
+}
+function applyWx(level) {
+  if (R.tr.oval) {
+    if (R.leaderLap >= R.laps / 2) { tick(t('rt.rainCalled'), 'warn'); callRace(); }
+    else { R.redFlag = true; R.caution = R.lapTime * 2.4; R.rain = .5; tick(t('rt.redFlag'), 'bad'); }
+    return;
+  }
+  const was = R.rain; R.rain = level;
+  tick(t(level === 0 ? 'rt.rainStop' : was === 0 ? 'rt.rainStart' : level === 1 ? 'rt.rainHeavy' : 'rt.rainLight'), level === 0 ? 'info' : 'warn');
+}
+/* racing line: outside before a corner, inside at the apex, drifting out on the exit (in posLat units) */
+function racingLine(tr) {
+  const N = tr.N, W = 6;
+  let a = Array.from({ length: N }, (_, i) => { let d = tr.ang[(i + W) % N] - tr.ang[(i - W + N) % N]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; });
+  const sm = (arr, r, n) => { for (let p = 0; p < n; p++) arr = arr.map((v, i) => { let s = 0; for (let k = -r; k <= r; k++) s += arr[(i + k + N) % N]; return s / (2 * r + 1); }); return arr; };
+  a = sm(a, 6, 4);
+  const mx = Math.max(...a.map(Math.abs)) || 1; a = a.map(v => v / mx);
+  const lead = Math.round(N * .025);
+  let ln = a.map((v, i) => clamp(v * 1.1 - a[(i + lead) % N] * .9 - a[(i - lead + N) % N] * .4, -1, 1));
+  ln = sm(ln, 8, 3);
+  return { line: ln.map(v => v * .34 * (tr.oval ? .55 : 1) * tr.pitSide), sc: a };
 }
 function callRace() {
   R.called = true; R.leaderDone = true;
@@ -2265,8 +2943,55 @@ function posLat(prog, lat) {
 const posAt = (prog, lane) => posLat(prog, lane * .3);
 const smooth = x => x * x * (3 - 2 * x);
 const pitRamp = u => smooth(clamp(u / .22, 0, 1)) * smooth(clamp((1 - u) / .22, 0, 1));
+let MARKS = null;
+/* skid marks on the circuit: only when a car slides or locks up; they stay and get darker where it happens often */
+function skidMarks() {
+  if (!MARKS || R.caution > 0) return;
+  const g = MARKS.getContext('2d'), tr = R.tr, N = tr.N;
+  g.setTransform(DPR, 0, 0, DPR, 0, 0); g.lineCap = 'round';
+  R.cars.forEach(c => {
+    if (c.pit || c.dnf || c.finished || c.prog < 0) { c.mk = null; return; }
+    const i = ((Math.floor(c.prog) % N) + N) % N, ahead = tr.c[(i + 10) % N] - tr.c[i];
+    if (!tr.oval && c.lock <= 0 && ahead > .35 && (c.vNow || 0) > R.vScale * .7 && Math.random() < (c.mode === 2 ? .05 : .015) * (1 + R.wet)) c.lock = 10;
+    const on = c.mistT > 0 || c.lock > 0;
+    if (c.lock > 0) c.lock--;
+    if (!on) { c.mk = null; return; }
+    const p = carPos(c), a = p.ang + (c.yaw || 0), L = TW * .8, Wd = TW * .42;
+    const rx = p.x - Math.cos(a) * L * .3, ry = p.y - Math.sin(a) * L * .3, nx = -Math.sin(a) * Wd * .4, ny = Math.cos(a) * Wd * .4;
+    const cur = [rx + nx, ry + ny, rx - nx, ry - ny];
+    if (c.mk) {
+      g.strokeStyle = (c.offL || 0) > .45 ? 'rgba(70,52,30,.3)' : 'rgba(12,12,14,.16)'; g.lineWidth = Math.max(1, TW * .07);
+      g.beginPath(); g.moveTo(c.mk[0], c.mk[1]); g.lineTo(cur[0], cur[1]); g.moveTo(c.mk[2], c.mk[3]); g.lineTo(cur[2], cur[3]); g.stroke();
+    }
+    c.mk = cur;
+  });
+}
+/* weather icons in the top right of a map: current weather, then the forecast blinking red/yellow */
+function wxIcons(g, xr, y, rain, next, snow) {
+  const s = 22, blink = Math.floor(performance.now() / 350) % 2;
+  const icon = (x, lv, sn, warn) => {
+    g.fillStyle = 'rgba(0,0,0,.55)'; roundRect(g, x - 3, y - 3, s + 6, s + 6, 7); g.fill();
+    if (warn) { g.strokeStyle = blink ? '#ff3b30' : '#ffd400'; g.lineWidth = 2.5; roundRect(g, x - 3, y - 3, s + 6, s + 6, 7); g.stroke(); }
+    if (lv === 0 && !sn) {   // sun
+      g.fillStyle = '#ffd34d'; g.beginPath(); g.arc(x + s / 2, y + s / 2, s * .22, 0, 7); g.fill();
+      g.strokeStyle = '#ffd34d'; g.lineWidth = 1.6; g.beginPath();
+      for (let k = 0; k < 8; k++) { const an = k * Math.PI / 4; g.moveTo(x + s / 2 + Math.cos(an) * s * .32, y + s / 2 + Math.sin(an) * s * .32); g.lineTo(x + s / 2 + Math.cos(an) * s * .44, y + s / 2 + Math.sin(an) * s * .44); }
+      g.stroke(); return;
+    }
+    g.fillStyle = warn ? (blink ? '#ff6b5f' : '#ffd400') : '#cfd6e0';
+    g.beginPath(); g.arc(x + s * .36, y + s * .45, s * .2, 0, 7); g.arc(x + s * .6, y + s * .38, s * .25, 0, 7); g.arc(x + s * .76, y + s * .5, s * .17, 0, 7); g.rect(x + s * .2, y + s * .45, s * .6, s * .2); g.fill();
+    g.strokeStyle = sn ? '#fff' : '#6fb3ff'; g.lineWidth = 1.6; g.beginPath();
+    const n = sn ? 3 : lv >= 1 ? 4 : 2;
+    for (let k = 0; k < n; k++) { const xx = x + s * (.3 + k * .16); if (sn) { g.moveTo(xx - 1.5, y + s * .86); g.lineTo(xx + 1.5, y + s * .86); } else { g.moveTo(xx, y + s * .74); g.lineTo(xx - 2, y + s * .95); } }
+    g.stroke();
+  };
+  let x = xr - s;
+  if (next != null) { icon(x, next, false, true); x -= s + 10; g.fillStyle = '#fff'; g.font = `800 13px ${FC}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('›', x + s + 5, y + s / 2); g.textAlign = 'left'; x -= 2; }
+  icon(x, rain, snow, false);
+}
 function drawBG() {
   const W = CV.width / DPR, H = CV.height / DPR; BG = document.createElement('canvas'); BG.width = CV.width; BG.height = CV.height;
+  MARKS = document.createElement('canvas'); MARKS.width = CV.width; MARKS.height = CV.height;
   const g = BG.getContext('2d'); g.scale(DPR, DPR); const tr = R.tr, N = tr.N;
   g.fillStyle = tr.oval ? '#2b4f2d' : '#2c5a30'; g.fillRect(0, 0, W, H);
   g.globalAlpha = .07; g.fillStyle = '#000'; for (let x = 0; x < W; x += 26) g.fillRect(x, 0, 13, H); g.globalAlpha = 1;
@@ -2303,15 +3028,26 @@ function drawBG() {
   if (tr.oval) { g.strokeStyle = '#d2d6dc'; g.lineWidth = TW + 6; path(); g.stroke(); }
   g.strokeStyle = tr.oval ? '#484c53' : '#4c5057'; g.lineWidth = TW; path(); g.stroke();
   g.strokeStyle = 'rgba(255,255,255,.1)'; g.lineWidth = 1; g.setLineDash(tr.oval ? [6, 8] : [4, 10]); path(); g.stroke(); g.setLineDash([]);
-  if (!tr.oval) {   // kerbs: alternating red and white blocks along both edges of every corner
+  if (!tr.oval) {   // kerbs: red and white blocks on the inside of every corner, following its radius
     g.lineCap = 'butt'; g.lineWidth = Math.max(2, TW * .17);
-    const step = 3; let k = 0;
-    for (let i = 0; i < N; i += step) {
-      if (tr.c[i] <= .35) { k = 0; continue; }
-      for (const side of [-1, 1]) {
-        const a = posLat(i, side * .5), b = posLat(i + step, side * .5);
-        g.strokeStyle = k % 2 ? '#f2f2f2' : '#d1342a'; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
-      }
+    const dA = i => { let d = tr.ang[(i + 3) % N] - tr.ang[(i - 3 + N) % N]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
+    const rad = i => { const a = P(tr.pts[(i - 3 + N) % N]), b = P(tr.pts[(i + 3) % N]); return Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.max(1e-4, Math.abs(dA(i))); };
+    const tight = Array.from({ length: N }, (_, i) => rad(i) < TW * 7);
+    const on = tight.map((v, i) => { for (let d = -4; d <= 4; d++) if (tight[(i + d + N) % N]) return true; return false; });
+    // the side of a kerb run comes from its tightest point, so a run never flips sides
+    const side = new Array(N).fill(0);
+    for (let i = 0; i < N; i++) if (on[i] && !side[i]) {
+      let j = i, best = i; while (on[j % N] && j < i + N) { if (rad(j % N) < rad(best % N)) best = j; j++; }
+      const sd = Math.sign(dA(best % N)) * tr.pitSide;
+      for (let q = i; q < j; q++) side[q % N] = sd;
+    }
+    const lat = i => side[i] * Math.min(.5, rad(i) * .8 / TW);
+    let k = 0;
+    for (let i = 0; i < N; i += 2) {
+      const i2 = (i + 2) % N;
+      if (!on[i] || !on[i2] || !side[i]) { k = 0; continue; }
+      const a = posLat(i, lat(i)), b = posLat(i2, lat(i2));
+      g.strokeStyle = k % 2 ? '#f2f2f2' : '#d1342a'; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
       k++;
     }
     g.lineCap = 'round';
@@ -2329,7 +3065,10 @@ function drawBG() {
 function carPos(c) {
   if (c.pit) return posLat(c.prog, PIT_OFF * pitRamp(pitU(c)));
   if (c.dnf) return posLat(c.prog, -2.1);
-  return posAt(c.prog, c.lane);
+  const N = R.tr.N, f = ((c.prog % N) + N) % N, i0 = Math.floor(f), ln = lerp(R.line[i0], R.line[(i0 + 1) % N], f - i0);
+  const base = clamp(c.lane * .3 + ln * (c.lineK || 1) * (R.caution > 0 ? .3 : 1), -.44, .44);
+  // a car that slides (!) leaves the track on the outside of the corner, then rejoins
+  return posLat(c.prog, base + (c.offL || 0) * (c.offSide || 1) * (R.tr.oval ? .55 : 1.05));
 }
 function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 // top-down car: the nose points to +x; seat 1 cars carry a light nose band so teammates can be told apart
@@ -2363,10 +3102,25 @@ function drawCarShape(g, kind, color, num, L, Wd, seat = 0) {
   if (seat === 1) { g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(L * .4, -Wd * .3, L * .07, Wd * .6); }
 }
 function drawCar(g, c) {
-  const { x, y, ang } = carPos(c), L = TW * .8, Wd = TW * .42;
-  if (R.wet > .3 && !c.dnf && !(c.pit && c.pit.stage === 'stop')) {
-    g.fillStyle = `rgba(220,230,240,${.12 * R.wet})`;
-    g.beginPath(); g.ellipse(x - Math.cos(ang) * L * .9, y - Math.sin(ang) * L * .9, L * .7, Wd * .9, ang, 0, 7); g.fill();
+  const p0 = carPos(c), x = p0.x, y = p0.y, L = TW * .8, Wd = TW * .42;
+  // slip angle: the car turns in a little in corners (more in the wet, a lot when it slides)
+  const N = R.tr.N, i = ((Math.floor(c.prog) % N) + N) % N, base = { gt: .12, proto: .08, stock: .07 }[R.kind] || .1;
+  const sp = clamp((c.vNow || 0) / R.vScale, 0, 1.3);
+  let tY = c.pit || c.dnf ? 0 : (R.sc[i] || 0) * sp * base * (1 + R.wet * 1.2);
+  if (c.mistT > 0) tY += (c.evt === '!' ? .55 : .25) * (c.num % 2 ? 1 : -1);
+  c.yaw = lerp(c.yaw || 0, tY, .15);
+  if (c.mistT > 0 && c.evt === '!' && !c.pit && !c.offL) {   // slide off on the outside of the corner the car is in or entering
+    let best = 0; for (let k = -4; k <= 24; k++) { const v = R.sc[(i + k + N) % N] || 0; if (Math.abs(v) > Math.abs(best)) best = v; }
+    c.offSide = -(Math.sign(best) || (c.num % 2 ? 1 : -1)) * R.tr.pitSide;
+  }
+  c.offL = lerp(c.offL || 0, c.mistT > 0 && c.evt === '!' && !c.pit && !c.dnf ? 1 : 0, c.mistT > 0 ? .12 : .05);
+  if (c.offL < .01 && !(c.mistT > 0)) c.offL = 0;
+  const ang = p0.ang + c.yaw;
+  if (R.wet > .25 && !c.dnf && !(c.pit && c.pit.stage === 'stop') && sp > .3) {   // light spray curtain, never hides the cars behind
+    for (let k = 1; k <= 3; k++) {
+      g.fillStyle = `rgba(215,225,238,${(.1 - k * .022) * R.wet * Math.min(1, sp)})`;
+      g.beginPath(); g.ellipse(x - Math.cos(ang) * L * (.55 + k * .38), y - Math.sin(ang) * L * (.55 + k * .38), L * (.3 + k * .14), Wd * (.6 + k * .22), ang, 0, 7); g.fill();
+    }
   }
   if (night() && !c.dnf) {   // headlights
     const gr = g.createRadialGradient(x + Math.cos(ang) * L, y + Math.sin(ang) * L, 1, x + Math.cos(ang) * L * 1.6, y + Math.sin(ang) * L * 1.6, L * 1.6);
@@ -2382,7 +3136,8 @@ function drawCar(g, c) {
 function draw() {
   if (!R || R.headless) return;
   const g = CTX, W = CV.width / DPR, H = CV.height / DPR;
-  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(BG, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(BG, 0, 0); if (MARKS) g.drawImage(MARKS, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  skidMarks();
   if (night()) { g.fillStyle = 'rgba(6,10,28,.58)'; g.fillRect(0, 0, W, H); }
   if (R.wet > .02) { g.fillStyle = `rgba(25,40,65,${R.wet * .3})`; g.fillRect(0, 0, W, H); }
   R.cars.filter(c => !c.isMe).forEach(c => drawCar(g, c)); R.my.forEach(c => drawCar(g, c));
@@ -2397,6 +3152,7 @@ function draw() {
     g.stroke();
   }
   if (R.caution > 0) { g.strokeStyle = R.redFlag ? '#ff3b30' : '#ffd400'; g.lineWidth = 4; g.strokeRect(2, 2, W - 4, H - 4); }
+  wxIcons(g, W - 8, 8, R.rain, R.wxNext ? R.wxNext.rain : null, false);
   if (R.startT > 0) {
     const n = Math.ceil(R.startT / .55);
     g.fillStyle = 'rgba(0,0,0,.6)'; roundRect(g, W / 2 - 70, 10, 140, 34, 10); g.fill();
@@ -2552,7 +3308,7 @@ function resolvePoach(ev, keep) {
   else {
     const comp = Math.round(feeFor(d) * .5 / 50) * 50; addMoney(comp);
     addNews('driver', 'news.left', { n: d.name, t: ev.from, m: money(comp) });
-    S.drivers[ev.seat] = rookie(S.tier);
+    S.drivers[ev.seat] = replacementFor(ev.seat);
   }
   save();
 }
@@ -2564,7 +3320,8 @@ function teamStandings() {
   rows.sort((a, b) => b.pts - a.pts || (a.me ? -1 : 1)); return rows;
 }
 function driverStandings() {
-  const rows = S.drivers.map((d, i) => ({ id: 'me_' + i, name: d.name, nat: d.nat, team: S.teamName, color: S.color, pts: S.dpoints['me_' + i] || 0, me: true }));
+  // rally: the co-driver does not have a row of their own
+  const rows = S.drivers.filter(d => d.role !== 'co').map((d, i) => ({ id: 'me_' + i, name: d.name, nat: d.nat, team: S.teamName, color: S.color, pts: S.dpoints['me_' + i] || 0, me: true }));
   S.field.forEach(f => f.drivers.forEach((d, i) => rows.push({ id: f.id + '_' + i, name: d.name, nat: d.nat, team: f.name, color: f.color, pts: S.dpoints[f.id + '_' + i] || 0, rival: f.id === 'rv' })));
   rows.sort((a, b) => b.pts - a.pts || (a.me ? -1 : 1)); return rows;
 }
@@ -2590,8 +3347,16 @@ function seasonResolve() {
 }
 const renewSalary = d => Math.round(salaryFor(Math.round(d.skill)) * (d.morale < 45 ? 1.3 : 1.1) / 50) * 50;
 function renewDriver(i, years) { const d = S.drivers[i]; d.salary = renewSalary(d); d.contract = years; d.morale = clamp(d.morale + 5, 0, 100); }
-function releaseDriver(i) { addNews('driver', 'news.released', { n: S.drivers[i].name }); S.drivers[i] = rookie(S.tier); }
+function releaseDriver(i) { addNews('driver', 'news.released', { n: S.drivers[i].name }); S.drivers[i] = replacementFor(i); }
 function nextSeason(disc, tier) {
+  // switching into or out of rally: the second seat changes role (race driver <-> co-driver)
+  const wasRally = S.disc === 'rally', toRally = disc === 'rally';
+  if (wasRally !== toRally) {
+    const old = S.drivers[1];
+    S.drivers[1] = toRally ? makeCo(tier, { contract: 2 }) : makeDriver(tier, { skill: Math.max(18, TIER_BASE[tier] - 6), contract: 2 });
+    S.train[1] = toRally ? 'notes' : 'skill';
+    addNews('driver', toRally ? 'news.coJoin' : 'news.coLeave', { o: old.name, n: S.drivers[1].name });
+  }
   S.disc = disc; S.tier = tier; S.season++; S.round = 0; S.seasonDnf = false;
   S.field = makeField(tier); S.calendar = newCalendar(disc); resetPoints();
   S.drivers.forEach(d => { d.age++; if (d.age > 33) d.skill = Math.max(15, d.skill - rnd(.5, 2)); d.morale = clamp(d.morale + (60 - d.morale) * .5, 0, 100); });
@@ -2658,14 +3423,10 @@ function trackChars(tr) {
 
 /* ---------- home ---------- */
 function vHome() {
+  if (isRally()) return vHomeWrap(rallyNextCard());
   const D = DISC[S.disc], tr = curTrack(), sp = isSpecial(S.disc, S.round) ? D.special : null;
-  const rows = teamStandings(), pos = rows.findIndex(r => r.me) + 1;
-  const cs = carStats(S.parts, S.staff.eng, S.rule);
-  const fieldAvg = S.field.reduce((a, f) => a + (f.P + f.H + f.B) / 3, 0) / S.field.length;
   const laps = Math.round(D.laps(tr) * (sp ? sp.laps : 1));
-  return `<div class="cols"><div>
-  <h2 class="sec">${t('home.next')}</h2>
-  <div class="card next ${sp ? 'special' : ''}">
+  return vHomeWrap(`<div class="card next ${sp ? 'special' : ''}">
     <div class="tv ${tr.oval ? 'oval' : ''}">${trackSVG(tr.pool, tr.idx, 140, 100, '#e6e9ef', 5)}${sp ? `<span class="sptag">${t('sp.' + sp.kind)}</span>` : ''}</div>
     <div class="body">
       <div class="round">${t('home.round', { r: S.round + 1, n: D.rounds, laps })}</div>
@@ -2674,7 +3435,41 @@ function vHome() {
       ${trackChars(tr)}
       <button class="btn pri block" style="margin-top:12px" data-act="weekend">${t('home.start')}</button>
     </div>
-  </div>
+  </div>`);
+}
+function rallyNextCard() {
+  const ev = curEvent(), D = DISC.rally, rx = ev.type === 'rx';
+  const thumb = rx ? rxSVG(ev, 140, 100) : stageThumb(ev);
+  const mix = rx ? (ev.ice ? { N: 1 } : (() => { const tr = buildRx(ev), g = tr.grav.filter(Boolean).length / tr.N; return { A: 1 - g, G: g }; })()) : ev.mix;
+  const bar = `<div class="ev-surf">${Object.entries(mix).filter(([k, v]) => v > .01).map(([k, v]) => `<i style="width:${v * 100}%;background:${SURF[k].col}"></i>`).join('')}</div><div class="small muted">${surfText(mix)}</div>`;
+  return `<div class="card next">
+    <div class="tv rl">${thumb}${rx ? '<span class="sptag">RX</span>' : ''}</div>
+    <div class="body">
+      <div class="round">${t('rw.round', { r: S.round + 1, n: D.rounds, k: rx ? 'Rallycross' : t('rw.ssN', { n: RALLY_STAGES }) })}</div>
+      <div class="name">${esc(t('track.' + ev.id))}</div>
+      <div class="small muted" style="margin-bottom:8px">${esc(t('trackd.' + ev.id))}</div>
+      ${bar}
+      ${rx ? statRow(t('rx.jokerS'), ev.joker.out * 50, 'b') + statRow(t('trk.rain'), ev.rain * 100, 'w', 100, '%')
+           : statRow(t('rw.rough'), ev.rough * 10, 'r') + statRow(t('rw.jumps'), ev.jumps * 10, 'b') + statRow(t('trk.rain'), (ev.rain + ev.snow) * 100, 'w', 100, '%')}
+      <button class="btn pri block" style="margin-top:12px" data-act="weekend">${rx ? t('rw.startRx') : t('rw.start')}</button>
+    </div>
+  </div>`;
+}
+function stageThumb(ev) {
+  const st = genStage(ev, hashStr(ev.id) * 7 + 3, 9), w = 140, h = 100;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < st.N; i += 8) { x0 = Math.min(x0, st.x[i]); x1 = Math.max(x1, st.x[i]); y0 = Math.min(y0, st.y[i]); y1 = Math.max(y1, st.y[i]); }
+  const s = Math.min((w - 12) / (x1 - x0 || 1), (h - 12) / (y1 - y0 || 1)), P = i => `${(6 + (st.x[i] - x0) * s).toFixed(1)} ${(6 + (st.y[i] - y0) * s).toFixed(1)}`;
+  let d = ''; for (let i = 0; i < st.N; i += 6) d += (i ? 'L' : 'M') + P(i);
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><path d="${d}" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="6" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="#e6e9ef" stroke-width="3.5" stroke-linejoin="round"/><circle cx="${P(0).split(' ')[0]}" cy="${P(0).split(' ')[1]}" r="4" fill="#2fbf71"/><circle cx="${P(st.N - 1).split(' ')[0]}" cy="${P(st.N - 1).split(' ')[1]}" r="4" fill="#ffb21e"/></svg>`;
+}
+function vHomeWrap(card) {
+  const rows = teamStandings(), pos = rows.findIndex(r => r.me) + 1;
+  const cs = carStats(S.parts, S.staff.eng, S.rule);
+  const fieldAvg = S.field.reduce((a, f) => a + (f.P + f.H + f.B) / 3, 0) / S.field.length;
+  return `<div class="cols"><div>
+  <h2 class="sec">${isRally() ? t('rw.next') : t('home.next')}</h2>
+  ${card}
   <div class="grid2" style="margin-top:10px">
     <div class="kpi"><small>${t('kpi.pos')}</small><b>${t('kpi.posV', { n: pos })}</b><div class="small muted">${t('kpi.pts', { n: S.points.me || 0 })}</div></div>
     <div class="kpi"><small>${t('kpi.car')}</small><b class="${cs.ovr >= fieldAvg ? 'pos' : 'neg'}">${cs.ovr >= fieldAvg ? '+' : ''}${(cs.ovr - fieldAvg).toFixed(1)}</b><div class="small muted">${t('kpi.carSub')}</div></div>
@@ -2740,18 +3535,20 @@ function vGarage() {
 
 /* ---------- team ---------- */
 function driverCard(d, i) {
-  const ml = moraleLabel(d.morale);
+  const ml = moraleLabel(d.morale), co = d.role === 'co', tr = co ? CO_TRAIN : TRAIN;
+  const stats = co ? statRow(t('drv.notes'), d.skill, '', 100) + statRow(t('drv.calm'), d.cons, 'g', 100)
+    : statRow(t('drv.skill'), d.skill, '', 100) + statRow(t('drv.cons'), d.cons, 'g', 100) + statRow(isRally() ? t('drv.slip') : t('drv.wet'), d.wet, 'w', 100);
   return `<div class="card"><div class="drv">${helmetSVG(d)}<div>
-    <div class="h" style="font-size:21px;font-weight:700">#${i ? S.num2 : S.num} ${esc(d.name)} ${natTag(d.nat)}</div>
+    <div class="h" style="font-size:21px;font-weight:700">${co ? `<span class="tag a">${t('team.co')}</span>` : '#' + (i ? S.num2 : S.num)} ${esc(d.name)} ${natTag(d.nat)}</div>
     <div class="small muted">${t('team.age', { n: d.age })} · ${money(d.salary)}${t('u.perRace')} · ${t('team.contract', { n: d.contract })} · ${t('team.pot')} <span class="stars">${stars(d.pot)}</span></div></div></div>
-    <div style="margin-top:10px">${statRow(t('drv.skill'), d.skill, '', 100)}${statRow(t('drv.cons'), d.cons, 'g', 100)}${statRow(t('drv.wet'), d.wet, 'w', 100)}${statRow(t('drv.morale'), d.morale, 'm ' + ml, 100)}</div>
-    <div class="small muted" style="margin:2px 0 8px">${t('morale.' + ml)}</div>
-    <div class="seg" data-trainseg="${i}">${TRAIN.map(k => `<button data-tr="${k}" data-seat="${i}" class="${S.train[i] === k ? 'on' : ''}">${t('train.' + k)}</button>`).join('')}</div>
+    <div style="margin-top:10px">${stats}${statRow(t('drv.morale'), d.morale, 'm ' + ml, 100)}</div>
+    <div class="small muted" style="margin:2px 0 8px">${t('morale.' + ml)}${co ? ' ' + t('team.coInfo') : ''}</div>
+    <div class="seg" data-trainseg="${i}">${tr.map(k => `<button data-tr="${k}" data-seat="${i}" class="${S.train[i] === k ? 'on' : ''}">${t(isRally() && k === 'wet' ? 'train.slip' : 'train.' + k)}</button>`).join('')}</div>
   </div>`;
 }
 function vTeam() {
   return `<div class="cols"><div>
-  <h2 class="sec">${t('team.drivers')}</h2>
+  <h2 class="sec">${isRally() ? t('team.crew') : t('team.drivers')}</h2>
   ${S.drivers.map(driverCard).join('')}
   <div class="small muted" style="margin:6px 2px">${t('team.trainInfo')}</div>
   <h2 class="sec">${t('team.staff')}</h2>
@@ -2769,8 +3566,8 @@ function vTeam() {
   ${S.market.map((m, i) => {
     const locked = S.rep < m.minRep;
     return `<div class="card drv mk">${helmetSVG(m, 52)}
-    <div><b>${esc(m.name)}</b> ${natTag(m.nat)} <span class="small muted">${t('team.age', { n: m.age })}</span>
-      <div class="small">${t('drv.skillS')} <b>${m.skill}</b> · ${t('drv.consS')} <b>${m.cons}</b> · ${t('drv.wetS')} <b>${m.wet}</b></div>
+    <div><b>${esc(m.name)}</b> ${natTag(m.nat)} ${m.role === 'co' ? `<span class="tag a">${t('team.co')}</span>` : ''} <span class="small muted">${t('team.age', { n: m.age })}</span>
+      <div class="small">${m.role === 'co' ? `${t('drv.notesS')} <b>${m.skill}</b> · ${t('drv.calmS')} <b>${m.cons}</b>` : `${t('drv.skillS')} <b>${m.skill}</b> · ${t('drv.consS')} <b>${m.cons}</b> · ${t('drv.wetS')} <b>${m.wet}</b>`}</div>
       <div class="small muted">${money(m.salary)}${t('u.perRace')} · <span class="stars">${stars(m.pot)}</span></div></div>
     <div style="text-align:right">${locked ? `<span class="tag r">★ ${m.minRep}</span>` : `<button class="btn sm team" data-sign="${i}">${t('team.offer')}</button><div class="small muted" style="margin-top:3px">${t('team.from', { m: money(feeFor(m, 1)) })}</div>`}</div></div>`;
   }).join('')}</div></div>`;
@@ -2808,6 +3605,7 @@ function vChamp() {
   <div class="card" style="margin-top:8px">${CHAMP_TAB === 'team' ? standTable(teamStandings()) : standTable(driverStandings(), 0, true)}</div>
   <h2 class="sec">${t('champ.cal')}</h2>
   <div class="card">${S.calendar.map((ti, i) => {
+    if (isRally()) return rallyCalRow(ti, i, badge);
     const tr = buildTrack(pool, ti), r = S.results[i], sp = isSpecial(S.disc, i);
     const res = r ? r.pos.map((p, k) => badge(p, r.dnf[k])).join(' ') : i === S.round ? `<span class="tag a">${t('champ.next')}</span>` : '';
     const laps = Math.round(D.laps(tr) * (sp ? D.special.laps : 1));
@@ -2815,12 +3613,18 @@ function vChamp() {
   }).join('')}</div>
   </div><div>
   <h2 class="sec">${t('champ.stats')}</h2>
-  <div class="card statgrid">${[['starts', st.starts], ['wins', st.wins], ['podiums', st.podiums], ['poles', st.poles], ['points', st.points], ['laps', st.laps], ['dnfs', st.dnfs], ['titles', S.titles]].map(([k, v]) => `<div><b>${v}</b><small>${t('stat.' + k)}</small></div>`).join('')}</div>
+  <div class="card statgrid">${[['starts', st.starts], ['wins', st.wins], ['podiums', st.podiums], isRally() || st.sw ? ['sw', st.sw || 0] : ['poles', st.poles], ['points', st.points], ['laps', st.laps], ['dnfs', st.dnfs], ['titles', S.titles]].map(([k, v]) => `<div><b>${v}</b><small>${t('stat.' + k)}</small></div>`).join('')}</div>
   <h2 class="sec">${t('champ.ach')} · ${Object.keys(S.ach).length}/${ACHIEVEMENTS.length}</h2>
   <div class="card achgrid">${ACHIEVEMENTS.map(k => `<div class="ach ${S.ach[k] ? 'on' : ''}"><b>${t('ach.' + k)}</b><small>${t('ach.' + k + '.d')}</small></div>`).join('')}</div>
   <h2 class="sec">${t('champ.hof')}</h2>
   <div class="card">${S.history.length ? S.history.map(h => `<div class="money-line"><span>${t('top.season', { n: h.season })} · ${esc(h.label || tierName(h.disc, h.tier))}<br><span class="small muted">${t('champ.champion')}: ${esc(h.champ || '–')}</span></span><b>${t('kpi.posV', { n: h.pos })} ${h.move ? t('move.' + h.move) : ''}</b></div>`).join('') : `<div class="small muted">${t('champ.first')}</div>`}</div>
   </div></div>`;
+}
+
+function rallyCalRow(ti, i, badge) {
+  const ev = RALLY_POOL[ti], r = S.results[i], rx = ev.type === 'rx';
+  const res = r ? r.pos.map((p, k) => badge(p, r.dnf[k])).join(' ') : i === S.round ? `<span class="tag a">${t('champ.next')}</span>` : '';
+  return `<div class="cal ${i === S.round ? 'cur' : ''}"><div class="ev-ico">${rx ? 'RX' : Object.keys(ev.mix).map(k => `<i style="background:${SURF[k].col}"></i>`).join('')}</div><div><b>${esc(t('track.' + ev.id))}</b>${rx ? ' <span class="tag a">RX</span>' : ''}<div class="small muted">${rx ? t('rx.short') : t('rw.ssN', { n: RALLY_STAGES }) + ' · ' + surfText(ev.mix)}</div></div><div class="cres">${res}</div></div>`;
 }
 
 /* ---------- actions ---------- */
@@ -2831,7 +3635,7 @@ function orderPart(id, rush) {
 }
 function bindView() {
   const v = $('#view');
-  v.querySelectorAll('[data-act]').forEach(b => b.onclick = () => ({ weekend: openWeekend, export: openExport, import: openImport, reset: confirmReset, sound: () => { SND.toggle(); render(); } }[b.dataset.act])());
+  v.querySelectorAll('[data-act]').forEach(b => b.onclick = () => ({ weekend: isRally() ? openRallyWeekend : openWeekend, export: openExport, import: openImport, reset: confirmReset, sound: () => { SND.toggle(); render(); } }[b.dataset.act])());
   const ls = v.querySelector('[data-act-lang]'); if (ls) ls.onchange = () => setLang(ls.value);
   v.querySelectorAll('[data-up],[data-rush]').forEach(b => b.onclick = () => {
     const id = b.dataset.up || b.dataset.rush;
@@ -2856,11 +3660,12 @@ function bindView() {
   });
 }
 function openSign(mi) {
-  const m = S.market[mi]; let seat = S.drivers[0].skill <= S.drivers[1].skill ? 0 : 1, years = 2;
+  const m = S.market[mi], seats = [0, 1].filter(i => (S.drivers[i].role === 'co') === (m.role === 'co'));
+  let seat = seats.length === 1 ? seats[0] : S.drivers[0].skill <= S.drivers[1].skill ? 0 : 1, years = 2;
   const draw = () => {
     const fee = feeFor(m, years);
     modal(`<h3>${t('team.signT')}</h3><p>${t('team.signP', { n: esc(m.name), a: m.age, s: m.skill, c: m.cons, w: m.wet, sal: money(m.salary) })}</p>
-    <label class="l">${t('team.replace')}</label><div class="seg" id="sgSeat">${S.drivers.map((d, i) => `<button data-v="${i}" class="${seat === i ? 'on' : ''}">#${i ? S.num2 : S.num} ${esc(lastName(d.name))} (${Math.round(d.skill)})</button>`).join('')}</div>
+    <label class="l">${t('team.replace')}</label><div class="seg" id="sgSeat">${seats.map(i => { const d = S.drivers[i]; return `<button data-v="${i}" class="${seat === i ? 'on' : ''}">${d.role === 'co' ? t('team.co') : '#' + (i ? S.num2 : S.num)} ${esc(lastName(d.name))} (${Math.round(d.skill)})</button>`; }).join('')}</div>
     <label class="l">${t('team.length')}</label><div class="seg" id="sgYears">${[1, 2, 3].map(y => `<button data-v="${y}" class="${years === y ? 'on' : ''}">${t('team.years', { n: y })}</button>`).join('')}</div>
     <div class="money-line t" style="margin-top:14px"><span>${t('team.fee')}</span><b>${money(fee)}</b></div>
     <div class="small muted" style="margin-bottom:12px">${t('team.signLeave', { n: esc(S.drivers[seat].name) })}</div>
@@ -2906,12 +3711,12 @@ function renderIntro() {
     <label class="l">${t('intro.num')}</label><input type="number" id="iNum" min="1" max="99" value="7">
     </div><div>
     <label class="l">${t('intro.series')}</label>
-    <div class="disc" id="iDisc">${DISC_KEYS.map(d => `<button data-d="${d}" class="${INTRO.disc === d ? 'on' : ''}">${carSideSVG({ kind: d === 'oval' ? 'stock' : 'gt', color: '#8d96a8', num: '', parts: DEMO_PARTS, bg: false })}<div><b>${t('disc.' + d)}</b><small>${t('disc.' + d + '.d')}</small></div></button>`).join('')}</div>
+    <div class="disc" id="iDisc">${DISC_KEYS.map(d => `<button data-d="${d}" class="${INTRO.disc === d ? 'on' : ''}">${carSideSVG({ kind: carKind(d, 0), color: '#8d96a8', num: '', parts: DEMO_PARTS, bg: false })}<div><b>${t('disc.' + d)}</b><small>${t('disc.' + d + '.d')}</small></div></button>`).join('')}</div>
     </div></div>
     <button class="btn pri block" style="margin:18px 0 30px;padding:15px;font-size:17px" id="iGo">${t('intro.go')}</button>
   </div>`;
   const ls = $('#view [data-act-lang]'); ls.onchange = () => setLang(ls.value);
-  const upd = () => { const n = clamp(parseInt($('#iNum').value) || 7, 1, 99); $('#introCar').innerHTML = carSideSVG({ kind: INTRO.disc === 'oval' ? 'stock' : 'gt', color: INTRO.color, num: n, parts: DEMO_PARTS, team: $('#iName').value }); };
+  const upd = () => { const n = clamp(parseInt($('#iNum').value) || 7, 1, 99); $('#introCar').innerHTML = carSideSVG({ kind: carKind(INTRO.disc, 0), color: INTRO.color, num: n, parts: DEMO_PARTS, team: $('#iName').value }); };
   upd();
   $('#iCol').querySelectorAll('button').forEach(b => b.onclick = () => { INTRO.color = b.dataset.c; $('#iCol').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); upd(); });
   $('#iDisc').querySelectorAll('button').forEach(b => b.onclick = () => { INTRO.disc = b.dataset.d; $('#iDisc').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); upd(); });
@@ -3037,7 +3842,7 @@ function checkBankrupt() {
 }
 function seasonEnd() {
   const res = seasonResolve();
-  const cur = tierName(S.disc, S.tier), other = DISC_KEYS.find(d => d !== S.disc), ot = Math.max(0, S.tier - 1);
+  const cur = tierName(S.disc, S.tier), other = DISC_KEYS.filter(d => d !== S.disc), ot = Math.max(0, S.tier - 1);
   modal(`<h3>${res.pos === 1 ? t('se.champ') : t('se.t')}</h3>
    <div style="text-align:center;margin:8px 0"><span class="h bigpos">${res.pos}.</span><div class="muted">${t('se.pts', { n: S.points.me })}</div></div>
    <div class="card"><div class="money-line"><span>${t('se.prize')}</span><span class="pos">+${money(res.prize)}</span></div>
@@ -3061,17 +3866,1228 @@ function chooseNext(cur, other, ot) {
   modal(`<h3>${t('se.next')}</h3>
    <div class="row col">
     <button class="btn pri" id="stay">${t('se.continue', { s: esc(cur) })}</button>
-    <button class="btn" id="sw">${t('se.switch', { s: esc(tierName(other, ot)), d: t('disc.' + other) })}</button>
-   </div>`);
+    ${other.map(o => `<button class="btn" data-sw="${o}">${t('se.switch', { s: esc(tierName(o, ot)), d: t('disc.' + o) })}</button>`).join('')}
+   </div>
+   <div class="small muted" style="margin-top:8px">${t('se.coNote')}</div>`);
   const fin = () => { closeModal(); VIEW = 'home'; render(); if (S.rule !== 'none') toast(t('rule.' + S.rule)); };
   $('#stay').onclick = () => { nextSeason(S.disc, S.tier); fin(); };
-  $('#sw').onclick = () => { addNews('start', 'news.switch', { d: 'disc.' + other }); nextSeason(other, ot); fin(); };
+  $('#mc').querySelectorAll('[data-sw]').forEach(b => b.onclick = () => { const o = b.dataset.sw; addNews('start', 'news.switch', { d: 'disc.' + o }); nextSeason(o, ot); fin(); });
+}
+
+/* ---- rally.js ---- */
+/* ===================== rally: stages, timing, live stage view ===================== */
+const DS = 5;                       // stage sample spacing in metres
+const RL_TS = 7;                    // real stage seconds per screen second at 1x
+const MODE_PF = [1.022, 1, .984], MODE_ERR_R = [.55, 1, 1.9], MODE_DMG = [.7, 1, 1.45], MODE_WEAR_R = [.8, 1, 1.3];
+const DMG_KEYS = ['susp', 'body', 'engine', 'gear'];
+const RSETUP = ['ride', 'spring', 'gear'];
+let RW = null;                      // current rally / rallycross weekend
+let RL = null;                      // live stage or rallycross race
+const RMARKS = {};                  // tyre marks per stage, so a second pass drives over the first pass's marks
+
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const fmtT = s => { if (!Number.isFinite(s)) return '–'; const m = Math.floor(s / 60), r = s - m * 60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
+const fmtGap = s => (s >= 0 ? '+' : '−') + (Math.abs(s) >= 60 ? fmtT(Math.abs(s)) : Math.abs(s).toFixed(1));
+
+/* ---------- stage geometry ---------- */
+const STAGE_CACHE = {};
+function genStage(ev, seed, km) {
+  const key = ev.id + seed + km; if (STAGE_CACHE[key]) return STAGE_CACHE[key];
+  const R = mulberry(seed), rr = (a, b) => a + R() * (b - a);
+  const N = Math.ceil(km * 1000 / DS);
+  const cv = new Float32Array(N), ft = new Uint8Array(N), sf = new Array(N);
+  const keys = Object.keys(ev.mix);
+  for (let i = 0; i < N;) {   // surface in chunks
+    let r = R(), k = keys[0];
+    for (const kk of keys) { r -= ev.mix[kk]; if (r <= 0) { k = kk; break; } }
+    const len = Math.round(rr(900, 2600) / DS);
+    for (let j = 0; j < len && i < N; j++, i++) sf[i] = k;
+  }
+  const tw = ev.twist, W = [.05 + .12 * tw, .1 + .15 * tw, .2, .25, .2 * (1.3 - tw), .2 * (1.4 - tw)];
+  const RAD = [12, 22, 38, 60, 95, 150];
+  let i = Math.round(rr(40, 80) / DS), drift = 0;
+  const corners = [];
+  while (i < N) {
+    const sl = Math.max(4, Math.round(rr(40, 300) * (1.6 - tw) / DS));
+    if (sl > 16 && R() < ev.jumps * .55) ft[Math.min(N - 1, i + Math.floor(sl / 2))] = 1;
+    else if (sl > 12 && sf[i] !== 'A' && R() < .07) ft[Math.min(N - 1, i + Math.floor(sl / 2))] = 2;
+    i += sl; if (i >= N) break;
+    let r = R() * W.reduce((a, b) => a + b, 0), sev = 1;
+    for (let k = 0; k < 6; k++) { r -= W[k]; if (r <= 0) { sev = k + 1; break; } }
+    const Rm = RAD[sev - 1], ang = sev === 1 ? rr(2.4, 3.0) : rr(.4, 1.5);
+    let dir = R() < .5 ? -1 : 1; if (Math.abs(drift) > 2.4) dir = -Math.sign(drift);
+    const len = Math.max(2, Math.round(ang * Rm / DS));
+    corners.push({ s: i, e: Math.min(N - 1, i + len), sev, dir });
+    for (let j = 0; j < len && i + j < N; j++) cv[i + j] = dir / Rm;
+    drift += dir * ang; i += len;
+  }
+  const x = new Float32Array(N), y = new Float32Array(N), h = new Float32Array(N);
+  let hh = rr(0, Math.PI * 2), xx = 0, yy = 0;
+  for (let k = 0; k < N; k++) { hh += cv[k] * DS; xx += Math.cos(hh) * DS; yy += Math.sin(hh) * DS; x[k] = xx; y[k] = yy; h[k] = hh; }
+  // reference speed profile (a typical car on fresh tyres, dry)
+  const v = new Float32Array(N), VMAX = 50;
+  for (let k = 0; k < N; k++) {
+    const mu = SURF[sf[k]].grip, c = Math.abs(cv[k]);
+    let vc = c > 1e-4 ? Math.sqrt(9.81 * mu * 1.35 / c) : VMAX;
+    if (ft[k] === 1) vc = Math.min(vc, 34); if (ft[k] === 2) vc = Math.min(vc, 20);
+    v[k] = Math.min(VMAX, vc);
+  }
+  for (let k = N - 2; k >= 0; k--) v[k] = Math.min(v[k], Math.sqrt(v[k + 1] ** 2 + 2 * 9.81 * SURF[sf[k]].grip * DS));
+  v[0] = Math.min(v[0], 4);
+  for (let k = 1; k < N; k++) { const mu = SURF[sf[k]].grip; v[k] = Math.min(v[k], Math.sqrt(v[k - 1] ** 2 + 2 * 6 * Math.sqrt(mu) * (1 - v[k - 1] / VMAX * .6) * DS)); }
+  const tc = new Float32Array(N); let tt = 0;
+  for (let k = 1; k < N; k++) { tt += DS / ((v[k] + v[k - 1]) / 2); tc[k] = tt; }
+  const frac = {}; sf.forEach(k => { frac[k] = (frac[k] || 0) + 1 / N; });
+  // scenery: trees / rocks / spectators beside the road
+  const decor = [];
+  for (let k = 0; k < N; k += 3) {
+    if (R() < .55) { const side = R() < .5 ? -1 : 1, off = rr(9, 34) * side, a = h[k] + Math.PI / 2; decor.push([x[k] + Math.cos(a) * off, y[k] + Math.sin(a) * off, R() < .9 ? 0 : 1, rr(1.6, 3.6), k]); }
+  }
+  // keep scenery clear of every part of the road (the road may pass near itself): grid lookup of road samples
+  const CELL = 20, grid = new Map(), key2 = (a, b) => a + ',' + b;
+  for (let k = 0; k < N; k++) { const gk = key2(Math.floor(x[k] / CELL), Math.floor(y[k] / CELL)); if (!grid.has(gk)) grid.set(gk, []); grid.get(gk).push(k); }
+  const clear = (px, py, r) => {
+    const gx = Math.floor(px / CELL), gy = Math.floor(py / CELL), need = 5.5 + r + 1.5;   // shoulder half-width + object + margin
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const arr = grid.get(key2(gx + dx, gy + dy)); if (!arr) continue;
+      for (const k of arr) if (Math.hypot(x[k] - px, y[k] - py) < need) return false;
+    }
+    return true;
+  };
+  const decorOk = decor.filter(d => clear(d[0], d[1], d[2] === 0 ? d[3] : .7));
+  const st = { N, km, x, y, h, cv, ft, sf, v, tc, ref: tt, corners, frac, decor: decorOk, seed };
+  STAGE_CACHE[key] = st; return st;
+}
+
+/* ---------- pace model ---------- */
+function tyreGrip(ty, sf, wet) {
+  const m = TYRES[ty];
+  if (sf === 'N') return ty === 'SN' ? 1 : m === 'G' ? .82 : .74;
+  if (sf === 'A') {
+    if (m === 'A') return wet ? (ty === 'AW' ? .995 : ty === 'AS' ? .92 : .9) : (ty === 'AS' ? 1 : ty === 'AH' ? .988 : .955);
+    return ty === 'SN' ? .86 : .9;
+  }
+  if (m === 'G') return (ty === 'GS' ? 1 : .987) * (wet ? .996 : 1);
+  return ty === 'SN' ? .9 : .91;
+}
+function tyreWearRate(ty, sf, wet) {
+  if (ty === 'SN') return sf === 'N' ? .7 : 2.5;
+  if (ty === 'AW') return sf === 'A' && !wet ? 2.2 : 1.1;
+  return ty === 'AS' || ty === 'GS' ? 1.25 : .8;
+}
+// overall performance of a crew on a stage (higher = faster); slippery surfaces lean on the driver's wet skill
+function crewPerf(c, st, wet) {
+  const slip = clamp((st.frac.N || 0) + (st.frac.S || 0) * .5 + (st.frac.G || 0) * .25 + (wet ? .5 : 0), 0, 1);
+  const car = c.P * .35 + c.H * .45 + c.B * .2;
+  const drv = c.D * (1 - slip * .5) + c.Wd * slip * .5;
+  return car * .55 + drv * .45;
+}
+function basePf(c, st, ctx) {
+  let pf = 1 + (70 - crewPerf(c, st, ctx.wet)) * .0028;
+  if (ctx.sweep) pf *= 1 + ((st.frac.G || 0) + (st.frac.S || 0)) * .014 * ctx.sweep;
+  pf *= 1 + ((st.frac.A || 0) * .07 + (st.frac.G || 0) * .03) * (ctx.wet ? 1 : 0) + (ctx.snowfall ? .03 : 0);
+  return pf;
+}
+const dmgPf = d => 1 + d.susp * .12 + d.body * .04 + d.engine * .08 + d.gear * .06;
+const setupPf = q => 1 + (.7 - q) * .035;
+function rallyIdeal(ev) {
+  const g = (ev.mix.G || 0) + (ev.mix.S || 0), a = ev.mix.A || 0, n = ev.mix.N || 0;
+  return {
+    ride: Math.round(clamp(2 + g * 5.5 + n * 3 + ev.rough * 1.5, 1, 9)),
+    spring: Math.round(clamp(7.5 - g * 4 - n * 3 + a * .5, 1, 9)),
+    gear: Math.round(clamp(8 - ev.twist * 6, 1, 9)),
+  };
+}
+function rallySetupQ(ev, set) {
+  const id = rallyIdeal(ev); let e = 0;
+  RSETUP.forEach(k => { e += Math.abs(set[k] - id[k]) / 8; });
+  return clamp(1 - e / 3 * 1.6, 0, 1);
+}
+function rallyFeedback(ev, set) {
+  const id = rallyIdeal(ev), out = [];
+  RSETUP.forEach(k => { const d = set[k] - id[k]; if (Math.abs(d) >= 2) out.push(['rfb.' + k + (d < 0 ? 'Lo' : 'Hi'), Math.abs(d)]); });
+  out.sort((a, b) => b[1] - a[1]);
+  return out.length ? out.slice(0, 2).map(o => o[0]) : ['rfb.ok'];
+}
+// low ride height on rough roads and jumps = more damage
+const rideDmgF = (ev, set) => clamp(1 + (rallyIdeal(ev).ride - set.ride) * .22, .55, 2.4);
+
+/* ---------- crews ---------- */
+function rallyCrews() {
+  const cs = carStats(S.parts, S.staff.eng, S.rule), dr = drvEff(S.drivers[0]), co = S.drivers[1];
+  const me = { id: 'me_0', team: 'me', name: S.teamName, driver: S.drivers[0].name, co: co.name, nat: S.drivers[0].nat, color: S.color, num: S.num, isMe: true,
+    P: cs.P, H: cs.H, B: cs.B, rel: cs.rel, D: dr.D, Wd: dr.W, K: dr.K, notes: co.skill * (.9 + (co.morale - 60) / 400), calm: co.cons };
+  const out = [me];
+  S.field.forEach(f => f.drivers.forEach((d, i) => out.push({ id: f.id + '_' + i, team: f.id, name: f.name, driver: d.name, nat: d.nat, color: f.color, num: d.num, isRival: f.id === 'rv',
+    P: f.P, H: f.H, B: f.B, rel: f.rel, D: d.D, Wd: d.W, K: d.K })));
+  out.forEach(c => { c.total = 0; c.times = []; c.out = false; c.restart = false; c.dnf = false; c.pen = 0; c.dayOut = -1; });
+  return out;
+}
+// AI stage time with incidents; returns { t, ev } where ev = incident key or ''
+// the best tyre for a stage (mix of surfaces): AI teams usually pick it, sometimes the second best
+function bestTyres(ev, st, wet) {
+  return tyreOptions(ev).map(ty => ({ ty, g: Object.entries(st.frac).reduce((a, [sf, f]) => a + f * tyreGrip(ty, sf, wet), 0) })).sort((a, b) => b.g - a.g);
+}
+function aiStageTime(c, st, ctx) {
+  const rough = clamp(st.rough * (ctx.pass ? 1.2 : 1), 0, 1.2), slip = (st.frac.N || 0) + (ctx.wet ? .5 : 0);
+  const tb = bestTyres(ctx.ev, st, ctx.wet), tg = (Math.random() < .15 && tb[1] ? tb[1] : tb[0]).g;
+  let t = st.ref * basePf(c, st, ctx) / tg * (1 + randn() * .006 * (1.5 - c.K / 100)) * rnd(.99, 1.01);
+  let ev = '';
+  if (Math.random() < .055 * (1.5 - c.K / 100) * (1 + slip * .6)) { t += rnd(4, 35); ev = 'off'; }
+  if (Math.random() < .03 * rough) { t += rnd(60, 110); ev = 'puncture'; }
+  if (Math.random() < .007 * (1.45 - c.rel / 100) * (.6 + rough)) { ev = 'retire'; }
+  return { t, ev };
+}
+
+/* ---------- live stage (player car) ---------- */
+function startStage(si) {
+  const W = RW, sd = W.stages[si], ev = W.ev, st = genStage(ev, sd.seed, sd.km);
+  st.rough = ev.rough;
+  const me = W.crews[0], lp = sd.loop, wx = W.wx[lp];
+  const ctxBase = { wet: wx.wet, snowfall: wx.snow, pass: sd.pass, ev };
+  // AI times for this stage (start order decides road sweeping on first-pass gravel stages)
+  const order = W.order[lp], n = order.length;
+  W.crews.forEach(c => {
+    if (c.isMe || c.out) return;
+    const p = order.indexOf(c.id), sweep = !sd.pass && p >= 0 ? 1 - p / Math.max(1, n - 1) : 0;
+    const r = aiStageTime(c, st, { ...ctxBase, sweep });
+    c.cur = r;
+  });
+  const p = order.indexOf('me_0');
+  RL = {
+    kind: 'stage', si, sd, st, ev, wx, me, t: 0, s: 0, idx: 0, v: 0, hold: 0, offT: 0, done: false, speed: raceSpeedPref(), mode: 1, lastUI: 0,
+    sweep: !sd.pass ? 1 - p / Math.max(1, n - 1) : 0, startPos: p + 1, nStart: n, ctx: ctxBase, prompt: null, msgs: [], dust: [], splits: [], noteI: 0,
+    rideF: rideDmgF(ev, W.setup), q: rallySetupQ(ev, W.setup), events: [], startT: 1.6, retired: false, auto: false,
+    marks: (RMARKS[sd.seed] = RMARKS[sd.seed] || []), mk: null,
+  };
+  const ai = W.crews.filter(c => !c.isMe && !c.out && c.cur && c.cur.ev !== 'retire');
+  RL.best = ai.length ? Math.min(...ai.map(c => c.cur.t)) : st.ref;
+  RL.ghost = ai.find(c => c.cur.t === RL.best);
+  $('#rally').classList.remove('hidden'); document.body.style.overflow = 'hidden';
+  $('#rlTitle').textContent = t('rl.ssName', { n: si + 1, name: sd.name }) + (sd.power ? ' · Power Stage' : '');
+  $('#rlSub').textContent = `${t('track.' + ev.id)} · ${sd.km.toFixed(1)} km · ${surfText(st.frac)}`;
+  $('#rlCnt').textContent = `${si + 1}/${RALLY_STAGES}`;
+  $('#rlWx').innerHTML = wxBadge(wx, ev);
+  $('#rlJoker').classList.add('hidden'); $('#rlModeRow').classList.remove('hidden');
+  setSeg('#rlSpeed', 's', String(RL.speed)); setSeg('#rlMode', 'm', '1');
+  rlTick(t('rl.startPos', { p: RL.startPos, n }) + (RL.sweep > .5 && !sd.pass && ((st.frac.G || 0) + (st.frac.S || 0)) > .3 ? ' ' + t('rl.sweepNote') : ''), 'info');
+  rlSizeCanvas(); SND.start();
+  let last = performance.now();
+  const loop = now => {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (!RL || RL.kind !== 'stage') return;
+    if (RL.speed === 99) { stageSkip(); return; }
+    if (!RL.prompt && RL.speed > 0) stageStep(dt * RL.speed);
+    drawStage();
+    try { SND.engine(RL.speed > 0 && !RL.prompt && !RL.done ? (RL.hold > 0 ? .15 : RL.v / 50) : 0, 0); } catch (e) { }
+    if (now - RL.lastUI > 200) { RL.lastUI = now; stageUI(); }
+    if (RL.done && !RL.closing) { RL.closing = true; SND.stop(); stageUI(); setTimeout(() => endStage(), 900); return; }
+    RL.raf = requestAnimationFrame(loop);
+  };
+  RL.raf = requestAnimationFrame(loop);
+}
+function stageStep(dtScreen) {
+  const L = RL; if (L.done) return;
+  if (L.startT > 0) { L.startT -= dtScreen; if (L.startT <= 0) rlTick(t('rl.go'), 'good'); return; }
+  let dt = dtScreen * RL_TS;
+  while (dt > 0 && !L.done && !L.prompt) {
+    const h = Math.min(dt, .5); dt -= h;
+    L.t += h;
+    if (L.hold > 0) { L.hold -= h; L.v = 0; continue; }
+    const st = L.st, i = Math.min(st.N - 1, Math.floor(L.s / DS));
+    L.v = st.v[i] / livePf(i);
+    const ns = L.s + L.v * h, ni = Math.min(st.N - 1, Math.floor(ns / DS));
+    for (let k = i + 1; k <= ni && !L.done; k++) { sampleEvents(k); if (L.hold > 0 || L.prompt) { L.s = k * DS; break; } }
+    if (L.hold <= 0 && !L.prompt) L.s = ns;
+    [1 / 3, 2 / 3].forEach((f, k) => { if (!L.splits[k] && L.s >= st.N * DS * f) { L.splits[k] = L.t; const d = L.t - L.best * f; rlTick(t('rl.split', { n: k + 1, g: fmtGap(d) }), d <= 0 ? 'good' : 'warn'); } });
+    if (L.s >= (st.N - 1) * DS) { L.s = (st.N - 1) * DS; L.done = true; }
+  }
+}
+function livePf(i) {
+  const L = RL, W = RW, st = L.st, me = L.me;
+  let pf = basePf(me, st, { ...L.ctx, sweep: L.sweep });
+  pf /= tyreGrip(W.tyre, st.sf[i], L.wx.wet) * (1 - .06 * W.wear * W.wear);
+  return pf * MODE_PF[L.mode] * setupPf(L.q) * dmgPf(W.dmg) * (1 + W.spares * .003) * (W.flat ? 1.35 : 1) * (L.offT > 0 ? 1.6 : 1);
+}
+function sampleEvents(k) {
+  const L = RL, W = RW, st = L.st, me = L.me, d = W.dmg, sf = st.sf[k], S0 = SURF[sf];
+  const mode = L.mode, rough = clamp(L.ev.rough * (L.sd.pass ? 1.2 : 1), 0, 1.3) * (sf === 'A' ? .35 : 1);
+  // tyre wear
+  W.wear = clamp(W.wear + DS / 1000 * .009 * tyreWearRate(W.tyre, sf, L.wx.wet) * (sf === 'N' ? .6 : 1) * MODE_WEAR_R[mode] * (1.2 - S.parts.tires * .02), 0, 1.5);
+  if (L.offT > 0) L.offT -= DS;
+  // driver mistakes in corners (pace notes, grip, tyres, damage, setup)
+  const c = Math.abs(st.cv[k]);
+  if (c > 0) {
+    const sev = clamp(c * 12, 0, 1.2), grip = tyreGrip(W.tyre, sf, L.wx.wet) * S0.grip;
+    const slip = clamp(1.6 - grip, .6, 1.6) * (L.wx.wet ? 1.25 : 1) * (L.wx.snow ? 1.2 : 1);
+    const notesF = clamp(1.5 - me.notes / 100, .55, 1.4);
+    const rate = .0016 * sev * MODE_ERR_R[mode] * (1.55 - me.K / 100) * slip * notesF * (1 + d.susp * 1.5) * (1 + (1 - L.q) * .6) * (1 + W.wear * .5);
+    if (Math.random() < rate) rlMistake(false);
+    else if (Math.random() < .00011 * sev * clamp((100 - me.notes) / 45, .2, 2)) rlMistake(true);
+  }
+  if (st.ft[k] === 2) L.splash = true;
+  if (st.ft[k] === 1) {   // jump: airborne for a few metres (drawn), then the landing
+    L.air = { s: k * DS, d: clamp(L.v * .9, 10, 34) };
+    const hit = rnd(0, .011) * MODE_DMG[mode] * L.rideF * (1.25 - S.parts.chassis * .025);
+    d.susp = clamp(d.susp + hit, 0, 1); if (hit > .012) rlTick(t('rl.hardLanding'), 'warn');
+  }
+  if (Math.random() < .0009 * rough * L.rideF) {   // bottoming out on rough roads
+    d.engine = clamp(d.engine + rnd(.01, .035), 0, 1); d.susp = clamp(d.susp + rnd(.004, .02), 0, 1);
+    if (Math.random() < .3) rlTick(t('rl.bottom'), 'warn');
+  }
+  if (!W.flat && Math.random() < .00007 * rough * (W.tyre === 'GS' || W.tyre === 'AS' ? 1.35 : 1) * (1.3 - S.parts.tires * .02) * MODE_DMG[mode] * (1 + W.wear)) puncture();
+  if (W.flat) d.susp = clamp(d.susp + .0009, 0, 1);   // driving on a flat damages the rim and suspension
+  if (d.engine > .5 && Math.random() < .00003 * (d.engine - .5) * 10) { d.engine = 1; rlTick(t('rl.engineFail'), 'bad'); }
+  if (d.gear > .55 && Math.random() < .00003 * (d.gear - .5) * 10) { d.gear = 1; rlTick(t('rl.gearFail'), 'bad'); }
+  if (Math.random() < .000004 * (1.45 - me.rel / 100) * (1 + rough)) { d.engine = clamp(d.engine + rnd(.2, .5), 0, 1); rlTick(t('rl.mech'), 'bad'); }
+  if (DMG_KEYS.some(k2 => d[k2] >= 1)) { L.retired = true; L.done = true; rlTick(t('rl.retired'), 'bad'); }
+}
+function rlMistake(note) {
+  const L = RL, W = RW, d = W.dmg, r = Math.random(), mD = MODE_DMG[L.mode];
+  let loss, key;
+  if (r < .66) { loss = rnd(1.5, 4); key = 'rl.slide'; }
+  else if (r < .9) { loss = rnd(6, 18); key = 'rl.spin'; d.body = clamp(d.body + rnd(.03, .12) * mD, 0, 1); d.susp = clamp(d.susp + rnd(.02, .08) * mD, 0, 1); }
+  else if (r < .985) { loss = rnd(25, 70); key = 'rl.off'; d.body = clamp(d.body + rnd(.1, .3) * mD, 0, 1); d.susp = clamp(d.susp + rnd(.08, .25) * mD, 0, 1); if (Math.random() < .3) puncture(); }
+  else { loss = rnd(40, 90); key = 'rl.roll'; d.body = clamp(d.body + rnd(.35, .7), 0, 1); d.susp = clamp(d.susp + rnd(.25, .6), 0, 1); d.engine = clamp(d.engine + rnd(.1, .3), 0, 1); }
+  L.hold = Math.max(L.hold, loss); L.offT = 20; L.offDir = Math.random() < .5 ? -1 : 1; L.offAng = key === 'rl.slide' ? .5 : 1.4;
+  L.events.push(key);
+  rlTick((note ? t('rl.noteErr') + ' ' : '') + t(key, { s: loss.toFixed(0) }), loss > 10 ? 'bad' : 'warn');
+}
+function puncture() {
+  const L = RL, W = RW;
+  L.events.push('puncture');
+  if (L.auto || L.speed === 99) { resolvePuncture(W.spares > 0 ? 'change' : 'drive'); return; }
+  L.prompt = 'puncture'; stageUI();
+}
+function resolvePuncture(ch) {
+  const L = RL, W = RW;
+  if (ch === 'change' && W.spares > 0) { W.spares--; L.hold = Math.max(L.hold, rnd(75, 105) * (1.1 - L.me.calm / 500)); W.flat = false; rlTick(t('rl.wheelChanged'), 'radio'); }
+  else { W.flat = true; rlTick(t('rl.driveFlat'), 'warn'); }
+  L.prompt = null; stageUI();
+}
+function stageSkip() {   // finish the stage instantly (auto decisions)
+  const L = RL; L.auto = true; L.prompt = null;
+  if (L.startT > 0) L.startT = 0;
+  let g = 0; while (!L.done && g < 200000) { stageStep(.05); if (L.prompt) resolvePuncture(RW.spares > 0 ? 'change' : 'drive'); g++; }
+  cancelAnimationFrame(L.raf); SND.stop(); stageUI(); drawStage(); endStage();
+}
+function endStage() {
+  const L = RL; if (!L || L.ended) return; L.ended = true; cancelAnimationFrame(L.raf);
+  $('#rally').classList.add('hidden'); document.body.style.overflow = '';
+  RL = null;
+  rallyStageDone(L);
+}
+
+/* ---------- drawing ---------- */
+let RLC = null;
+function rlSizeCanvas() {
+  const cv = $('#rlCv'), box = $('#rlStage'), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const wide = window.matchMedia('(min-aspect-ratio:5/4) and (min-width:640px)').matches;
+  const w = box.clientWidth || 360, h = wide ? Math.max(260, box.clientHeight) : Math.round(Math.min(w * .78, window.innerHeight * .5));
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+  RLC = { cv, g: cv.getContext('2d'), w, h, dpr };
+}
+window.addEventListener('resize', () => { if (RL) { rlSizeCanvas(); } });
+const SCEN = { forest: ['#1d3523', '#2f5a35', '#3d6b3f'], snow: ['#cfd8e2', '#5d7a68', '#2f4a3a'], desert: ['#b9925c', '#8d6a3d', '#6f5534'], coast: ['#4c6b3a', '#6f8f4a', '#3b5a30'] };
+function drawStage() {
+  const L = RL; if (!L || !RLC) return;
+  const { g, w, h, dpr } = RLC, st = L.st, sc = SCEN[L.ev.scen] || SCEN.forest;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = sc[0]; g.fillRect(0, 0, w, h);
+  const i = Math.min(st.N - 1, Math.floor(L.s / DS)), fr = L.s / DS - i, j = Math.min(st.N - 1, i + 1);
+  // heading interpolated between samples, smoothing driven by real frame time (no jumps between samples)
+  const now = performance.now(), fdt = clamp((now - (L.lastDraw || now)) / 1000, 0, .1); L.lastDraw = now;
+  const sm = rate => 1 - Math.exp(-fdt * rate);
+  const cx = lerp(st.x[i], st.x[j], fr), cy = lerp(st.y[i], st.y[j], fr), hd = lerp(st.h[i], st.h[j], fr);
+  const k = Math.min(w, h) / 80;    // pixels per metre
+  // driving line and drift (visual only): cut towards the apex, the rear steps out on loose surfaces
+  let cA = 0; for (let q = i; q < Math.min(st.N, i + 6); q++) cA += st.cv[q]; cA /= 6;
+  const sfc = st.sf[i], loose = sfc === 'A' ? .36 : sfc === 'N' ? .56 : .5, mu = SURF[sfc].grip * (L.wx.wet ? .85 : 1);
+  const tLat = L.hold > 0 ? 0 : Math.sign(cA) * clamp(Math.abs(cA) * 70, 0, 2.2);
+  const tYaw = L.hold > 0 || L.v < 6 ? 0 : Math.sign(cA) * clamp(L.v * L.v * Math.abs(cA) / (9.81 * mu) * loose * [.75, 1, 1.3][L.mode], 0, .72);
+  L.lat = lerp(L.lat || 0, tLat, sm(3.5)); L.yaw = lerp(L.yaw || 0, tYaw, sm(6));
+  const wob = L.v > 10 && L.hold <= 0 ? (Math.sin(L.t * 1.7) * (sfc === 'A' ? .03 : .05) + Math.sin(L.t * 4.3 + 1) * .015) : 0;
+  const px = cx + Math.cos(hd + Math.PI / 2) * L.lat, py = cy + Math.sin(hd + Math.PI / 2) * L.lat;
+  let lift = 0;
+  if (L.air) { const u = (L.s - L.air.s) / L.air.d; if (u < 1 && u >= 0) lift = Math.sin(Math.PI * u); else if (u >= 1) { const dc0 = SURF[sfc].dust || '200,200,200'; for (let m = 0; m < 10; m++) L.dust.push({ x: px + rnd(-2.5, 2.5), y: py + rnd(-2.5, 2.5), r: rnd(1.5, 3), a: .55, c: dc0 }); L.air = null; } }
+  // camera: locked to the car, the look-ahead turns slowly towards the direction of travel
+  const look = 14;
+  if (L.lookX == null) { L.lookX = Math.cos(hd) * look; L.lookY = Math.sin(hd) * look; }
+  L.lookX = lerp(L.lookX, Math.cos(hd) * look, sm(1.6)); L.lookY = lerp(L.lookY, Math.sin(hd) * look, sm(1.6));
+  const camX = px + L.lookX, camY = py + L.lookY;
+  const X = px => (px - camX) * k + w / 2, Y = py => (py - camY) * k + h / 2;
+  const span = Math.ceil(Math.max(w, h) / k / DS) + 10, a = Math.max(0, i - span), b = Math.min(st.N - 1, i + span);
+  // road: shoulder, then surface in runs of the same surface
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  const run = (wid, colF) => {
+    let s0 = a;
+    for (let q = a + 1; q <= b; q++) {
+      if (q === b || st.sf[q] !== st.sf[s0]) {
+        g.beginPath(); g.moveTo(X(st.x[s0]), Y(st.y[s0]));
+        for (let r = s0 + 1; r <= q; r++) g.lineTo(X(st.x[r]), Y(st.y[r]));
+        g.strokeStyle = colF(st.sf[s0]); g.lineWidth = wid * k; g.stroke(); s0 = q;
+      }
+    }
+  };
+  run(11, sf => SURF[sf].edge); run(7.5, sf => SURF[sf].col);
+  if (L.wx.wet) { g.globalAlpha = .18; run(7.5, () => '#3a6ea8'); g.globalAlpha = 1; }
+  // features
+  for (let q = a; q <= b; q++) {
+    if (st.ft[q] === 1) { g.save(); g.translate(X(st.x[q]), Y(st.y[q])); g.rotate(st.h[q]); g.strokeStyle = '#ffd400'; g.lineWidth = 2; for (let m = 0; m < 2; m++) { g.beginPath(); g.moveTo((-2 + m * 3) * k, -3 * k); g.lineTo((0 + m * 3) * k, 0); g.lineTo((-2 + m * 3) * k, 3 * k); g.stroke(); } g.restore(); }
+    if (st.ft[q] === 2) { g.fillStyle = 'rgba(80,150,220,.65)'; g.beginPath(); g.ellipse(X(st.x[q]), Y(st.y[q]), 5 * k, 4 * k, st.h[q], 0, Math.PI * 2); g.fill(); }
+  }
+  // start and finish lines
+  [[0, '#fff'], [st.N - 1, '#ffb21e']].forEach(([q, col]) => { if (q >= a && q <= b) { g.save(); g.translate(X(st.x[q]), Y(st.y[q])); g.rotate(st.h[q]); g.fillStyle = col; g.fillRect(-1 * k, -5 * k, 2 * k, 10 * k); g.restore(); } });
+  // scenery
+  st.decor.forEach(([dx, dy, ty, r]) => {
+    const sx = X(dx), sy = Y(dy); if (sx < -20 || sy < -20 || sx > w + 20 || sy > h + 20) return;
+    if (ty === 0) { g.fillStyle = sc[1]; g.beginPath(); g.arc(sx, sy, r * k, 0, Math.PI * 2); g.fill(); g.fillStyle = sc[2]; g.beginPath(); g.arc(sx - r * k * .25, sy - r * k * .25, r * k * .55, 0, Math.PI * 2); g.fill(); }
+    else { g.fillStyle = ['#e8392f', '#2f7bf5', '#f5c518', '#fff'][Math.floor(dx * 7 + dy) & 3]; g.beginPath(); g.arc(sx, sy, .7 * k, 0, Math.PI * 2); g.fill(); }
+  });
+  // tyre marks (rally: always; darker when sliding)
+  if (L.marks && L.marks.length) {
+    g.lineCap = 'round'; g.lineWidth = Math.max(1, .32 * k);
+    const vx0 = camX - w / 2 / k - 5, vx1 = camX + w / 2 / k + 5, vy0 = camY - h / 2 / k - 5, vy1 = camY + h / 2 / k + 5;
+    for (const m of L.marks) {
+      if (m[0] < vx0 || m[0] > vx1 || m[1] < vy0 || m[1] > vy1) continue;
+      g.strokeStyle = m[4]; g.beginPath(); g.moveTo(X(m[0]), Y(m[1])); g.lineTo(X(m[2]), Y(m[3])); g.stroke();
+    }
+  }
+  // ghost of the fastest crew so far
+  if (L.ghost && L.startT <= 0) {
+    const gt = L.t / (L.best / st.ref); let gi = 0, lo = 0, hi = st.N - 1;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (st.tc[m] < gt) lo = m + 1; else hi = m; } gi = lo;
+    if (gi < st.N - 1) drawRallyCar(g, X(st.x[gi]), Y(st.y[gi]), st.h[gi], k, null, true);
+  }
+  // dust / snow spray
+  const dc = SURF[st.sf[i]].dust, ang0 = hd + L.yaw + wob;
+  if (dc && L.v > 8 && L.hold <= 0 && lift < .2) {
+    const n = 2 + Math.round(Math.abs(L.yaw) * 10), side = -Math.sign(L.yaw);
+    for (let m = 0; m < n; m++) L.dust.push({ x: px - Math.cos(ang0) * 2.4 + Math.cos(ang0 + Math.PI / 2) * side * rnd(0, 2.5) + rnd(-1, 1), y: py - Math.sin(ang0) * 2.4 + Math.sin(ang0 + Math.PI / 2) * side * rnd(0, 2.5) + rnd(-1, 1), r: rnd(1, 2), a: .5, c: dc });
+  }
+  if (!dc && Math.abs(L.yaw) > .08 && L.hold <= 0 && lift < .2) L.dust.push({ x: px - Math.cos(ang0) * 2.2, y: py - Math.sin(ang0) * 2.2, r: .8, a: .35, c: '200,200,205' });
+  if (L.splash) {   // water splash: little pixel drops fly out
+    L.splash = false; L.drops = L.drops || [];
+    for (let m = 0; m < 34; m++) { const a = hd + rnd(-2.2, 2.2), sp = rnd(6, 18); L.drops.push({ x: px, y: py, vx: Math.cos(a) * sp + Math.cos(hd) * 6, vy: Math.sin(a) * sp + Math.sin(hd) * 6, s: rnd(.6, 1.2), a: 1, c: pick(['#9fd3ff', '#e8f6ff', '#5aa9e6', '#ffffff']) }); }
+  }
+  L.dust = L.dust.filter(p => (p.a -= .012) > 0).slice(-160);
+  L.dust.forEach(p => { p.r += .08; g.fillStyle = `rgba(${p.c},${p.a})`; g.beginPath(); g.arc(X(p.x), Y(p.y), p.r * k, 0, Math.PI * 2); g.fill(); });
+  // the car (off the road during an incident)
+  let ox = 0, oy = 0, ang = ang0;
+  if (L.hold > 0) { const n = hd + Math.PI / 2 * (L.offDir || 1); ox = Math.cos(n) * 5; oy = Math.sin(n) * 5; ang = hd + (L.offAng || 1) * (L.offDir || 1); }
+  else { // rotate around the front axle so the rear swings out
+    const fx = px + Math.cos(hd) * 1.4, fy = py + Math.sin(hd) * 1.4;
+    ox = fx - Math.cos(ang) * 1.4 - px; oy = fy - Math.sin(ang) * 1.4 - py;
+  }
+  if (L.hold <= 0 && lift < .15 && L.v > 2) {
+    const qx = px + ox, qy = py + oy, rx = qx - Math.cos(ang) * 1.3, ry = qy - Math.sin(ang) * 1.3, nx = -Math.sin(ang) * .78, ny = Math.cos(ang) * .78;
+    const cur = [rx + nx, ry + ny, rx - nx, ry - ny];
+    if (!L.mk || Math.hypot(cur[0] - L.mk[0], cur[1] - L.mk[1]) > 1.2) {
+      if (L.mk && Math.hypot(cur[0] - L.mk[0], cur[1] - L.mk[1]) < 8) {
+        const sl = Math.abs(L.yaw), a = sfc === 'A' ? (sl > .1 ? .08 + sl * .4 : 0) : .1 + sl * .35;
+        const col = { A: `rgba(15,15,17,${a})`, G: `rgba(80,60,38,${a})`, S: `rgba(140,110,62,${a})`, N: `rgba(120,135,155,${a})` }[sfc];
+        if (a > 0) { L.marks.push([L.mk[0], L.mk[1], cur[0], cur[1], col], [L.mk[2], L.mk[3], cur[2], cur[3], col]); if (L.marks.length > 9000) L.marks.splice(0, 400); }
+      }
+      L.mk = cur;
+    }
+  } else L.mk = null;
+  drawRallyCar(g, X(px + ox), Y(py + oy), ang, k, S.color, false, lift);
+  if (L.drops && L.drops.length) {
+    L.drops = L.drops.filter(d => (d.a -= fdt * 1.6) > 0);
+    L.drops.forEach(d => { d.x += d.vx * fdt; d.y += d.vy * fdt; d.vx *= 1 - fdt * 2; d.vy *= 1 - fdt * 2; g.globalAlpha = d.a; g.fillStyle = d.c; const s = Math.max(2, d.s * k); g.fillRect(Math.round(X(d.x) - s / 2), Math.round(Y(d.y) - s / 2), s, s); });
+    g.globalAlpha = 1;
+  }
+  // rain / snowfall on the stage
+  if (L.wx.wet || L.wx.snow) {
+    g.strokeStyle = L.wx.snow ? 'rgba(255,255,255,.75)' : 'rgba(200,215,235,.35)'; g.fillStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1; g.beginPath();
+    for (let m = 0; m < 110; m++) { const xx = Math.random() * w, yy = Math.random() * h; if (L.wx.snow) g.rect(xx, yy, 2, 2); else { g.moveTo(xx, yy); g.lineTo(xx - 2, yy + 9); } }
+    L.wx.snow ? g.fill() : g.stroke();
+  }
+  // minimap
+  const mw = Math.min(120, w * .3), mh = mw * .75, mx = w - mw - 8, my = 8;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let q = 0; q < st.N; q += 10) { x0 = Math.min(x0, st.x[q]); x1 = Math.max(x1, st.x[q]); y0 = Math.min(y0, st.y[q]); y1 = Math.max(y1, st.y[q]); }
+  const ms = Math.min((mw - 12) / (x1 - x0 || 1), (mh - 12) / (y1 - y0 || 1)), MX = v => mx + 6 + (v - x0) * ms, MY = v => my + 6 + (v - y0) * ms;
+  g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(mx, my, mw, mh);
+  g.beginPath(); for (let q = 0; q < st.N; q += 6) { q ? g.lineTo(MX(st.x[q]), MY(st.y[q])) : g.moveTo(MX(st.x[q]), MY(st.y[q])); }
+  g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1.5; g.stroke();
+  g.fillStyle = '#ffb21e'; g.beginPath(); g.arc(MX(st.x[st.N - 1]), MY(st.y[st.N - 1]), 2.5, 0, Math.PI * 2); g.fill();
+  g.fillStyle = S.color; g.strokeStyle = '#fff'; g.beginPath(); g.arc(MX(cx), MY(cy), 3.5, 0, Math.PI * 2); g.fill(); g.stroke();
+  wxIcons(g, mx - 8, my, L.wx.wet ? 1 : 0, null, L.wx.snow);
+  // timer and pace note
+  g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(8, 8, 118, 34);
+  g.fillStyle = '#fff'; g.font = `700 22px ${FC}`; g.textBaseline = 'middle'; g.fillText(L.startT > 0 ? Math.ceil(L.startT * 2) + '…' : fmtT(L.t), 16, 26);
+  const note = paceNote(L);
+  if (note && L.startT <= 0) {
+    g.font = `700 17px ${FC}`; const tw = g.measureText(note).width + 22;
+    const ny = Math.min(56, h * .14);
+    g.fillStyle = 'rgba(15,18,23,.85)'; g.fillRect(w / 2 - tw / 2, ny, tw, 30);
+    g.fillStyle = '#ffb21e'; g.textAlign = 'center'; g.fillText(note, w / 2, ny + 15); g.textAlign = 'left';
+  }
+}
+function drawRallyCar(g, x, y, ang, k, col, ghost, lift = 0) {
+  const L = 4.1 * k, Wd = 1.85 * k;
+  if (!ghost) {   // shadow: moves away and fades while the car is in the air
+    g.save(); g.translate(x + 1 + lift * 2.2 * k, y + 2 + lift * 3.2 * k); g.rotate(ang);
+    g.fillStyle = `rgba(0,0,0,${.35 - lift * .15})`; g.fillRect(-L / 2, -Wd / 2, L, Wd); g.restore();
+  }
+  g.save(); g.translate(x, y); g.rotate(ang);
+  if (lift) g.scale(1 + lift * .45, 1 + lift * .45);
+  if (ghost) { g.strokeStyle = 'rgba(255,255,255,.55)'; g.setLineDash([3, 3]); g.lineWidth = 1.5; g.strokeRect(-L / 2, -Wd / 2, L, Wd); g.setLineDash([]); g.restore(); return; }
+  g.fillStyle = col; g.beginPath(); g.roundRect ? g.roundRect(-L / 2, -Wd / 2, L, Wd, Wd * .25) : g.rect(-L / 2, -Wd / 2, L, Wd); g.fill();
+  g.fillStyle = '#10151c'; g.fillRect(L * .02, -Wd * .38, L * .2, Wd * .76); g.fillRect(-L * .34, -Wd * .34, L * .12, Wd * .68);
+  g.fillStyle = col === '#f2f2f2' ? '#e8392f' : '#fff'; g.fillRect(-L * .14, -Wd * .36, L * .14, Wd * .72);
+  g.fillStyle = '#fff8c8'; g.fillRect(L / 2 - 2, -Wd * .42, 2, Wd * .22); g.fillRect(L / 2 - 2, Wd * .2, 2, Wd * .22);
+  g.restore();
+}
+function paceNote(L) {
+  const st = L.st, i = Math.floor(L.s / DS), look = 150 / DS;
+  for (let q = i; q < Math.min(st.N, i + look); q++) { if (st.ft[q] === 1) return t('note.jump'); if (st.ft[q] === 2) return t('note.splash'); }
+  const c = st.corners.find(c => c.s >= i && c.s < i + look);
+  if (!c) return t('note.straight');
+  const side = t(c.dir > 0 ? 'note.R' : 'note.L');
+  return c.sev === 1 ? t('note.hairpin', { d: side }) : `${side} ${c.sev}${c.e - c.s > 40 ? ' ' + t('note.long') : ''}`;
+}
+function rlTick(text, kind) { const el = $('#rlTick'); if (!el) return; el.textContent = text; el.dataset.k = kind || ''; }
+function stageUI() {
+  const L = RL; if (!L) return;
+  const W = RW, d = W.dmg;
+  $('#rlTele').innerHTML = rallyTele(W) + `<div class="small muted" style="margin-top:4px">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}${W.flat ? ' · <b class="neg">' + t('rl.flat') + '</b>' : ''}</div>`;
+  const pr = $('#rlPrompt');
+  if (L.prompt === 'puncture') {
+    pr.classList.remove('hidden');
+    pr.innerHTML = `<b>${t('rl.puncture')}</b><div class="small muted">${t('rl.punctureP')}</div><div class="row" style="margin-top:8px"><button class="btn grow team" data-pc="change" ${W.spares > 0 ? '' : 'disabled'}>${t('rl.change', { n: W.spares })}</button><button class="btn grow" data-pc="drive">${t('rl.drive')}</button></div>`;
+    pr.querySelectorAll('[data-pc]').forEach(b => b.onclick = () => resolvePuncture(b.dataset.pc));
+  } else pr.classList.add('hidden');
+  // live stage times: crews that started before us have finished
+  const order = W.order[L.sd.loop], myP = order.indexOf('me_0');
+  const fin = W.crews.filter(c => !c.isMe && !c.out && c.cur && c.cur.ev !== 'retire' && order.indexOf(c.id) < myP).map(c => ({ c, tm: c.cur.t }));
+  fin.push({ c: L.me, tm: L.done && !L.retired ? L.t : null });
+  fin.sort((a, b) => (a.tm ?? 1e9) - (b.tm ?? 1e9));
+  const best = fin.length && fin[0].tm != null ? fin[0].tm : null;
+  $('#rlLb').innerHTML = `<div class="small muted" style="margin:2px 0 6px">${t('rl.liveTimes')}</div>` + fin.slice(0, 10).map((e, k) => `<div class="lbr ${e.c.isMe ? 'me' : ''}"><span class="p">${e.tm != null ? k + 1 : '–'}</span><span class="dot" style="background:${e.c.color}"></span><span class="nm">${esc(lastName(e.c.driver))}</span><span class="gap">${e.tm == null ? (e.c.isMe ? (L.retired ? 'DNF' : fmtT(L.t)) : '') : k === 0 ? fmtT(e.tm) : fmtGap(e.tm - best)}</span></div>`).join('');
+}
+function rallyTele(W) {
+  const d = W.dmg, bar = (k, v) => `<div class="trow"><span>${t('rdmg.' + k)}</span><div class="bar"><i style="width:${Math.round(v * 100)}%;background:${condCol(v)}"></i></div><b>${Math.round(v * 100)}%</b></div>`;
+  const tw = clamp(1 - W.wear, 0, 1);
+  return `<div class="rtele">${DMG_KEYS.map(k => bar(k, d[k])).join('')}<div class="trow"><span>${t('tele.tires')}</span><div class="bar"><i style="width:${Math.round(tw * 100)}%;background:${treadCol(tw)}"></i></div><b>${Math.round(tw * 100)}%</b></div></div>`;
+}
+const surfText = fr => Object.entries(fr).filter(([k, v]) => v > .04).sort((a, b) => b[1] - a[1]).map(([k, v]) => t('surf.' + k) + (v < .97 ? ' ' + Math.round(v * 100) + '%' : '')).join(' · ');
+function wxBadge(wx, ev) { const k = wx.snow ? 'snow' : wx.wet ? 'wet' : 'dry'; return `<i class="wxd ${k === 'snow' ? 'damp' : k}"></i>${t('rwx.' + k)}`; }
+
+/* ---- rallyui.js ---- */
+/* ===================== rally weekend flow: shakedown, service, stages, results ===================== */
+const RSTAGE_NAMES = {
+  mecsek: ['Óbánya', 'Mánfa', 'Kisújbánya', 'Zengővárkony', 'Pécsvárad', 'Árpádtető'],
+  bakony: ['Városlőd', 'Bakonybél', 'Porva', 'Csesznek', 'Kislőd', 'Zirc'],
+  lapland: ['Kuusamo', 'Arctic Lake', 'Sodankylä', 'Pallas', 'Kittilä', 'Muonio'],
+  fjord: ['Hamar', 'Torsby', 'Røros', 'Kongsberg', 'Elverum', 'Trysil'],
+  smeralda: ['Monte Lerno', 'Tula', 'Coiluna', 'Sedini', 'Castelsardo', 'Arzachena'],
+  dune: ['Erg Chebbi', 'Merzouga', 'Oasis Loop', 'Red Ridge', 'Sandstorm', 'Wadi Gate'],
+  alpwinter: ['Col des Glières', 'Saint-Bonnet', 'Sisteron', 'Gap Nord', 'Laborel', 'Puy Gris'],
+  lakes: ['Päijälä', 'Laajavuori', 'Harju', 'Kakaristo', 'Ruuhimäki', 'Oittila'],
+  vinetarmac: ['Sancerre', 'Chablis', 'Montalcino', 'Rioja Alta', 'Douro', 'Mosel'],
+  highland: ['Glenshee', 'Cairngorm', 'Dalwhinnie', 'Speyside', 'Loch Garry', 'Rannoch'],
+  redrock: ['Red Mesa', 'Dry Creek', 'Vulture Peak', 'Painted Desert', 'Coyote Pass', 'Mesa Verde'],
+  island: ['Akamas', 'Troodos', 'Lefkara', 'Paphos Hills', 'Kakopetria', 'Platres'],
+};
+const REPAIR_MIN = { susp: 26, body: 18, engine: 32, gear: 24 };      // minutes for a full repair from 100% damage
+const REPAIR_CR = { susp: 3200, body: 2200, engine: 4200, gear: 3200 }; // CR for a full repair from 100% damage (tier 0)
+const curEvent = () => RALLY_POOL[S.calendar[Math.min(S.round, S.calendar.length - 1)]];
+const tyreOptions = ev => [...(ev.mix.A ? ['AS', 'AH', 'AW'] : []), ...(ev.mix.G || ev.mix.S ? ['GS', 'GH'] : []), ...(ev.mix.N ? ['SN'] : [])];
+const dayOf = loop => loop < 2 ? 0 : 1;
+
+function openRallyWeekend() {
+  const ev = curEvent();
+  if (ev.type === 'rx') { openRxWeekend(); return; }
+  prepareRally(); rallyPreview();
+}
+function prepareRally() {
+  const ev = curEvent(), R = mulberry(hashStr(ev.id + '|' + S.season + '|' + S.round));
+  const names = RSTAGE_NAMES[ev.id].slice().sort(() => R() - .5);
+  const kmOf = () => Math.round((5 + R() * 6) * 10) / 10;
+  const base = [0, 1, 2].map(k => ({ name: names[k], km: kmOf(), seed: Math.floor(R() * 1e9) }));
+  const day2 = [3, 4, 5].map(k => ({ name: names[k], km: kmOf(), seed: Math.floor(R() * 1e9) }));
+  day2[2].km = Math.round((4 + R() * 3) * 10) / 10;
+  const stages = [...base.map(b => ({ ...b, loop: 0, pass: 0 })), ...base.map(b => ({ ...b, loop: 1, pass: 1 })), ...day2.map(b => ({ ...b, loop: 2, pass: 0 }))];
+  stages[RALLY_STAGES - 1].power = true;
+  const wx = [0, 1, 2].map(() => { const snow = !!ev.mix.N && Math.random() < ev.snow; return { wet: !snow && Math.random() < ev.rain, snow }; });
+  const fc = wx.map(w => ({ rain: clamp((w.wet ? .62 : .18) + rnd(-.15, .15), .02, .95) * (ev.rain > 0 ? 1 : 0), snow: ev.mix.N ? clamp((w.snow ? .62 : .15) + rnd(-.15, .15), .02, .95) * (ev.snow > 0 ? 1 : 0) : 0 }));
+  const crews = rallyCrews();
+  // day 1 running order: championship order (first round: strongest crews first)
+  const o1 = crews.slice().sort((a, b) => (S.dpoints[b.id] || 0) - (S.dpoints[a.id] || 0) || crewPerf(b, { frac: ev.mix }, false) - crewPerf(a, { frac: ev.mix }, false)).map(c => c.id);
+  const opts = tyreOptions(ev);
+  const id = rallyIdeal(ev);
+  RW = {
+    type: 'rally', ev, crews, stages, wx, fc, order: [o1, o1, null], loop: 0, si: 0,
+    setup: { ride: 5, spring: 5, gear: 5 }, runs: [], tyre: opts[0], wear: 0, spares: 1, flat: false,
+    dmg: { susp: 0, body: 0, engine: 0, gear: 0 }, repairCost: 0, tyreCost: 0, stageWins: 0, ps: null, ideal: id, srUsed: false,
+  };
+}
+function rallyHead() {
+  const W = RW, ev = W.ev;
+  const mixTxt = surfText(ev.mix);
+  return `<h3>${esc(t('track.' + ev.id))}</h3>
+   <div class="small muted">${t('rw.round', { r: S.round + 1, n: DISC.rally.rounds, k: t('rw.ssN', { n: RALLY_STAGES }) })} · ${mixTxt}</div>`;
+}
+function rallyPreview() {
+  const W = RW, ev = W.ev, maxRuns = 3 + (S.staff.sim >= 6 ? 1 : 0), left = maxRuns - W.runs.length;
+  const km = W.stages.reduce((a, s, i) => a + (i < 3 || i >= 6 ? s.km * (i < 3 ? 2 : 1) : 0), 0);
+  modal(`${rallyHead()}
+   <div class="card" style="margin-top:12px">
+    <div class="money-line"><span>${t('rw.stages')}</span><b>${RALLY_STAGES} · ${km.toFixed(1)} km</b></div>
+    <div class="money-line"><span>${t('rw.format')}</span><b>${t('rw.formatV')}</b></div>
+    <div class="money-line"><span>${t('rw.rough')}</span><b>${stars(ev.rough * 100)}</b></div>
+    <div class="money-line"><span>${t('rw.jumps')}</span><b>${stars(ev.jumps * 100)}</b></div>
+    <div class="small muted" style="margin-top:6px">${esc(t('trackd.' + ev.id))}</div>
+   </div>
+   <h2 class="sec">${t('rw.shake')}</h2>
+   <div class="small muted" style="margin:-4px 2px 10px">${t('rw.shakeInfo')}</div>
+   <div class="card">${RSETUP.map(k => `<div class="setrow"><div class="row"><b class="grow">${t('rset.' + k)}</b><span class="num">${W.setup[k]}</span></div>
+     <input type="range" min="1" max="9" step="1" value="${W.setup[k]}" data-rset="${k}"><div class="row small muted"><span class="grow">${t('rset.' + k + '.lo')}</span><span>${t('rset.' + k + '.hi')}</span></div></div>`).join('')}</div>
+   <div class="row" style="margin-top:10px"><button class="btn grow" id="shRun" ${left <= 0 ? 'disabled' : ''}>${t('rw.run', { n: left })}</button></div>
+   ${W.runs.length ? `<div class="card prlog" style="margin-top:10px">${W.runs.map((r, i) => `<div class="prr"><div class="row"><b class="grow">${t('rw.runN', { n: i + 1 })}</b><span class="num">${fmtT(r.time)}</span></div>${r.fb.map(f => `<div class="small muted">${t(f)}</div>`).join('')}</div>`).reverse().join('')}</div>` : ''}
+   <div class="row" style="margin-top:12px"><button class="btn grow" data-close>${t('ui.back')}</button><button class="btn pri grow" id="toSvc">${t('rw.toService')}</button></div>`);
+  $('#mc').querySelectorAll('[data-rset]').forEach(inp => inp.oninput = () => { W.setup[inp.dataset.rset] = +inp.value; inp.closest('.setrow').querySelector('.num').textContent = inp.value; });
+  $('#shRun').onclick = () => {
+    if (W.runs.length >= maxRuns) return;
+    const st = genStage(ev, 777 + S.round, 4.2), me = W.crews[0];
+    const tm = st.ref * basePf(me, st, { wet: false }) * setupPf(rallySetupQ(ev, W.setup)) * (1 + randn() * .006);
+    W.runs.push({ time: tm, fb: rallyFeedback(ev, W.setup) }); rallyPreview();
+  };
+  $('#toSvc').onclick = () => openService(0);
+}
+
+/* ---------- service park ---------- */
+function openService(n) {
+  const W = RW, ev = W.ev, loop = n, budget = SERVICE_MIN[n], me = W.crews[0];
+  const forced = n === 2 && me.sr;   // Super Rally: the car must be fully rebuilt overnight
+  if (!W.svc || W.svc.n !== n) W.svc = { n, fix: { susp: forced ? 2 : 0, body: forced ? 2 : 0, engine: forced ? 2 : 0, gear: forced ? 2 : 0 }, tyre: suggestTyre(ev, W.fc[loop]), spares: W.spares, set: { ...W.setup } };
+  const V = W.svc, mult = TIER_MULT[S.tier];
+  const minOf = (k, lv) => W.dmg[k] * REPAIR_MIN[k] * [0, .5, 1][lv] * (1 - S.staff.pit * .05);
+  const crOf = (k, lv) => Math.round(W.dmg[k] * REPAIR_CR[k] * mult * [0, .5, 1][lv] * (1 - S.staff.shop * .03) / 50) * 50;
+  const setChanged = RSETUP.some(k => V.set[k] !== W.setup[k]);
+  const used = DMG_KEYS.reduce((a, k) => a + minOf(k, V.fix[k]), 0) + (setChanged ? 5 : 0);
+  const cr = DMG_KEYS.reduce((a, k) => a + crOf(k, V.fix[k]), 0), tyreCr = Math.round(500 * mult / 50) * 50 * (1 + V.spares);
+  const over = forced ? 0 : Math.max(0, Math.ceil(used - budget)), pen = over * 10;
+  const tooLate = over > 15;
+  const fc = W.fc[loop], f = [];
+  if (fc.rain > 0) f.push(t('rw.fcRain', { p: Math.round(fc.rain * 100) }));
+  if (fc.snow > 0) f.push(t('rw.fcSnow', { p: Math.round(fc.snow * 100) }));
+  const opts = tyreOptions(ev);
+  modal(`${rallyHead()}
+   <h2 class="sec">${t('svc.title', { m: budget })}${forced ? ' · Super Rally' : ''}</h2>
+   <div class="small muted" style="margin:-4px 2px 8px">${forced ? t('svc.srInfo') : t('svc.info')}</div>
+   <div class="card">${DMG_KEYS.map(k => `<div class="svcrow"><div class="row"><b class="grow">${t('rdmg.' + k)}</b><span class="tag" style="color:${condCol(W.dmg[k])}">${Math.round(W.dmg[k] * 100)}%</span></div>
+     <div class="seg sm" data-fix="${k}">${[0, 1, 2].map(lv => `<button data-lv="${lv}" class="${V.fix[k] === lv ? 'on' : ''}" ${W.dmg[k] < .005 && lv ? 'disabled' : ''} ${forced && lv < 2 && W.dmg[k] >= .005 ? 'disabled' : ''}>${t('svc.lv' + lv)}${lv && W.dmg[k] >= .005 ? `<small>${minOf(k, lv).toFixed(0)}′ · ${money(crOf(k, lv))}</small>` : ''}</button>`).join('')}</div></div>`).join('')}
+   </div>
+   <h2 class="sec">${t('svc.next', { n: loop + 1 })}</h2>
+   <div class="card wx"><b>${f.length ? f.join(' · ') : t('rw.fcDry')}</b><div class="small muted">${t('svc.stagesNext', { s: W.stages.filter(s => s.loop === loop).map(s => esc(s.name)).join(', ') })}</div></div>
+   <label class="l">${t('svc.tyre')}</label>
+   <div class="seg sm wrapseg" id="svTy">${opts.map(o => `<button data-ty="${o}" class="${V.tyre === o ? 'on' : ''}">${t('ty.' + o)}</button>`).join('')}</div>
+   <div class="small muted" style="margin:4px 2px">${t('tyd.' + V.tyre)}</div>
+   <label class="l">${t('svc.spares')}</label>
+   <div class="seg sm" id="svSp">${[0, 1, 2].map(n2 => `<button data-sp="${n2}" class="${V.spares === n2 ? 'on' : ''}">${n2}</button>`).join('')}</div>
+   <div class="small muted" style="margin:4px 2px">${t('svc.sparesInfo')}</div>
+   <details class="card" style="margin-top:10px"><summary><b>${t('svc.setup')}</b> <span class="small muted">${t('svc.setupCost')}</span></summary>
+    ${['ride', 'spring'].map(k => `<div class="setrow"><div class="row"><b class="grow">${t('rset.' + k)}</b><span class="num">${V.set[k]}</span></div><input type="range" min="1" max="9" value="${V.set[k]}" data-sset="${k}"><div class="row small muted"><span class="grow">${t('rset.' + k + '.lo')}</span><span>${t('rset.' + k + '.hi')}</span></div></div>`).join('')}
+   </details>
+   <div class="card" style="margin-top:10px">
+    <div class="money-line"><span>${t('svc.time')}</span><b class="${over ? 'neg' : 'pos'}">${used.toFixed(0)} / ${forced ? '∞' : budget} ${t('u.min')}</b></div>
+    ${over ? `<div class="money-line"><span>${t('svc.late')}</span><b class="neg">+${pen} s</b></div>` : ''}
+    <div class="money-line"><span>${t('svc.cost')}</span><b>${money(cr)}</b></div>
+    <div class="money-line"><span>${t('svc.tyreCost', { n: 4 + V.spares })}</span><b>${money(tyreCr)}</b></div>
+    ${tooLate ? `<div class="small neg" style="margin-top:6px">${t('svc.tooLate')}</div>` : ''}
+   </div>
+   <button class="btn pri block" style="margin-top:12px" id="svGo" ${tooLate ? 'disabled' : ''}>${t('svc.go', { n: loop + 1 })}</button>`);
+  $('#mc').querySelectorAll('[data-fix]').forEach(sg => sg.onclick = e => { const b = e.target.closest('button'); if (!b || b.disabled) return; V.fix[sg.dataset.fix] = +b.dataset.lv; openService(n); });
+  $('#svTy').onclick = e => { const b = e.target.closest('button'); if (b) { V.tyre = b.dataset.ty; openService(n); } };
+  $('#svSp').onclick = e => { const b = e.target.closest('button'); if (b) { V.spares = +b.dataset.sp; openService(n); } };
+  $('#mc').querySelectorAll('[data-sset]').forEach(inp => inp.onchange = () => { V.set[inp.dataset.sset] = +inp.value; openService(n); });
+  $('#svGo').onclick = () => {
+    DMG_KEYS.forEach(k => { W.dmg[k] = clamp(W.dmg[k] * (1 - [0, .5, 1][V.fix[k]]), 0, 1); });
+    addMoney(-(cr + tyreCr)); W.repairCost += cr; W.tyreCost += tyreCr;
+    if (pen) { me.pen += pen; toast(t('svc.penToast', { s: pen })); }
+    W.tyre = V.tyre; W.spares = V.spares; W.wear = 0; W.flat = false; W.setup = { ...W.setup, ...V.set };
+    if (forced) { me.sr = false; me.out = false; W.srUsed = true; }
+    W.svc = null; W.loop = loop; save(); closeModal();
+    nextRallyStage();
+  };
+}
+function suggestTyre(ev, fc) {
+  const best = bestTyres(ev, { frac: ev.mix }, fc.rain > .5)[0].ty;
+  return best === 'GS' && ev.rough > .6 ? 'GH' : best;
+}
+
+/* ---------- running the stages ---------- */
+function nextRallyStage() {
+  const W = RW, si = W.si;
+  if (si >= RALLY_STAGES) { finishRally(); return; }
+  const me = W.crews[0];
+  if (me.out) { simStageAI(si); afterStage(null); return; }   // out of the day (Super Rally) or the rally
+  stageIntro(si);
+}
+function stageIntro(si) {
+  const W = RW, sd = W.stages[si], loop = sd.loop, order = W.order[loop], p = order.indexOf('me_0') + 1;
+  const st = genStage(W.ev, sd.seed, sd.km), wx = W.wx[loop];
+  modal(`<h3>${t('rl.ssName', { n: si + 1, name: esc(sd.name) })}${sd.power ? ' <span class="tag a">Power Stage</span>' : ''}</h3>
+   <div class="small muted">${sd.km.toFixed(1)} km · ${surfText(st.frac)}${sd.pass ? ' · ' + t('rl.pass2') : ''}</div>
+   <div class="card wx" style="margin-top:10px"><b>${wxBadge(wx, W.ev)}</b><div class="small muted">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}</div></div>
+   <div class="grid2" style="margin-top:10px">
+    <div class="kpi"><small>${t('rl.startPosK')}</small><b>${p}/${order.length}</b><div class="small muted">${!sd.pass && ((st.frac.G || 0) + (st.frac.S || 0)) > .3 && p <= 3 ? t('rl.sweepNote') : '&nbsp;'}</div></div>
+    <div class="kpi"><small>${t('rl.overall')}</small><b>${si ? 'P' + (overallOrder().findIndex(c => c.isMe) + 1) : '–'}</b><div class="small muted">${si ? fmtGapLeader() : '&nbsp;'}</div></div>
+   </div>
+   ${sd.power ? `<div class="small muted" style="margin-top:8px">${t('rl.powerInfo')}</div>` : ''}
+   <div class="small muted" style="margin:10px 2px">${t('rl.howto')}</div>
+   <button class="btn pri block" id="ssGo">${t('rl.start')}</button>`);
+  $('#ssGo').onclick = () => { SND.unlock(); closeModal(); startStage(si); };
+}
+function overallOrder() {
+  return RW.crews.filter(c => !c.dnf).slice().sort((a, b) => (a.out && !a.sr) - (b.out && !b.sr) || (a.total + a.pen) - (b.total + b.pen));
+}
+function fmtGapLeader() {
+  const o = overallOrder(), me = o.find(c => c.isMe); if (!me) return '';
+  return me === o[0] ? t('rl.leading') : fmtGap(me.total + me.pen - o[0].total - o[0].pen);
+}
+// stage without the player: only the AI times
+function simStageAI(si) {
+  const W = RW, sd = W.stages[si], st = genStage(W.ev, sd.seed, sd.km); st.rough = W.ev.rough;
+  const wx = W.wx[sd.loop], order = W.order[sd.loop], n = order.length;
+  W.crews.forEach(c => {
+    if (c.isMe || c.out) { c.cur = null; return; }
+    const p = order.indexOf(c.id), sweep = !sd.pass && p >= 0 ? 1 - p / Math.max(1, n - 1) : 0;
+    c.cur = aiStageTime(c, st, { wet: wx.wet, snowfall: wx.snow, pass: sd.pass, sweep, ev: W.ev });
+  });
+}
+function rallyStageDone(L) {
+  const W = RW, me = W.crews[0];
+  if (L.retired) {
+    me.out = true;
+    if (dayOf(L.sd.loop) === 0) { me.sr = true; rlNews('rl.srOut'); }
+    else me.dnf = true;
+  } else me.cur = { t: L.t, ev: '' };
+  me.lastEvents = L.events;
+  afterStage(L);
+}
+function afterStage(L) {
+  const W = RW, si = W.si, sd = W.stages[si], day = dayOf(sd.loop);
+  // AI retirements
+  W.crews.forEach(c => { if (!c.isMe && c.cur && c.cur.ev === 'retire') { c.out = true; c.cur = null; if (day === 0 && Math.random() < .75) c.sr = true; else c.dnf = true; } });
+  const fin = W.crews.filter(c => c.cur && !c.out);
+  const best = fin.length ? Math.min(...fin.map(c => c.cur.t)) : 600;
+  W.crews.forEach(c => {
+    if (c.dnf && !c.cur) { c.times[si] = null; return; }
+    if (c.cur && !c.out) { c.times[si] = c.cur.t; c.total += c.cur.t; }
+    else if (c.sr) { c.times[si] = best + 600; c.total += best + 600; c.srStage = true; }   // Super Rally: 10 minutes per missed stage
+    c.cur = null;
+  });
+  const stageRank = W.crews.filter(c => c.times[si] != null && !c.srStage).sort((a, b) => a.times[si] - b.times[si]);
+  W.crews.forEach(c => { c.srStage = false; });
+  if (stageRank[0] && stageRank[0].isMe) W.stageWins++;
+  if (sd.power) W.ps = stageRank.filter(c => !c.dnf && !c.out).slice(0, 5).map(c => c.id);
+  const lastOfLoop = si === RALLY_STAGES - 1 || W.stages[si + 1].loop !== sd.loop;
+  W.si++;
+  // evening: day 2 running order = reverse of the top 10, then the rest; restarting crews return
+  if (lastOfLoop && sd.loop === 1) {
+    W.crews.forEach(c => { if (!c.isMe && c.sr) { c.sr = false; c.out = false; } });
+    const o = overallOrder().filter(c => !c.dnf), top = o.slice(0, 10).reverse(), rest = o.slice(10);
+    W.order[2] = [...top, ...rest].map(c => c.id);
+    if (!W.order[2].includes('me_0') && W.crews[0].sr) W.order[2].push('me_0');
+  }
+  showStageResult(si, stageRank, () => {
+    if (W.si >= RALLY_STAGES) finishRally();
+    else if (lastOfLoop) openService(sd.loop + 1);
+    else if (W.crews[0].out) nextRallyStage();
+    else roadSection();
+  });
+}
+function rlNews(k) { toast(t(k)); }
+function showStageResult(si, rank, next) {
+  const W = RW, sd = W.stages[si], me = W.crews[0];
+  const best = rank[0] ? rank[0].times[si] : 0;
+  const row = (c, i, tm, ref) => `<div class="res ${c.isMe ? 'me' : ''}"><span class="p">${i + 1}</span><span><span class="dot" style="background:${c.color}"></span>${esc(c.driver)} ${natTag(c.nat)}${c.isRival ? ' <span class="tt r">RIV</span>' : ''}</span><span class="small muted">${i ? fmtGap(tm - ref) : ''}</span><b class="num">${fmtT(tm)}</b></div>`;
+  const list = (arr, getT) => { const ref = arr[0] ? getT(arr[0]) : 0; const idx = arr.findIndex(c => c.isMe); const show = arr.slice(0, 6); if (idx >= 6) show.push(arr[idx]); return show.map(c => row(c, arr.indexOf(c), getT(c), ref)).join(''); };
+  const ov = overallOrder().filter(c => !(c.out && !c.sr));
+  const myStage = rank.findIndex(c => c.isMe);
+  const evs = (me.lastEvents || []).reduce((a, k) => { a[k] = (a[k] || 0) + 1; return a; }, {});
+  modal(`<h3>${t('rl.ssName', { n: si + 1, name: esc(sd.name) })}</h3>
+   <div class="grid2" style="margin:8px 0">
+    <div class="kpi" style="text-align:center"><small>${t('rl.stagePos')}</small><b class="bigpos">${me.dnf || me.out ? 'DNF' : 'P' + (myStage + 1)}</b><div class="small muted">${myStage >= 0 ? fmtT(me.times[si]) : ''}</div></div>
+    <div class="kpi" style="text-align:center"><small>${t('rl.overall')}</small><b class="bigpos">${me.dnf ? 'DNF' : 'P' + (ov.findIndex(c => c.isMe) + 1)}</b><div class="small muted">${me.dnf ? '' : fmtGapLeader()}</div></div>
+   </div>
+   ${Object.keys(evs).length ? `<div class="small muted">${Object.entries(evs).map(([k, n]) => t('rlev.' + k) + (n > 1 ? ' ×' + n : '')).join(' · ')}</div>` : ''}
+   ${me.sr && !me.dnf ? `<div class="card warn small" style="margin-top:8px">${t('rl.srInfo')}</div>` : ''}
+   <h2 class="sec">${t('rl.stageRes')}</h2><div class="card">${list(rank, c => c.times[si])}</div>
+   <h2 class="sec">${t('rl.overallRes')}</h2><div class="card">${list(ov, c => c.total + c.pen)}</div>
+   ${!me.out ? `<h2 class="sec">${t('tele.dmg')}</h2><div class="card">${rallyTele(RW)}</div>` : ''}
+   <button class="btn pri block" style="margin-top:12px" id="srNext">${t('ui.continue')}</button>`);
+  $('#srNext').onclick = () => { closeModal(); next(); };
+}
+// road section between two stages of a loop: only the crew can work on the car
+function roadSection() {
+  const W = RW, d = W.dmg, canFix = DMG_KEYS.some(k => d[k] > .02) || (W.flat && W.spares > 0);
+  modal(`<h3>${t('road.t')}</h3><p class="small muted">${t('road.p')}</p>
+   <div class="card">${rallyTele(W)}<div class="small muted" style="margin-top:4px">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}${W.flat ? ' · <b class="neg">' + t('rl.flat') + '</b>' : ''}</div></div>
+   <div class="row col" style="margin-top:12px">
+    <button class="btn team" id="rdFix" ${canFix ? '' : 'disabled'}>${t('road.fix')}</button>
+    <button class="btn pri" id="rdGo">${t('road.go')}</button>
+   </div>`);
+  $('#rdFix').onclick = () => {
+    ['susp', 'body'].forEach(k => { d[k] = Math.max(0, d[k] - .12 - S.drivers[1].cons / 1500); });
+    if (W.flat && W.spares > 0) { W.flat = false; W.spares--; }
+    toast(t('road.fixed')); closeModal(); nextRallyStage();
+  };
+  $('#rdGo').onclick = () => { closeModal(); nextRallyStage(); };
+}
+
+/* ---------- end of the rally ---------- */
+function finishRally() {
+  const W = RW;
+  const cls = overallOrder().filter(c => !c.dnf && !c.out);
+  const dnf = W.crews.filter(c => !cls.includes(c));
+  const res = applyRallyResult(cls, dnf, { type: 'rally', ps: W.ps || [], stageWins: W.stageWins, repairCost: W.repairCost + W.tyreCost, sr: W.srUsed, name: W.ev.id });
+  RW = null; save();
+  showRallyResult(res);
+}
+// shared by rally and rallycross: cls = classified crews in order, dnf = the rest
+function applyRallyResult(cls, dnf, o) {
+  const mult = TIER_MULT[S.tier];
+  // driver points; team points = best crew of each team; Power Stage bonus
+  const teamBest = {};
+  cls.forEach((c, i) => {
+    const p = POINTS[i] || 0;
+    S.dpoints[c.id] = (S.dpoints[c.id] || 0) + p;
+    if (!(c.team in teamBest)) { teamBest[c.team] = i; S.points[c.team] = (S.points[c.team] || 0) + p; }
+  });
+  (o.ps || []).forEach((id, i) => { const c = cls.find(x => x.id === id); if (!c) return; S.dpoints[id] = (S.dpoints[id] || 0) + POWER_PTS[i]; S.points[c.team] = (S.points[c.team] || 0) + POWER_PTS[i]; });
+  const pos = cls.findIndex(c => c.isMe) + 1, best = pos || 99, rvC = cls.filter(c => c.isRival).map(c => cls.indexOf(c) + 1), rvBest = rvC.length ? Math.min(...rvC) : 99;
+  const psPos = (o.ps || []).indexOf('me_0') + 1;
+  const prize = Math.round((pos ? PRIZE[pos - 1] : PRIZE[FIELD - 1] * .5) * 1.6 * mult);
+  let spBase = 0, spBonus = 0; const spLines = [];
+  S.sponsors.forEach(s => {
+    spBase += s.per;
+    const ok = best < 99 && (s.goal.t === 'finish' || best <= s.goal.n);
+    if (ok) spBonus += s.bonus;
+    spLines.push((ok ? '+ ' : '– ') + s.name + ': ' + goalTxt(s.goal)); s.races--;
+  });
+  S.sponsors.filter(s => s.races <= 0).forEach(s => addNews('info', 'news.sponsorEnd', { n: s.name }));
+  S.sponsors = S.sponsors.filter(s => s.races > 0);
+  const sal = S.drivers[0].salary + S.drivers[1].salary, upk = upkeep(), repair = o.repairCost || 0;
+  const net = prize + spBase + spBonus - sal - upk - repair;
+  addMoney(net + repair);   // service repairs were paid on the spot
+  const repD = best === 99 ? -1.5 : clamp((9 - best) * .45 + (best === 1 ? 2 : 0), -2, 6);
+  S.rep = clamp(S.rep + repD, 0, 100);
+  // morale (driver and co-driver share the result), training
+  const exp = expectedPos();
+  S.drivers.forEach(d => { const dm = best === 99 ? -4 : clamp((exp - best) * .9, -6, 6) + (best === 1 ? 4 : 0); d.morale = clamp(d.morale + dm + (60 - d.morale) * .08, 0, 100); });
+  S.drivers.forEach((d, i) => {
+    const ageF = d.age < 26 ? 1.3 : d.age > 32 ? .5 : 1, g = (.15 + S.staff.sim * .05) * ageF, tr = S.train[i];
+    const key = tr === 'notes' ? 'skill' : tr === 'calm' ? 'cons' : tr;
+    const gs = { skill: key === 'skill' ? 1.6 : .35, cons: key === 'cons' ? 1.6 : .4, wet: key === 'wet' ? 1.8 : .4 };
+    d.skill = Math.min(Math.max(d.skill, d.pot), d.skill + g * gs.skill * (d.skill < d.pot ? 1 : 0));
+    d.cons = Math.min(98, d.cons + g * gs.cons);
+    d.wet = Math.min(99, Math.max(d.wet, Math.min(d.pot + 8, d.wet + g * gs.wet)));
+  });
+  S.field.forEach(f => { f.P += rnd(0, .35); f.H += rnd(0, .35); f.B += rnd(0, .3); f.drivers.forEach(d => { d.D = Math.min(98, d.D + rnd(0, .15)); d.W = Math.min(98, d.W + rnd(0, .15)); }); });
+  S.results[S.round] = { pos: [pos || 99], dnf: [!pos] };
+  if (best < rvBest) S.h2h.me++; else if (rvBest < best) S.h2h.rv++;
+  const st = S.stats;
+  st.starts++; st.points += (pos ? POINTS[pos - 1] || 0 : 0) + (psPos ? POWER_PTS[psPos - 1] : 0);
+  if (best === 1) st.wins++; if (best <= 3) st.podiums++;
+  if (!pos) { st.dnfs++; S.seasonDnf = true; }
+  st.sw = (st.sw || 0) + (o.stageWins || 0);
+  const done = [];
+  S.dev.forEach(d => { d.left--; if (d.left <= 0) { S.parts[d.p] = Math.min(MAXLV, S.parts[d.p] + 1); done.push(d.p); addNews('money', 'news.devDone', { p: 'part.' + d.p, l: S.parts[d.p] }); } });
+  S.dev = S.dev.filter(d => d.left > 0);
+  if (S.feud > 0 && Math.random() < .25) S.feud--;
+  const ach = [];
+  if (pos) achieve('first_finish', ach);
+  if (best <= 10) achieve('first_points', ach);
+  if (best <= 3) achieve('first_podium', ach);
+  if (best === 1) { achieve('first_win', ach); achieve(o.type === 'rx' ? 'rx_win' : 'rally_win', ach); }
+  if (psPos === 1) achieve('power_stage', ach);
+  if (o.sr && pos && pos <= 10) achieve('super_rally', ach);
+  if (st.wins >= 10) achieve('ten_wins', ach);
+  if (S.money >= 1e6) achieve('millionaire', ach);
+  if (PARTS.every(p => S.parts[p] >= STAGES[3])) achieve('full_pro', ach);
+  addNews(best === 99 ? 'bad' : best <= 3 ? 'win' : 'race', best === 99 ? 'news.dnf' : 'news.result', { tr: 'track.' + o.name, p: best, pts: POINTS[best - 1] || 0 });
+  let interview = null;
+  if (Math.random() < .4) interview = { q: best === 1 ? 'win' : !pos ? 'crash' : rvBest < best ? 'rival' : 'goals', y: 0 };
+  const events = { interview, poach: maybePoach(), ach, done };
+  S.round++;
+  genOffers(); genMarket();
+  return { cls, dnf, pos, best, psPos, prize, spBase, spBonus, spLines, sal, upk, repair, net, repD, rvBest, type: o.type, name: o.name, seasonOver: S.round >= DISC[S.disc].rounds, events, stageWins: o.stageWins || 0 };
+}
+function showRallyResult(r) {
+  const best = r.best, podium = r.cls.slice(0, 3);
+  const rows = r.cls.map((c, i) => `<div class="res ${c.isMe ? 'me' : ''}"><span class="p">${i + 1}</span><span><span class="dot" style="background:${c.color}"></span>#${c.num} ${esc(c.driver)} ${natTag(c.nat)} <span class="muted small">${esc(c.name)}</span>${c.isRival ? ' <span class="tt r">RIV</span>' : ''}</span><span class="small muted">${r.type === 'rally' && i ? fmtGap(c.total + c.pen - r.cls[0].total - r.cls[0].pen) : r.type === 'rally' ? fmtT(c.total + c.pen) : ''}</span><b class="num">${POINTS[i] || 0}</b></div>`).join('')
+    + r.dnf.map(c => `<div class="res ${c.isMe ? 'me' : ''}"><span class="p">–</span><span><span class="dot" style="background:${c.color}"></span>#${c.num} ${esc(c.driver)}</span><span class="small muted">DNF</span><b class="num">0</b></div>`).join('');
+  const line = (k, v, cls) => `<div class="money-line"><span>${k}</span><span class="${cls}">${cls === 'neg' ? '−' : '+'}${money(Math.abs(v))}</span></div>`;
+  modal(`<h3>${best === 99 ? t('res.dnf') : best === 1 ? t('res.win') : best <= 3 ? t('res.podium') : t('res.finish')}</h3>
+   <div class="small muted">${esc(t('track.' + r.name))}</div>
+   <div class="podium">${[1, 0, 2].map(k => podium[k] ? `<div style="height:${[92, 70, 56][k]}px" class="${podium[k].isMe ? 'me' : ''}"><b class="h" style="font-size:20px">${k + 1}.</b>${esc(podium[k].driver)}</div>` : '').join('')}</div>
+   <div class="grid2"><div class="kpi" style="text-align:center"><b>${r.pos ? 'P' + r.pos : 'DNF'}</b><div class="small muted">${esc(S.drivers[0].name)}</div></div>
+    <div class="kpi" style="text-align:center"><b>${r.type === 'rally' ? (r.psPos ? 'PS ' + r.psPos + '. +' + POWER_PTS[r.psPos - 1] : '–') : '&nbsp;'}</b><div class="small muted">${r.type === 'rally' ? t('rres.ps', { n: r.stageWins }) : ''}</div></div></div>
+   <div class="small muted" style="margin-top:8px">${t('res.rival', { r: esc(S.rival.name), p: r.rvBest === 99 ? 'DNF' : 'P' + r.rvBest, a: S.h2h.me, b: S.h2h.rv })}</div>
+   <h2 class="sec">${t('res.money')}</h2>
+   <div class="card">
+    ${line(t('res.prize2'), r.prize, 'pos')}${line(t('res.spBase'), r.spBase, 'pos')}${line(t('res.spBonus'), r.spBonus, 'pos')}
+    ${line(t('res.salary2'), r.sal, 'neg')}${line(t('res.upkeep'), r.upk, 'neg')}${r.repair ? line(t('rres.service'), r.repair, 'neg') : ''}
+    <div class="money-line t"><span>${t('res.net')}</span><span class="${r.net >= 0 ? 'pos' : 'neg'}">${r.net >= 0 ? '+' : '−'}${money(Math.abs(r.net))}</span></div>
+    ${r.spLines.length ? `<div class="small muted" style="margin-top:8px;line-height:1.6">${r.spLines.map(esc).join('<br>')}</div>` : ''}
+    <div class="small muted" style="margin-top:6px">${t('res.rep')}: ${r.repD >= 0 ? '+' : ''}${r.repD.toFixed(1)} ★</div>
+   </div>
+   <h2 class="sec">${t('res.table')}</h2><div class="card">${rows}</div>
+   <button class="btn pri block" style="margin-top:14px" id="cont">${t('ui.continue')}</button>`);
+  $('#cont').onclick = () => {
+    closeModal();
+    if (checkBankrupt()) return;
+    const ev = r.events, q = [];
+    if (ev.done.length) toast(t('dev.doneToast', { p: ev.done.map(p => t('part.' + p)).join(', ') }));
+    if (ev.ach.length) q.push(next => showAch(ev.ach, next));
+    if (ev.poach) q.push(next => showPoach(ev.poach, next));
+    if (ev.interview) q.push(next => showInterview(ev.interview, next));
+    const end = () => { if (r.seasonOver) seasonEnd(); else { VIEW = 'home'; render(); } };
+    VIEW = 'home'; render();
+    runQueue(q, end);
+  };
+}
+function bindRallyControls() {
+  $('#rlSpeed').onclick = e => { const b = e.target.closest('button'); if (!b || !RL) return; RL.speed = +b.dataset.s; setSeg('#rlSpeed', 's', b.dataset.s); if (RL.speed > 0 && RL.speed < 99) { try { localStorage.setItem('boxutca_speed', b.dataset.s); } catch (x) { } } SND.unlock(); };
+  $('#rlMode').onclick = e => { const b = e.target.closest('button'); if (!b || !RL) return; RL.mode = +b.dataset.m; setSeg('#rlMode', 'm', b.dataset.m); };
+  $('#rlJoker').onclick = () => { if (RL && RL.kind === 'rx') rxJokerCall(); };
+  $('#rlQuit').onclick = () => {
+    if (!RL) return;
+    modal(`<h3>${t('rl.skipT')}</h3><p>${t('rl.skipP')}</p><div class="row"><button class="btn grow" data-close>${t('ui.cancel')}</button><button class="btn pri grow" id="ok">${t('rl.skipOk')}</button></div>`);
+    $('#ok').onclick = () => { closeModal(); if (RL) RL.speed = 99; };
+  };
+}
+
+/* ---- rx.js ---- */
+/* ===================== rallycross: heats, semi-finals, final, joker lap ===================== */
+const RX_DS = 2;          // metres between samples
+const RX_TS = 4;          // real seconds per screen second at 1x
+const RX_CACHE = {};
+function buildRx(T) {
+  if (RX_CACHE[T.id]) return RX_CACHE[T.id];
+  const raw = catmull(T.pts.map(p => [p[0] * T.size, p[1] * T.size * .75]), 30);
+  const seg = [0];
+  for (let i = 1; i <= raw.length; i++) { const a = raw[i - 1], b = raw[i % raw.length]; seg.push(seg[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1])); }
+  const Lm = seg[seg.length - 1], N = Math.floor(Lm / RX_DS), x = [], y = []; let j = 0;
+  for (let i = 0; i < N; i++) {
+    const d = i * RX_DS; while (seg[j + 1] < d) j++;
+    const u = (d - seg[j]) / (seg[j + 1] - seg[j] || 1), a = raw[j], b = raw[(j + 1) % raw.length];
+    x.push(lerp(a[0], b[0], u)); y.push(lerp(a[1], b[1], u));
+  }
+  const h = x.map((_, i) => Math.atan2(y[(i + 2) % N] - y[(i - 2 + N) % N], x[(i + 2) % N] - x[(i - 2 + N) % N]));
+  const cv = h.map((_, i) => { let d = h[(i + 3) % N] - h[(i - 3 + N) % N]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d / (6 * RX_DS); });
+  const grav = x.map((_, i) => T.grav.some(([a, b]) => i / N >= a && i / N < b));
+  // joker: the main route between a and b pushed outwards (away from the centre)
+  const ia = Math.floor(T.joker.a * N), ib = Math.floor(T.joker.b * N);
+  let cx = 0, cy = 0; x.forEach((v, i) => { cx += v; cy += y[i]; }); cx /= N; cy /= N;
+  const jx = [], jy = [];
+  for (let i = ia; i <= ib; i++) {
+    const u = (i - ia) / (ib - ia), bul = Math.sin(u * Math.PI) * T.joker.out * T.size;
+    let nx = -Math.sin(h[i]), ny = Math.cos(h[i]); if ((x[i] - cx) * nx + (y[i] - cy) * ny < 0) { nx = -nx; ny = -ny; }
+    jx.push(x[i] + nx * bul); jy.push(y[i] + ny * bul);
+  }
+  let JL = 0; for (let i = 1; i < jx.length; i++) JL += Math.hypot(jx[i] - jx[i - 1], jy[i] - jy[i - 1]);
+  const ML = (ib - ia) * RX_DS;
+  const sp = arr => { // speed profile for a closed loop
+    const v = arr.map(c => { const mu = .95, k = Math.abs(c); return Math.min(40, k > 1e-4 ? Math.sqrt(9.81 * mu * 1.4 / k) : 40); });
+    for (let pass = 0; pass < 2; pass++) for (let i = v.length - 1; i >= 0; i--) v[i] = Math.min(v[i], Math.sqrt(v[(i + 1) % v.length] ** 2 + 2 * 9 * RX_DS));
+    for (let pass = 0; pass < 2; pass++) for (let i = 0; i < v.length; i++) v[i] = Math.min(v[i], Math.sqrt(v[(i - 1 + v.length) % v.length] ** 2 + 2 * 6.5 * RX_DS * (1 - v[(i - 1 + v.length) % v.length] / 50)));
+    return v;
+  };
+  const v = sp(cv);
+  const tr = { T, N, L: N * RX_DS, x, y, h, cv, grav, v, ia, ib, jx, jy, JL, ML, cx, cy };
+  RX_CACHE[T.id] = tr; return tr;
+}
+function rxSVG(T, w = 140, hgt = 100) {
+  const tr = buildRx(T), xs = tr.x, ys = tr.y;
+  const x0 = Math.min(...xs), x1 = Math.max(...xs, ...tr.jx), y0 = Math.min(...ys, ...tr.jy), y1 = Math.max(...ys, ...tr.jy);
+  const s = Math.min((w - 10) / (x1 - Math.min(x0, ...tr.jx)), (hgt - 10) / (y1 - y0)), ox = Math.min(x0, ...tr.jx);
+  const P = (a, b) => `${(5 + (a - ox) * s).toFixed(1)} ${(5 + (b - y0) * s).toFixed(1)}`;
+  let d = ''; for (let i = 0; i < tr.N; i += 3) d += (i ? 'L' : 'M') + P(xs[i], ys[i]);
+  let jd = ''; for (let i = 0; i < tr.jx.length; i += 2) jd += (i ? 'L' : 'M') + P(tr.jx[i], tr.jy[i]);
+  return `<svg viewBox="0 0 ${w} ${hgt}" xmlns="http://www.w3.org/2000/svg"><path d="${jd}" fill="none" stroke="#ffb21e" stroke-width="2.5" stroke-dasharray="4 3"/><path d="${d}Z" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="7" stroke-linejoin="round"/><path d="${d}Z" fill="none" stroke="#e6e9ef" stroke-width="4" stroke-linejoin="round"/><circle cx="${P(xs[0], ys[0]).split(' ')[0]}" cy="${P(xs[0], ys[0]).split(' ')[1]}" r="4" fill="#ffb21e"/></svg>`;
+}
+
+/* ---------- weekend ---------- */
+function openRxWeekend() {
+  const T = curEvent(), crews = rallyCrews();
+  const wet = Math.random() < T.rain;
+  RW = { type: 'rx', T, tr: buildRx(T), crews, wet, q: {}, stage: 'q1', dmg: { susp: 0, body: 0, engine: 0, gear: 0 }, repairCost: 0, myRaces: 0 };
+  crews.forEach(c => { c.qpts = 0; c.qbest = 1e9; });
+  const tr = RW.tr;
+  modal(`<h3>${esc(t('track.' + T.id))} <span class="tag a">RX</span></h3>
+   <div class="small muted">${t('rw.round', { r: S.round + 1, n: DISC.rally.rounds, k: 'Rallycross' })}</div>
+   <div class="tv" style="margin:10px auto;max-width:260px">${rxSVG(T, 260, 170)}</div>
+   <div class="card">
+    <div class="money-line"><span>${t('rx.lap')}</span><b>${Math.round(tr.L)} m · ${t('rx.gravel', { p: Math.round(tr.grav.filter(Boolean).length / tr.N * 100) })}</b></div>
+    <div class="money-line"><span>${t('rx.joker')}</span><b>+${Math.round(tr.JL - tr.ML)} m (${T.joker.out > .17 ? t('rx.jLong') : t('rx.jShort')})</b></div>
+    <div class="money-line"><span>${t('rx.wx')}</span><b>${T.ice ? t('rx.ice') : wet ? t('rwx.wet') : t('rwx.dry')}</b></div>
+   </div>
+   <div class="small muted" style="margin:10px 2px">${t('rx.format', { h: RX_LAPS.heat, f: RX_LAPS.final, p: RX_PEN })}</div>
+   <div class="row"><button class="btn grow" data-close>${t('ui.back')}</button><button class="btn pri grow" id="rxGo">${t('rx.toQ1')}</button></div>`);
+  $('#rxGo').onclick = () => { closeModal(); rxQualRound(1); };
+}
+// qualifying round: three heats of five, heat times ranked across all heats -> points 16, 15, ...
+function rxQualRound(n) {
+  const W = RW, heats = [[], [], []];
+  shuffle(W.crews).forEach((c, i) => heats[i % 3].push(c));
+  W.heats = heats; W.qn = n; W.hi = 0; W.qres = [];
+  rxNextHeat();
+}
+function rxNextHeat() {
+  const W = RW;
+  if (W.hi >= W.heats.length) { rxQualDone(); return; }
+  const cars = W.heats[W.hi], label = t('rx.heat', { q: W.qn, h: W.hi + 1 });
+  W.hi++;
+  if (cars.some(c => c.isMe)) rxIntro(label, cars, RX_LAPS.heat, res => { W.qres.push(...res); rxNextHeat(); });
+  else { W.qres.push(...rxSimRace(cars, RX_LAPS.heat)); rxNextHeat(); }
+}
+function rxQualDone() {
+  const W = RW, rank = W.qres.slice().sort((a, b) => a.t - b.t);
+  if (W.qScored !== W.qn) { W.qScored = W.qn; rank.forEach((r, i) => { r.c.qpts += r.dnf ? 0 : Math.max(0, 16 - i); if (!r.dnf) r.c.qbest = Math.min(r.c.qbest, r.t); }); }
+  const tab = W.crews.slice().sort((a, b) => b.qpts - a.qpts || a.qbest - b.qbest);
+  modal(`<h3>${t('rx.qDone', { n: W.qn })}</h3>
+   <div class="card">${tab.map((c, i) => `<div class="res ${c.isMe ? 'me' : ''} ${i === 11 ? 'cut' : ''}"><span class="p">${i + 1}</span><span><span class="dot" style="background:${c.color}"></span>${esc(c.driver)} ${natTag(c.nat)}${c.isRival ? ' <span class="tt r">RIV</span>' : ''}</span><span class="small muted">${fmtT(c.qbest)}</span><b class="num">${c.qpts}</b></div>`).join('')}</div>
+   <div class="small muted" style="margin:8px 2px">${W.qn === 1 ? t('rx.qInfo') : t('rx.semiInfo')}</div>
+   ${rxRepairHtml()}
+   <button class="btn pri block" style="margin-top:12px" id="rxNext">${W.qn === 1 ? t('rx.toQ2') : t('rx.toSemi')}</button>`);
+  rxBindRepair(rxQualDone);
+  $('#rxNext').onclick = () => { closeModal(); if (W.qn === 1) rxQualRound(2); else rxSemis(tab); };
+}
+function rxSemis(tab) {
+  const W = RW; W.qtab = tab;
+  const top = tab.slice(0, 12), sf = [top.filter((c, i) => i % 2 === 0), top.filter((c, i) => i % 2 === 1)];
+  W.sf = sf; W.sres = [];
+  const run = k => {
+    if (k >= 2) { rxFinal(); return; }
+    const cars = sf[k], label = t('rx.semi', { n: k + 1 });
+    if (cars.some(c => c.isMe)) rxIntro(label, cars, RX_LAPS.final, res => { W.sres[k] = res; run(k + 1); });
+    else { W.sres[k] = rxSimRace(cars, RX_LAPS.final); run(k + 1); }
+  };
+  if (!top.some(c => c.isMe)) toast(t('rx.outQ'));
+  run(0);
+}
+function rxFinal() {
+  const W = RW, fin = W.sres.flatMap(r => r.filter(e => !e.dnf).slice(0, 3).map(e => e.c));
+  fin.sort((a, b) => W.qtab.indexOf(a) - W.qtab.indexOf(b));
+  const go = () => {
+    if (fin.some(c => c.isMe)) rxIntro(t('rx.final'), fin, RX_LAPS.final, res => rxDone(res));
+    else rxDone(rxSimRace(fin, RX_LAPS.final));
+  };
+  if (W.sf.some(s => s.some(c => c.isMe))) {
+    const inF = fin.some(c => c.isMe);
+    modal(`<h3>${inF ? t('rx.inFinal') : t('rx.outSemi')}</h3>${inF ? rxRepairHtml(true) : ''}<button class="btn pri block" style="margin-top:12px" id="rxNext">${inF ? t('rx.toFinal') : t('ui.continue')}</button>`);
+    if (inF) rxBindRepair(() => rxFinal());
+    $('#rxNext').onclick = () => { closeModal(); go(); };
+  } else go();
+}
+function rxDone(finalRes) {
+  const W = RW, cls = finalRes.filter(e => !e.dnf).map(e => e.c);
+  // semi-final 4th-6th next (ranked by qualifying), then everyone else by qualifying points
+  const semiRest = W.sres.flatMap(r => r.filter(e => !e.dnf).slice(3).map(e => e.c)).sort((a, b) => W.qtab.indexOf(a) - W.qtab.indexOf(b));
+  semiRest.forEach(c => { if (!cls.includes(c)) cls.push(c); });
+  W.qtab.forEach(c => { if (!cls.includes(c) && !finalRes.some(e => e.c === c && e.dnf)) cls.push(c); });
+  finalRes.filter(e => e.dnf).forEach(e => { if (!cls.includes(e.c)) cls.push(e.c); });
+  W.crews.forEach(c => { if (!cls.includes(c)) cls.push(c); });
+  const res = applyRallyResult(cls, [], { type: 'rx', repairCost: W.repairCost, name: W.T.id });
+  RW = null; save(); showRallyResult(res);
+}
+function rxRepairHtml(final) {
+  const d = RW.dmg, total = DMG_KEYS.reduce((a, k) => a + d[k], 0);
+  if (total < .02) return '';
+  const cr = Math.round(total * 2600 * TIER_MULT[S.tier] * (1 - S.staff.shop * .03) / 50) * 50;
+  return `<h2 class="sec">${t('rx.repairT')}</h2><div class="card">${rallyTele(RW)}<button class="btn team block" style="margin-top:8px" id="rxFix" data-cr="${cr}">${t('rx.repair', { m: money(cr) })}</button></div>`;
+}
+function rxBindRepair(again) {
+  const b = $('#rxFix'); if (!b) return;
+  b.onclick = () => { const cr = +b.dataset.cr; addMoney(-cr); RW.repairCost += cr; DMG_KEYS.forEach(k => { RW.dmg[k] = 0; }); toast(t('rx.repaired')); again(); };
+}
+
+/* ---------- one race ---------- */
+function rxCar(c, k, n, laps) {
+  const row = Math.floor(k / (n > 5 ? 2 : 5)), col = k % (n > 5 ? 2 : 5);
+  return { c, isMe: !!c.isMe, prog: -row * 9 - 2, lane: n > 5 ? (col ? .9 : -.9) : (col - 2) * .8, lap: 0, onJ: false, jp: 0, joker: false, plan: ri(1, laps), react: rnd(.15, .45) * (1.45 - c.K / 100),
+    v: 0, hold: 0, done: false, time: 0, dnf: false, dmg: c.isMe ? RW.dmg : { susp: 0, body: 0, engine: 0, gear: 0 }, pf: 1 };
+}
+function rxPf(car) {
+  const W = RW, c = car.c, gfrac = W.tr.grav.filter(Boolean).length / W.tr.N;
+  const st = { frac: W.T.ice ? { N: 1 } : { A: 1 - gfrac, G: gfrac } };
+  return (1 + (70 - crewPerf(c, st, W.wet)) * .0028) * dmgPf(car.dmg) * (car.isMe ? MODE_PF[RL ? RL.mode : 1] : 1);
+}
+function rxStep(L, dt) {
+  const W = RW, tr = W.tr, N = tr.N, Lm = tr.L;
+  L.t += dt;
+  if (L.t < 0) return;
+  const run = L.cars.filter(c => !c.done && !c.dnf);
+  const eff = c => c.onJ ? c.lap * Lm + tr.ia * RX_DS + c.jp / tr.JL * tr.ML : c.prog;
+  run.sort((a, b) => eff(b) - eff(a));
+  run.forEach((car, ri2) => {
+    if (L.t < car.react) return;
+    if (car.hold > 0) { car.hold -= dt; car.v = 0; return; }
+    const mode = car.isMe ? L.mode : 1;
+    const i = ((Math.floor((car.onJ ? (tr.ia * RX_DS + car.jp / tr.JL * tr.ML) : car.prog) / RX_DS) % N) + N) % N;
+    let v = tr.v[i] / rxPf(car) * (tr.grav[i] ? .93 : 1) * (W.wet && !tr.grav[i] ? .93 : 1) * (W.T.ice ? .82 : 1);
+    if (car.prog < 0) v = Math.min(v, 6 + L.t * 14);
+    // following: same route, close behind a slower car -> attempt a pass or wait
+    const ahead = run.slice(0, ri2).reverse().find(o => o.onJ === car.onJ && eff(o) - eff(car) > 0 && eff(o) - eff(car) < 7);
+    if (ahead && ahead.v < v) {
+      const passP = (tr.grav[i] ? .5 : .3) * [.6, 1, 1.6][mode] * (Math.abs(tr.cv[i]) < .01 ? 1.5 : .5) * dt;
+      if (Math.random() < passP) { car.lane = -ahead.lane || .9; v *= 1.05; }
+      else v = Math.min(v, ahead.v);
+      const hitP = .04 * [.6, 1, 1.8][mode] * (car.prog < 200 ? 4 : 1) * dt * (1.3 - car.c.K / 100);
+      if (Math.random() < hitP) rxContact(L, car, ahead);
+    }
+    if (Math.random() < .004 * [.5, 1, 2][mode] * (1.5 - car.c.K / 100) * dt * (W.T.ice ? 2 : 1)) { car.hold = rnd(.6, 2.2); if (car.isMe) rlTick(t('rx.slide'), 'warn'); }
+    v = Math.max(3, v * [.985, 1, 1.012][mode]); car.v = v;
+    if (car.onJ) {
+      car.jp += v * dt;
+      if (car.jp >= tr.JL) { car.onJ = false; car.joker = true; car.prog = car.lap * Lm + tr.ib * RX_DS; if (car.isMe) rlTick(t('rx.jokerDone'), 'good'); }
+    } else {
+      const before = car.prog; car.prog += v * dt;
+      const lapStart = car.lap * Lm, pa = lapStart + tr.ia * RX_DS;
+      if (!car.joker && before < pa && car.prog >= pa && car.lap + 1 >= car.plan && car.lap + 1 <= L.laps && car.prog > 0) { car.onJ = true; car.jp = 0; car.prog = pa; if (car.isMe) rlTick(t('rx.jokerIn'), 'radio'); }
+      if (car.prog >= (car.lap + 1) * Lm) {
+        car.lap++;
+        if (car.lap >= L.laps) { car.done = true; car.time = L.t + (car.joker ? 0 : RX_PEN); if (!car.joker && car.isMe) rlTick(t('rx.noJoker', { s: RX_PEN }), 'bad'); }
+        else if (car.isMe && car.lap === L.laps - 1 && !car.joker) rlTick(t('rx.lastJoker'), 'warn');
+      }
+    }
+    if (DMG_KEYS.some(k => car.dmg[k] >= 1)) { car.dnf = true; if (car.isMe) rlTick(t('rl.retired'), 'bad'); }
+  });
+  if (L.cars.every(c => c.done || c.dnf)) L.done = true;
+}
+function rxContact(L, a, b) {
+  [a, b].forEach(c => { c.dmg.body = clamp(c.dmg.body + rnd(.02, .1), 0, 1); c.dmg.susp = clamp(c.dmg.susp + rnd(.01, .07), 0, 1); });
+  b.hold = Math.max(b.hold, rnd(.2, .9)); a.hold = Math.max(a.hold, rnd(0, .4));
+  if (a.isMe || b.isMe) rlTick(t('rx.contact'), 'warn');
+}
+function rxSimRace(crews, laps) {
+  const L = { cars: crews.map((c, k) => rxCar(c, k, crews.length, laps)), t: -1.5, laps, mode: 1 };
+  let g = 0; while (!L.done && g < 40000) { rxStep(L, .05); g++; }
+  return rxResult(L);
+}
+const rxResult = L => L.cars.slice().sort((a, b) => (a.dnf - b.dnf) || a.time - b.time).map(c => ({ c: c.c, t: c.dnf ? 1e9 : c.time, dnf: c.dnf }));
+function rxIntro(label, crews, laps, done) {
+  modal(`<h3>${label}</h3><div class="small muted">${t('rx.laps', { n: laps })}</div>
+   <div class="card gridlist" style="margin-top:10px">${crews.map((c, i) => `<div class="res g3 ${c.isMe ? 'me' : ''}"><span class="p">${i + 1}</span><span><span class="dot" style="background:${c.color}"></span>${esc(c.driver)} ${natTag(c.nat)}${c.isRival ? ' <span class="tt r">RIV</span>' : ''}</span><span class="small muted">#${c.num}</span></div>`).join('')}</div>
+   <div class="small muted" style="margin:10px 2px">${t('rx.howto', { p: RX_PEN })}</div>
+   <button class="btn pri block" id="rxStart">${t('rl.start')}</button>`);
+  $('#rxStart').onclick = () => { SND.unlock(); closeModal(); rxRun(label, crews, laps, done); };
+}
+function rxRun(label, crews, laps, done) {
+  const W = RW;
+  RL = { kind: 'rx', cars: crews.map((c, k) => rxCar(c, k, crews.length, laps)), t: -1.5, laps, mode: 1, speed: raceSpeedPref(), done: false, lastUI: 0, dust: [] };
+  RL.me = RL.cars.find(c => c.isMe); RL.me.plan = 99;   // the player calls the joker
+  $('#rally').classList.remove('hidden'); document.body.style.overflow = 'hidden';
+  $('#rlTitle').textContent = label; $('#rlSub').textContent = t('track.' + W.T.id);
+  $('#rlWx').innerHTML = W.T.ice ? `<i class="wxd damp"></i>${t('rx.ice')}` : wxBadge({ wet: W.wet }, null);
+  $('#rlJoker').classList.remove('hidden'); $('#rlPrompt').classList.add('hidden');
+  setSeg('#rlSpeed', 's', String(RL.speed)); setSeg('#rlMode', 'm', '1');
+  rlTick(t('rx.grid'), 'info'); rlSizeCanvas(); SND.start();
+  let last = performance.now();
+  const loop = now => {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (!RL || RL.kind !== 'rx') return;
+    if (RL.speed === 99) { if (!RL.me.joker && !RL.me.onJ && RL.me.plan > RL.laps) rxJokerCall(); let g = 0; while (!RL.done && g < 40000) { rxStep(RL, .05); g++; } }
+    else if (RL.speed > 0) { const n = Math.ceil(RL.speed * RX_TS); for (let k = 0; k < n; k++) rxStep(RL, dt * RL.speed * RX_TS / n); }
+    drawRx();
+    try { SND.engine(RL.speed > 0 && !RL.done ? (RL.me.v || 0) / 40 : 0, 0); } catch (e) { }
+    if (now - RL.lastUI > 200) { RL.lastUI = now; rxUI(); }
+    if (RL.done) {
+      cancelAnimationFrame(RL.raf); SND.stop(); rxUI();
+      const L = RL; setTimeout(() => { $('#rally').classList.add('hidden'); document.body.style.overflow = ''; RL = null; rxShowRace(label, L, done); }, 900); return;
+    }
+    RL.raf = requestAnimationFrame(loop);
+  };
+  RL.raf = requestAnimationFrame(loop);
+}
+function rxJokerCall() {
+  const L = RL, me = L.me; if (me.joker || me.onJ) return;
+  const tr = RW.tr, pa = me.lap * tr.L + tr.ia * RX_DS;
+  me.plan = me.prog < pa ? me.lap + 1 : me.lap + 2;
+  if (me.plan > L.laps) me.plan = L.laps;
+  rlTick(t('rx.jokerCalled', { n: me.plan }), 'radio'); rxUI();
+}
+function rxShowRace(label, L, done) {
+  const res = rxResult(L);
+  modal(`<h3>${label}</h3>
+   <div class="card">${res.map((e, i) => `<div class="res ${e.c.isMe ? 'me' : ''}"><span class="p">${e.dnf ? '–' : i + 1}</span><span><span class="dot" style="background:${e.c.color}"></span>${esc(e.c.driver)}${e.c.isRival ? ' <span class="tt r">RIV</span>' : ''}</span><span class="small muted">${e.dnf ? 'DNF' : i ? fmtGap(e.t - res[0].t) : fmtT(e.t)}</span><b class="num">${L.cars.find(c => c.c === e.c).joker ? 'J ✓' : 'J ✗'}</b></div>`).join('')}</div>
+   <button class="btn pri block" style="margin-top:12px" id="rxOk">${t('ui.continue')}</button>`);
+  $('#rxOk').onclick = () => { closeModal(); done(res); };
+}
+function rxUI() {
+  const L = RL; if (!L) return;
+  const W = RW, me = L.me, tr = W.tr;
+  const eff = c => c.done ? 1e12 - c.time : c.onJ ? c.lap * tr.L + tr.ia * RX_DS + c.jp / tr.JL * tr.ML : c.prog;
+  const ord = L.cars.slice().sort((a, b) => (a.dnf - b.dnf) || eff(b) - eff(a));
+  $('#rlCnt').textContent = `${Math.min(L.laps, me.lap + 1)}/${L.laps}`;
+  const jb = $('#rlJoker');
+  jb.textContent = me.joker ? t('rx.jDone') : me.onJ ? t('rx.jNow') : me.plan <= L.laps ? t('rx.jPlanned', { n: me.plan }) : 'JOKER';
+  jb.classList.toggle('req', !me.joker && me.plan > L.laps && me.lap >= L.laps - 2); jb.classList.toggle('in', me.joker);
+  $('#rlTele').innerHTML = rallyTele({ dmg: me.dmg, wear: 0 });
+  $('#rlLb').innerHTML = ord.map((c, i) => `<div class="lbr ${c.isMe ? 'me' : ''}"><span class="p">${c.dnf ? '–' : i + 1}</span><span class="dot" style="background:${c.c.color}"></span><span class="nm">${esc(lastName(c.c.driver))}</span><span class="gap">${c.joker ? 'J✓' : c.onJ ? 'J…' : ''} ${c.dnf ? 'DNF' : c.done ? fmtT(c.time) : t('rx.lapN', { n: Math.min(L.laps, c.lap + 1) })}</span></div>`).join('');
+}
+function drawRx() {
+  const L = RL; if (!L || !RLC) return;
+  const { g, w, h, dpr } = RLC, W = RW, tr = W.tr;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = W.T.ice ? '#cfd8e2' : '#2c4a2e'; g.fillRect(0, 0, w, h);
+  const xs = tr.x.concat(tr.jx), ys = tr.y.concat(tr.jy);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const k = Math.min((w - 30) / (x1 - x0), (h - 30) / (y1 - y0)), X = v => 15 + (v - x0) * k + (w - 30 - (x1 - x0) * k) / 2, Y = v => 15 + (v - y0) * k + (h - 30 - (y1 - y0) * k) / 2;
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  const path = (ax, ay, closed) => { g.beginPath(); g.moveTo(X(ax[0]), Y(ay[0])); for (let i = 1; i < ax.length; i++) g.lineTo(X(ax[i]), Y(ay[i])); if (closed) g.closePath(); };
+  path(tr.jx, tr.jy); g.strokeStyle = '#6e593b'; g.lineWidth = 13 * k; g.stroke(); g.strokeStyle = W.T.ice ? '#eef3f8' : '#a8875b'; g.lineWidth = 9 * k; g.stroke();
+  path(tr.x, tr.y, true); g.strokeStyle = '#1b1d21'; g.lineWidth = 15 * k; g.stroke();
+  for (let i = 0; i < tr.N; i++) {   // surface per sample
+    const j = (i + 1) % tr.N; g.beginPath(); g.moveTo(X(tr.x[i]), Y(tr.y[i])); g.lineTo(X(tr.x[j]), Y(tr.y[j]));
+    g.strokeStyle = W.T.ice ? '#e9eef4' : tr.grav[i] ? '#a8875b' : '#5a5f68'; g.lineWidth = 11 * k; g.stroke();
+  }
+  if (W.wet) { path(tr.x, tr.y, true); g.strokeStyle = 'rgba(58,110,168,.2)'; g.lineWidth = 11 * k; g.stroke(); }
+  const jm = Math.floor(tr.jx.length / 2); g.fillStyle = '#ffb21e'; g.font = `800 ${Math.max(10, 9 * k)}px ${FC}`; g.textAlign = 'center'; g.fillText('JOKER', X(tr.jx[jm]), Y(tr.jy[jm]) - 10 * k); g.textAlign = 'left';
+  g.save(); g.translate(X(tr.x[0]), Y(tr.y[0])); g.rotate(tr.h[0]); g.fillStyle = '#fff'; g.fillRect(-1.5, -6 * k, 3, 12 * k); g.restore();
+  // tyre marks: gravel always, tarmac only when sliding; they build up lap after lap
+  if (!L.mkc || L.mkc.width !== RLC.cv.width || L.mkc.height !== RLC.cv.height) { L.mkc = document.createElement('canvas'); L.mkc.width = RLC.cv.width; L.mkc.height = RLC.cv.height; }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(L.mkc, 0, 0); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const mg = L.mkc.getContext('2d'); mg.setTransform(dpr, 0, 0, dpr, 0, 0); mg.lineCap = 'round'; mg.lineWidth = Math.max(1, .3 * k * 1.3);
+  // cars
+  const pos = c => {
+    if (c.onJ) { const f = c.jp / tr.JL * (tr.jx.length - 1), i = Math.min(tr.jx.length - 2, Math.floor(f)), u = f - i; return [lerp(tr.jx[i], tr.jx[i + 1], u), lerp(tr.jy[i], tr.jy[i + 1], u), Math.atan2(tr.jy[i + 1] - tr.jy[i], tr.jx[i + 1] - tr.jx[i])]; }
+    const p = ((c.prog % tr.L) + tr.L) % tr.L, i = Math.floor(p / RX_DS) % tr.N, j = (i + 1) % tr.N, u = p / RX_DS - Math.floor(p / RX_DS);
+    const hd = tr.h[i], off = c.lane * 2.6, cv = tr.cv[i];
+    const yaw = Math.sign(cv) * clamp((c.v || 0) ** 2 * Math.abs(cv) / 9.81 * (tr.grav[i] || W.T.ice ? .3 : .12), 0, .55);
+    return [lerp(tr.x[i], tr.x[j], u) - Math.sin(hd) * off, lerp(tr.y[i], tr.y[j], u) + Math.cos(hd) * off, hd + yaw];
+  };
+  L.cars.forEach(c => {
+    if (c.dnf && !c.isMe) return;
+    const [px, py, hd] = pos(c);
+    if (c.v > 10 && (tr.grav[Math.floor((((c.prog % tr.L) + tr.L) % tr.L) / RX_DS) % tr.N] || c.onJ)) L.dust.push({ x: px - Math.cos(hd) * 2.5, y: py - Math.sin(hd) * 2.5, r: 1, a: .45 });
+    const ii = Math.floor((((c.prog % tr.L) + tr.L) % tr.L) / RX_DS) % tr.N, loose = c.onJ || tr.grav[ii] || W.T.ice, slide = Math.abs(hd - tr.h[ii]) > .2 || c.hold > 0;
+    if (c.v > 3 && (loose || slide) && !c.dnf && !c.done) {
+      const a = hd, rx = px - Math.cos(a) * 1.3, ry = py - Math.sin(a) * 1.3, nx = -Math.sin(a) * .8, ny = Math.cos(a) * .8, cur = [X(rx + nx), Y(ry + ny), X(rx - nx), Y(ry - ny)];
+      if (c.mk && Math.hypot(cur[0] - c.mk[0], cur[1] - c.mk[1]) < 25) { mg.strokeStyle = W.T.ice ? 'rgba(110,125,145,.07)' : loose ? 'rgba(70,52,32,.07)' : 'rgba(12,12,14,.12)'; mg.beginPath(); mg.moveTo(c.mk[0], c.mk[1]); mg.lineTo(cur[0], cur[1]); mg.moveTo(c.mk[2], c.mk[3]); mg.lineTo(cur[2], cur[3]); mg.stroke(); }
+      c.mk = cur;
+    } else c.mk = null;
+    drawRallyCar(g, X(px), Y(py), hd + (c.hold > 0 ? .8 : 0), k * 1.3, c.c.color, false);
+    if (c.isMe) { g.strokeStyle = '#ffb21e'; g.lineWidth = 2; g.beginPath(); g.arc(X(px), Y(py), 5 * k * 1.3, 0, Math.PI * 2); g.stroke(); }
+  });
+  L.dust = L.dust.filter(p => (p.a -= .015) > 0).slice(-200);
+  L.dust.forEach(p => { p.r += .06; g.fillStyle = `rgba(196,164,118,${p.a})`; g.beginPath(); g.arc(X(p.x), Y(p.y), p.r * k * 1.3, 0, Math.PI * 2); g.fill(); });
+  if (W.wet) { g.strokeStyle = 'rgba(200,215,235,.3)'; g.lineWidth = 1; g.beginPath(); for (let m = 0; m < 90; m++) { const xx = Math.random() * w, yy = Math.random() * h; g.moveTo(xx, yy); g.lineTo(xx - 2, yy + 9); } g.stroke(); }
+  wxIcons(g, w - 8, 8, W.wet ? 1 : 0, null, false);
+  if (L.t < 0) { g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(w / 2 - 40, h / 2 - 22, 80, 44); g.fillStyle = '#fff'; g.font = `800 28px ${FC}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(Math.ceil(-L.t * 2), w / 2, h / 2); g.textAlign = 'left'; }
 }
 
 /* ---- main.js ---- */
 /* ===================== boot ===================== */
 initLang();
 bindRaceControls();
+bindRallyControls();
 SND.paint();
 S = load();
 render();

@@ -72,10 +72,12 @@ function startRace(startTires, opts = {}) {
       dmg: { a: 0, s: 0, e: 0 }, dmgTotal: 0, mode: 1, pitReq: false, pitFrom: 0, box: boxOf(bi), boxIdx: bi,
       entryN: Math.floor((prog + tr.pitE) / N), mistT: 0, lane: i % 2 ? .55 : -.55,
       finished: false, fin: 0, dnf: false, why: '', stops: 0, noise: 1, thr: rnd(.5, .75), wetThr: rnd(.35, .55), evt: '', warn: {}, grid: i + 1,
-      auto: !!(e.isMe && opts.auto), led: 0
+      auto: !!(e.isMe && opts.auto), led: 0, lineK: rnd(.75, 1.1), yaw: 0, lock: 0, mk: null
     };
   });
+  const RLINE = racingLine(tr);
   R = {
+    line: RLINE.line, sc: RLINE.sc, wxNext: null,
     tr, disc: W.disc, kind: W.kind, laps: W.laps, special: W.special, cars, lapTime, vScale, t: 0, speed: 1, done: false, leaderDone: false, order: [],
     startT: 2.2, raf: 0, finished: false, rain: W.wx.rain, wet: W.wx.wet, wetSum: 0, caution: 0, redFlag: false, leaderLap: 0, called: false, lastUI: 0,
     plans: [{ tire: startTires[0], fuel: 'need' }, { tire: startTires[1], fuel: 'need' }], orders: 'free', orderUsed: null, swapNote: false,
@@ -357,20 +359,44 @@ function caution() {
   R.caution = R.lapTime * rnd(1.3, 1.9);
   tick(t(R.tr.oval ? 'rt.yellow' : 'rt.sc'), 'warn');
 }
+/* weather is forecast 1-2 laps ahead (blinking icon + radio), then it arrives */
 function weatherTick() {
+  if (R.wxNext) { if (R.leaderLap >= R.wxNext.lap) { applyWx(R.wxNext.rain); R.wxNext = null; } return; }
   if (R.tr.oval) {
-    if (R.rain === 0 && !R.redFlag && Math.random() < R.tr.rain * .05) {
-      if (R.leaderLap >= R.laps / 2) { tick(t('rt.rainCalled'), 'warn'); callRace(); }
-      else { R.redFlag = true; R.caution = R.lapTime * 2.4; R.rain = .5; tick(t('rt.redFlag'), 'bad'); }
-    }
+    if (R.rain === 0 && !R.redFlag && Math.random() < R.tr.rain * .05) scheduleWx(.5);
     return;
   }
-  if (R.rain === 0) { if (Math.random() < R.tr.rain * .04) { R.rain = Math.random() < .35 ? 1 : .5; tick(t('rt.rainStart'), 'warn'); } }
+  if (R.rain === 0) { if (Math.random() < R.tr.rain * .04) scheduleWx(Math.random() < .35 ? 1 : .5); }
   else {
     const r = Math.random();
-    if (r < .12) { R.rain = 0; tick(t('rt.rainStop'), 'info'); }
-    else if (r < .27) { R.rain = R.rain === 1 ? .5 : 1; tick(t(R.rain === 1 ? 'rt.rainHeavy' : 'rt.rainLight'), 'warn'); }
+    if (r < .12) scheduleWx(0);
+    else if (r < .27) scheduleWx(R.rain === 1 ? .5 : 1);
   }
+}
+function scheduleWx(level) {
+  const n = ri(1, 2); R.wxNext = { rain: level, lap: R.leaderLap + n };
+  tick(t(R.tr.oval ? 'rt.rainSoonOval' : level === 0 ? 'rt.drySoon' : R.rain === 0 ? 'rt.rainSoon' : level > R.rain ? 'rt.heavySoon' : 'rt.lightSoon', { n }), level === 0 ? 'good' : 'warn');
+}
+function applyWx(level) {
+  if (R.tr.oval) {
+    if (R.leaderLap >= R.laps / 2) { tick(t('rt.rainCalled'), 'warn'); callRace(); }
+    else { R.redFlag = true; R.caution = R.lapTime * 2.4; R.rain = .5; tick(t('rt.redFlag'), 'bad'); }
+    return;
+  }
+  const was = R.rain; R.rain = level;
+  tick(t(level === 0 ? 'rt.rainStop' : was === 0 ? 'rt.rainStart' : level === 1 ? 'rt.rainHeavy' : 'rt.rainLight'), level === 0 ? 'info' : 'warn');
+}
+/* racing line: outside before a corner, inside at the apex, drifting out on the exit (in posLat units) */
+function racingLine(tr) {
+  const N = tr.N, W = 6;
+  let a = Array.from({ length: N }, (_, i) => { let d = tr.ang[(i + W) % N] - tr.ang[(i - W + N) % N]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; });
+  const sm = (arr, r, n) => { for (let p = 0; p < n; p++) arr = arr.map((v, i) => { let s = 0; for (let k = -r; k <= r; k++) s += arr[(i + k + N) % N]; return s / (2 * r + 1); }); return arr; };
+  a = sm(a, 6, 4);
+  const mx = Math.max(...a.map(Math.abs)) || 1; a = a.map(v => v / mx);
+  const lead = Math.round(N * .025);
+  let ln = a.map((v, i) => clamp(v * 1.1 - a[(i + lead) % N] * .9 - a[(i - lead + N) % N] * .4, -1, 1));
+  ln = sm(ln, 8, 3);
+  return { line: ln.map(v => v * .34 * (tr.oval ? .55 : 1) * tr.pitSide), sc: a };
 }
 function callRace() {
   R.called = true; R.leaderDone = true;
@@ -500,8 +526,55 @@ function posLat(prog, lat) {
 const posAt = (prog, lane) => posLat(prog, lane * .3);
 const smooth = x => x * x * (3 - 2 * x);
 const pitRamp = u => smooth(clamp(u / .22, 0, 1)) * smooth(clamp((1 - u) / .22, 0, 1));
+let MARKS = null;
+/* skid marks on the circuit: only when a car slides or locks up; they stay and get darker where it happens often */
+function skidMarks() {
+  if (!MARKS || R.caution > 0) return;
+  const g = MARKS.getContext('2d'), tr = R.tr, N = tr.N;
+  g.setTransform(DPR, 0, 0, DPR, 0, 0); g.lineCap = 'round';
+  R.cars.forEach(c => {
+    if (c.pit || c.dnf || c.finished || c.prog < 0) { c.mk = null; return; }
+    const i = ((Math.floor(c.prog) % N) + N) % N, ahead = tr.c[(i + 10) % N] - tr.c[i];
+    if (!tr.oval && c.lock <= 0 && ahead > .35 && (c.vNow || 0) > R.vScale * .7 && Math.random() < (c.mode === 2 ? .05 : .015) * (1 + R.wet)) c.lock = 10;
+    const on = c.mistT > 0 || c.lock > 0;
+    if (c.lock > 0) c.lock--;
+    if (!on) { c.mk = null; return; }
+    const p = carPos(c), a = p.ang + (c.yaw || 0), L = TW * .8, Wd = TW * .42;
+    const rx = p.x - Math.cos(a) * L * .3, ry = p.y - Math.sin(a) * L * .3, nx = -Math.sin(a) * Wd * .4, ny = Math.cos(a) * Wd * .4;
+    const cur = [rx + nx, ry + ny, rx - nx, ry - ny];
+    if (c.mk) {
+      g.strokeStyle = (c.offL || 0) > .45 ? 'rgba(70,52,30,.3)' : 'rgba(12,12,14,.16)'; g.lineWidth = Math.max(1, TW * .07);
+      g.beginPath(); g.moveTo(c.mk[0], c.mk[1]); g.lineTo(cur[0], cur[1]); g.moveTo(c.mk[2], c.mk[3]); g.lineTo(cur[2], cur[3]); g.stroke();
+    }
+    c.mk = cur;
+  });
+}
+/* weather icons in the top right of a map: current weather, then the forecast blinking red/yellow */
+function wxIcons(g, xr, y, rain, next, snow) {
+  const s = 22, blink = Math.floor(performance.now() / 350) % 2;
+  const icon = (x, lv, sn, warn) => {
+    g.fillStyle = 'rgba(0,0,0,.55)'; roundRect(g, x - 3, y - 3, s + 6, s + 6, 7); g.fill();
+    if (warn) { g.strokeStyle = blink ? '#ff3b30' : '#ffd400'; g.lineWidth = 2.5; roundRect(g, x - 3, y - 3, s + 6, s + 6, 7); g.stroke(); }
+    if (lv === 0 && !sn) {   // sun
+      g.fillStyle = '#ffd34d'; g.beginPath(); g.arc(x + s / 2, y + s / 2, s * .22, 0, 7); g.fill();
+      g.strokeStyle = '#ffd34d'; g.lineWidth = 1.6; g.beginPath();
+      for (let k = 0; k < 8; k++) { const an = k * Math.PI / 4; g.moveTo(x + s / 2 + Math.cos(an) * s * .32, y + s / 2 + Math.sin(an) * s * .32); g.lineTo(x + s / 2 + Math.cos(an) * s * .44, y + s / 2 + Math.sin(an) * s * .44); }
+      g.stroke(); return;
+    }
+    g.fillStyle = warn ? (blink ? '#ff6b5f' : '#ffd400') : '#cfd6e0';
+    g.beginPath(); g.arc(x + s * .36, y + s * .45, s * .2, 0, 7); g.arc(x + s * .6, y + s * .38, s * .25, 0, 7); g.arc(x + s * .76, y + s * .5, s * .17, 0, 7); g.rect(x + s * .2, y + s * .45, s * .6, s * .2); g.fill();
+    g.strokeStyle = sn ? '#fff' : '#6fb3ff'; g.lineWidth = 1.6; g.beginPath();
+    const n = sn ? 3 : lv >= 1 ? 4 : 2;
+    for (let k = 0; k < n; k++) { const xx = x + s * (.3 + k * .16); if (sn) { g.moveTo(xx - 1.5, y + s * .86); g.lineTo(xx + 1.5, y + s * .86); } else { g.moveTo(xx, y + s * .74); g.lineTo(xx - 2, y + s * .95); } }
+    g.stroke();
+  };
+  let x = xr - s;
+  if (next != null) { icon(x, next, false, true); x -= s + 10; g.fillStyle = '#fff'; g.font = `800 13px ${FC}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('›', x + s + 5, y + s / 2); g.textAlign = 'left'; x -= 2; }
+  icon(x, rain, snow, false);
+}
 function drawBG() {
   const W = CV.width / DPR, H = CV.height / DPR; BG = document.createElement('canvas'); BG.width = CV.width; BG.height = CV.height;
+  MARKS = document.createElement('canvas'); MARKS.width = CV.width; MARKS.height = CV.height;
   const g = BG.getContext('2d'); g.scale(DPR, DPR); const tr = R.tr, N = tr.N;
   g.fillStyle = tr.oval ? '#2b4f2d' : '#2c5a30'; g.fillRect(0, 0, W, H);
   g.globalAlpha = .07; g.fillStyle = '#000'; for (let x = 0; x < W; x += 26) g.fillRect(x, 0, 13, H); g.globalAlpha = 1;
@@ -538,15 +611,26 @@ function drawBG() {
   if (tr.oval) { g.strokeStyle = '#d2d6dc'; g.lineWidth = TW + 6; path(); g.stroke(); }
   g.strokeStyle = tr.oval ? '#484c53' : '#4c5057'; g.lineWidth = TW; path(); g.stroke();
   g.strokeStyle = 'rgba(255,255,255,.1)'; g.lineWidth = 1; g.setLineDash(tr.oval ? [6, 8] : [4, 10]); path(); g.stroke(); g.setLineDash([]);
-  if (!tr.oval) {   // kerbs: alternating red and white blocks along both edges of every corner
+  if (!tr.oval) {   // kerbs: red and white blocks on the inside of every corner, following its radius
     g.lineCap = 'butt'; g.lineWidth = Math.max(2, TW * .17);
-    const step = 3; let k = 0;
-    for (let i = 0; i < N; i += step) {
-      if (tr.c[i] <= .35) { k = 0; continue; }
-      for (const side of [-1, 1]) {
-        const a = posLat(i, side * .5), b = posLat(i + step, side * .5);
-        g.strokeStyle = k % 2 ? '#f2f2f2' : '#d1342a'; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
-      }
+    const dA = i => { let d = tr.ang[(i + 3) % N] - tr.ang[(i - 3 + N) % N]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
+    const rad = i => { const a = P(tr.pts[(i - 3 + N) % N]), b = P(tr.pts[(i + 3) % N]); return Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.max(1e-4, Math.abs(dA(i))); };
+    const tight = Array.from({ length: N }, (_, i) => rad(i) < TW * 7);
+    const on = tight.map((v, i) => { for (let d = -4; d <= 4; d++) if (tight[(i + d + N) % N]) return true; return false; });
+    // the side of a kerb run comes from its tightest point, so a run never flips sides
+    const side = new Array(N).fill(0);
+    for (let i = 0; i < N; i++) if (on[i] && !side[i]) {
+      let j = i, best = i; while (on[j % N] && j < i + N) { if (rad(j % N) < rad(best % N)) best = j; j++; }
+      const sd = Math.sign(dA(best % N)) * tr.pitSide;
+      for (let q = i; q < j; q++) side[q % N] = sd;
+    }
+    const lat = i => side[i] * Math.min(.5, rad(i) * .8 / TW);
+    let k = 0;
+    for (let i = 0; i < N; i += 2) {
+      const i2 = (i + 2) % N;
+      if (!on[i] || !on[i2] || !side[i]) { k = 0; continue; }
+      const a = posLat(i, lat(i)), b = posLat(i2, lat(i2));
+      g.strokeStyle = k % 2 ? '#f2f2f2' : '#d1342a'; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
       k++;
     }
     g.lineCap = 'round';
@@ -564,7 +648,10 @@ function drawBG() {
 function carPos(c) {
   if (c.pit) return posLat(c.prog, PIT_OFF * pitRamp(pitU(c)));
   if (c.dnf) return posLat(c.prog, -2.1);
-  return posAt(c.prog, c.lane);
+  const N = R.tr.N, f = ((c.prog % N) + N) % N, i0 = Math.floor(f), ln = lerp(R.line[i0], R.line[(i0 + 1) % N], f - i0);
+  const base = clamp(c.lane * .3 + ln * (c.lineK || 1) * (R.caution > 0 ? .3 : 1), -.44, .44);
+  // a car that slides (!) leaves the track on the outside of the corner, then rejoins
+  return posLat(c.prog, base + (c.offL || 0) * (c.offSide || 1) * (R.tr.oval ? .55 : 1.05));
 }
 function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 // top-down car: the nose points to +x; seat 1 cars carry a light nose band so teammates can be told apart
@@ -598,10 +685,25 @@ function drawCarShape(g, kind, color, num, L, Wd, seat = 0) {
   if (seat === 1) { g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(L * .4, -Wd * .3, L * .07, Wd * .6); }
 }
 function drawCar(g, c) {
-  const { x, y, ang } = carPos(c), L = TW * .8, Wd = TW * .42;
-  if (R.wet > .3 && !c.dnf && !(c.pit && c.pit.stage === 'stop')) {
-    g.fillStyle = `rgba(220,230,240,${.12 * R.wet})`;
-    g.beginPath(); g.ellipse(x - Math.cos(ang) * L * .9, y - Math.sin(ang) * L * .9, L * .7, Wd * .9, ang, 0, 7); g.fill();
+  const p0 = carPos(c), x = p0.x, y = p0.y, L = TW * .8, Wd = TW * .42;
+  // slip angle: the car turns in a little in corners (more in the wet, a lot when it slides)
+  const N = R.tr.N, i = ((Math.floor(c.prog) % N) + N) % N, base = { gt: .12, proto: .08, stock: .07 }[R.kind] || .1;
+  const sp = clamp((c.vNow || 0) / R.vScale, 0, 1.3);
+  let tY = c.pit || c.dnf ? 0 : (R.sc[i] || 0) * sp * base * (1 + R.wet * 1.2);
+  if (c.mistT > 0) tY += (c.evt === '!' ? .55 : .25) * (c.num % 2 ? 1 : -1);
+  c.yaw = lerp(c.yaw || 0, tY, .15);
+  if (c.mistT > 0 && c.evt === '!' && !c.pit && !c.offL) {   // slide off on the outside of the corner the car is in or entering
+    let best = 0; for (let k = -4; k <= 24; k++) { const v = R.sc[(i + k + N) % N] || 0; if (Math.abs(v) > Math.abs(best)) best = v; }
+    c.offSide = -(Math.sign(best) || (c.num % 2 ? 1 : -1)) * R.tr.pitSide;
+  }
+  c.offL = lerp(c.offL || 0, c.mistT > 0 && c.evt === '!' && !c.pit && !c.dnf ? 1 : 0, c.mistT > 0 ? .12 : .05);
+  if (c.offL < .01 && !(c.mistT > 0)) c.offL = 0;
+  const ang = p0.ang + c.yaw;
+  if (R.wet > .25 && !c.dnf && !(c.pit && c.pit.stage === 'stop') && sp > .3) {   // light spray curtain, never hides the cars behind
+    for (let k = 1; k <= 3; k++) {
+      g.fillStyle = `rgba(215,225,238,${(.1 - k * .022) * R.wet * Math.min(1, sp)})`;
+      g.beginPath(); g.ellipse(x - Math.cos(ang) * L * (.55 + k * .38), y - Math.sin(ang) * L * (.55 + k * .38), L * (.3 + k * .14), Wd * (.6 + k * .22), ang, 0, 7); g.fill();
+    }
   }
   if (night() && !c.dnf) {   // headlights
     const gr = g.createRadialGradient(x + Math.cos(ang) * L, y + Math.sin(ang) * L, 1, x + Math.cos(ang) * L * 1.6, y + Math.sin(ang) * L * 1.6, L * 1.6);
@@ -617,7 +719,8 @@ function drawCar(g, c) {
 function draw() {
   if (!R || R.headless) return;
   const g = CTX, W = CV.width / DPR, H = CV.height / DPR;
-  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(BG, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(BG, 0, 0); if (MARKS) g.drawImage(MARKS, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  skidMarks();
   if (night()) { g.fillStyle = 'rgba(6,10,28,.58)'; g.fillRect(0, 0, W, H); }
   if (R.wet > .02) { g.fillStyle = `rgba(25,40,65,${R.wet * .3})`; g.fillRect(0, 0, W, H); }
   R.cars.filter(c => !c.isMe).forEach(c => drawCar(g, c)); R.my.forEach(c => drawCar(g, c));
@@ -632,6 +735,7 @@ function draw() {
     g.stroke();
   }
   if (R.caution > 0) { g.strokeStyle = R.redFlag ? '#ff3b30' : '#ffd400'; g.lineWidth = 4; g.strokeRect(2, 2, W - 4, H - 4); }
+  wxIcons(g, W - 8, 8, R.rain, R.wxNext ? R.wxNext.rain : null, false);
   if (R.startT > 0) {
     const n = Math.ceil(R.startT / .55);
     g.fillStyle = 'rgba(0,0,0,.6)'; roundRect(g, W / 2 - 70, 10, 140, 34, 10); g.fill();

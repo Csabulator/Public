@@ -51,6 +51,18 @@ function makeDriver(tier, opts = {}) {
   };
 }
 const rookie = tier => makeDriver(tier, { skill: Math.max(18, TIER_BASE[tier] - 10), age: 19, contract: 1 });
+/* rally co-driver: same record as a driver, role 'co'. skill = pace-note accuracy, cons = calm / time keeping.
+   Co-drivers are paid less than drivers. */
+function makeCo(tier, opts = {}) {
+  const d = makeDriver(tier, opts);
+  d.role = 'co'; d.age = opts.age ?? ri(22, 44); d.salary = Math.round(salaryFor(d.skill) * .55 / 50) * 50;
+  d.pot = Math.round(clamp(d.skill + (d.age < 28 ? rnd(4, 16) : rnd(0, 6)), d.skill, 99));
+  return d;
+}
+const coRookie = tier => makeCo(tier, { skill: Math.max(18, TIER_BASE[tier] - 8), age: 23, contract: 1 });
+// a replacement for seat i that fits the seat's role
+const replacementFor = i => S.drivers[i] && S.drivers[i].role === 'co' ? coRookie(S.tier) : rookie(S.tier);
+const isRally = () => S && S.disc === 'rally';
 function makeTeam(tier, id, name, color, boost = 0) {
   const lvl = TIER_BASE[tier] + rnd(-9, 9) + boost;
   const drv = () => { const p = randomPerson(), D = clamp(lvl + rnd(-4, 10), 15, 98); return { ...p, D, W: clamp(D * rnd(.7, 1.05), 10, 98), K: rnd(40, 88), num: 0 }; };
@@ -72,6 +84,12 @@ function makeField(tier) {
   return out;
 }
 function newCalendar(disc) {
+  if (disc === 'rally') {   // 8 rallies, rallycross rounds at fixed places in the season
+    const ra = shuffle(RALLY_EVENTS.map((e, i) => i)).slice(0, DISC.rally.rounds - DISC.rally.rxRounds.length);
+    const rx = shuffle(RX_TRACKS.map((e, i) => RALLY_EVENTS.length + i));
+    DISC.rally.rxRounds.forEach((r, k) => ra.splice(r, 0, rx[k % rx.length]));
+    return ra;
+  }
   const pool = tracksOf(disc), sp = DISC[disc].special;
   let idx = shuffle(pool.map((t, i) => i)).slice(0, DISC[disc].rounds);
   if (sp.track) {   // the headline race always runs at its own track
@@ -88,14 +106,14 @@ function newGame(teamName, color, num, disc) {
     v: 5, teamName, color, num, num2: num < 99 ? num + 1 : 98, disc, tier: 0, season: 1, round: 0, money: START_MONEY, earned: 0, spent: 0, rep: 5,
     parts: { engine: 2, gearbox: 2, aero: 2, chassis: 2, brakes: 2, tires: 2 },
     staff: { eng: 1, pit: 1, shop: 1, sim: 1, mkt: 1 },
-    drivers: [makeDriver(0, { skill: 26, age: 21, cons: 44, wet: 22 }), makeDriver(0, { skill: 22, age: 19, cons: 40, wet: 18, contract: 1 })],
-    train: ['skill', 'skill'], sponsors: [], offers: [], market: [],
+    drivers: [makeDriver(0, { skill: 26, age: 21, cons: 44, wet: 22 }), disc === 'rally' ? makeCo(0, { skill: 30, age: 27, cons: 48, wet: 30 }) : makeDriver(0, { skill: 22, age: 19, cons: 40, wet: 18, contract: 1 })],
+    train: ['skill', disc === 'rally' ? 'notes' : 'skill'], sponsors: [], offers: [], market: [],
     rival: { name: rv, color: '#9b59b6' }, feud: 0, h2h: { me: 0, rv: 0 },
     field: [], calendar: newCalendar(disc), results: [], points: {}, dpoints: {},
     dev: [], rule: 'none', setups: {}, stats: { starts: 0, wins: 0, podiums: 0, poles: 0, dnfs: 0, points: 0, laps: 0 }, ach: {},
     news: [], history: [], titles: 0, titleDiscs: []
   };
-  S.drivers.forEach(d => { d.salary = salaryFor(d.skill); d.pot = Math.max(d.pot, 60); });
+  S.drivers.forEach(d => { d.salary = Math.round(salaryFor(d.skill) * (d.role === 'co' ? .55 : 1) / 50) * 50; d.pot = Math.max(d.pot, 60); });
   S.field = makeField(0);
   resetPoints(); genOffers(); genMarket();
   addNews('start', 'news.founded', { team: teamName, series: 'tier.' + disc + '.0' });
@@ -120,7 +138,9 @@ function genOffers() {
   });
 }
 function genMarket() {
-  S.market = Array.from({ length: 6 }, () => makeDriver(Math.min(3, S.tier + (Math.random() < .25 ? 1 : 0)), { contract: 2 }));
-  S.market.sort((a, b) => a.skill - b.skill);
+  const tierPick = () => Math.min(3, S.tier + (Math.random() < .25 ? 1 : 0));
+  S.market = Array.from({ length: S.disc === 'rally' ? 4 : 6 }, () => makeDriver(tierPick(), { contract: 2 }));
+  if (S.disc === 'rally') for (let i = 0; i < 3; i++) S.market.push(makeCo(tierPick(), { contract: 2 }));
+  S.market.sort((a, b) => (a.role === 'co') - (b.role === 'co') || a.skill - b.skill);
 }
 function addMoney(n) { n = Math.round(n); S.money += n; if (n >= 0) S.earned += n; else S.spent -= n; }
