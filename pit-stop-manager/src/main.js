@@ -2,6 +2,7 @@
 initLang();
 bindRaceControls();
 bindRallyControls();
+bindKeys();
 SND.paint();
 S = load();
 render();

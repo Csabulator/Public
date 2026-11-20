@@ -19,7 +19,29 @@ const curEvent = () => RALLY_POOL[S.calendar[Math.min(S.round, S.calendar.length
 const tyreOptions = ev => [...(ev.mix.A ? ['AS', 'AH', 'AW'] : []), ...(ev.mix.G || ev.mix.S ? ['GS', 'GH'] : []), ...(ev.mix.N ? ['SN'] : [])];
 const dayOf = loop => loop < 2 ? 0 : 1;
 
+/* ---------- saving a rally between stages ---------- */
+function rwSnapshot(at) {
+  if (!RW || RW.type !== 'rally') return;
+  RW.at = at;
+  const o = { ...RW, ev: undefined, evIdx: S.calendar[S.round], round: S.round, season: S.season };
+  S.rw = JSON.parse(JSON.stringify(o)); save();
+}
+const rwPending = () => S && S.rw && S.rw.round === S.round && S.rw.season === S.season;
+function rwResume() {
+  if (!rwPending()) { S.rw = null; render(); return; }
+  RW = { ...JSON.parse(JSON.stringify(S.rw)), ev: RALLY_POOL[S.rw.evIdx] };
+  const at = RW.at || { k: 'next' };
+  if (at.k === 'svc') openService(at.n);
+  else if (at.k === 'road') roadSection();
+  else if (at.k === 'run') { startStage(at.si); if (RL) { RL.speed = 99; } }   // left during a stage: it is driven automatically
+  else nextRallyStage();
+}
+const rwExitBtn = () => `<button class="btn block" style="margin-top:8px" id="rwExit">${t('rw.exit')}</button>`;
+function rwBindExit() { const b = $('#rwExit'); if (b) b.onclick = () => { closeModal(); RW = null; VIEW = 'home'; render(); toast(t('rw.saved')); }; }
+const keysHint = () => window.matchMedia && window.matchMedia('(pointer:fine)').matches ? `<div class="small muted" style="margin:6px 2px">${t('keys.hint')}</div>` : '';
+
 function openRallyWeekend() {
+  if (rwPending()) { rwResume(); return; }
   const ev = curEvent();
   if (ev.type === 'rx') { openRxWeekend(); return; }
   prepareRally(); rallyPreview();
@@ -97,6 +119,7 @@ function openService(n) {
   if (fc.rain > 0) f.push(t('rw.fcRain', { p: Math.round(fc.rain * 100) }));
   if (fc.snow > 0) f.push(t('rw.fcSnow', { p: Math.round(fc.snow * 100) }));
   const opts = tyreOptions(ev);
+  rwSnapshot({ k: 'svc', n });
   modal(`${rallyHead()}
    <h2 class="sec">${t('svc.title', { m: budget })}${forced ? ' · Super Rally' : ''}</h2>
    <div class="small muted" style="margin:-4px 2px 8px">${forced ? t('svc.srInfo') : t('svc.info')}</div>
@@ -121,7 +144,8 @@ function openService(n) {
     <div class="money-line"><span>${t('svc.tyreCost', { n: 4 + V.spares })}</span><b>${money(tyreCr)}</b></div>
     ${tooLate ? `<div class="small neg" style="margin-top:6px">${t('svc.tooLate')}</div>` : ''}
    </div>
-   <button class="btn pri block" style="margin-top:12px" id="svGo" ${tooLate ? 'disabled' : ''}>${t('svc.go', { n: loop + 1 })}</button>`);
+   <button class="btn pri block" style="margin-top:12px" id="svGo" ${tooLate ? 'disabled' : ''}>${t('svc.go', { n: loop + 1 })}</button>${rwExitBtn()}`);
+  rwBindExit();
   $('#mc').querySelectorAll('[data-fix]').forEach(sg => sg.onclick = e => { const b = e.target.closest('button'); if (!b || b.disabled) return; V.fix[sg.dataset.fix] = +b.dataset.lv; openService(n); });
   $('#svTy').onclick = e => { const b = e.target.closest('button'); if (b) { V.tyre = b.dataset.ty; openService(n); } };
   $('#svSp').onclick = e => { const b = e.target.closest('button'); if (b) { V.spares = +b.dataset.sp; openService(n); } };
@@ -152,6 +176,7 @@ function nextRallyStage() {
 function stageIntro(si) {
   const W = RW, sd = W.stages[si], loop = sd.loop, order = W.order[loop], p = order.indexOf('me_0') + 1;
   const st = genStage(W.ev, sd.seed, sd.km), wx = W.wx[loop];
+  rwSnapshot({ k: 'next' });
   modal(`<h3>${t('rl.ssName', { n: si + 1, name: esc(sd.name) })}${sd.power ? ' <span class="tag a">Power Stage</span>' : ''}</h3>
    <div class="small muted">${sd.km.toFixed(1)} km · ${surfText(st.frac)}${sd.pass ? ' · ' + t('rl.pass2') : ''}</div>
    <div class="card wx" style="margin-top:10px"><b>${wxBadge(wx, W.ev)}</b><div class="small muted">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}</div></div>
@@ -160,9 +185,10 @@ function stageIntro(si) {
     <div class="kpi"><small>${t('rl.overall')}</small><b>${si ? 'P' + (overallOrder().findIndex(c => c.isMe) + 1) : '–'}</b><div class="small muted">${si ? fmtGapLeader() : '&nbsp;'}</div></div>
    </div>
    ${sd.power ? `<div class="small muted" style="margin-top:8px">${t('rl.powerInfo')}</div>` : ''}
-   <div class="small muted" style="margin:10px 2px">${t('rl.howto')}</div>
-   <button class="btn pri block" id="ssGo">${t('rl.start')}</button>`);
-  $('#ssGo').onclick = () => { SND.unlock(); closeModal(); startStage(si); };
+   <div class="small muted" style="margin:10px 2px">${t('rl.howto')}</div>${keysHint()}
+   <button class="btn pri block" id="ssGo">${t('rl.start')}</button>${rwExitBtn()}`);
+  rwBindExit();
+  $('#ssGo').onclick = () => { SND.unlock(); closeModal(); rwSnapshot({ k: 'run', si }); startStage(si); };
 }
 function overallOrder() {
   return RW.crews.filter(c => !c.dnf).slice().sort((a, b) => (a.out && !a.sr) - (b.out && !b.sr) || (a.total + a.pen) - (b.total + b.pen));
@@ -248,12 +274,14 @@ function showStageResult(si, rank, next) {
 // road section between two stages of a loop: only the crew can work on the car
 function roadSection() {
   const W = RW, d = W.dmg, canFix = DMG_KEYS.some(k => d[k] > .02) || (W.flat && W.spares > 0);
+  rwSnapshot({ k: 'road' });
   modal(`<h3>${t('road.t')}</h3><p class="small muted">${t('road.p')}</p>
    <div class="card">${rallyTele(W)}<div class="small muted" style="margin-top:4px">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}${W.flat ? ' · <b class="neg">' + t('rl.flat') + '</b>' : ''}</div></div>
    <div class="row col" style="margin-top:12px">
     <button class="btn team" id="rdFix" ${canFix ? '' : 'disabled'}>${t('road.fix')}</button>
     <button class="btn pri" id="rdGo">${t('road.go')}</button>
-   </div>`);
+   </div>${rwExitBtn()}`);
+  rwBindExit();
   $('#rdFix').onclick = () => {
     ['susp', 'body'].forEach(k => { d[k] = Math.max(0, d[k] - .12 - S.drivers[1].cons / 1500); });
     if (W.flat && W.spares > 0) { W.flat = false; W.spares--; }
@@ -267,6 +295,7 @@ function finishRally() {
   const W = RW;
   const cls = overallOrder().filter(c => !c.dnf && !c.out);
   const dnf = W.crews.filter(c => !cls.includes(c));
+  S.rw = null;
   const res = applyRallyResult(cls, dnf, { type: 'rally', ps: W.ps || [], stageWins: W.stageWins, repairCost: W.repairCost + W.tyreCost, sr: W.srUsed, name: W.ev.id });
   RW = null; save();
   showRallyResult(res);
@@ -373,6 +402,23 @@ function showRallyResult(r) {
     VIEW = 'home'; render();
     runQueue(q, end);
   };
+}
+/* keyboard: Space = pause / resume, 1-4 = speed, B = BOX (circuit), J = joker (rallycross) */
+const KEY_SPEEDS = { '1': '0.5', '2': '1', '3': '2', '4': '4' };
+function bindKeys() {
+  let lastSpeed = {};
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ''))) return;
+    const race = !$('#race').classList.contains('hidden') && R, rally = !$('#rally').classList.contains('hidden') && RL;
+    if (!race && !rally) return;
+    if (!$('#modal').classList.contains('hidden')) return;
+    const seg = race ? '#rSpeed' : '#rlSpeed', cur = race ? R.speed : RL.speed, id = race ? 'race' : 'rally';
+    const press = v => { const b = $(`${seg} button[data-s="${v}"]`); if (b) b.click(); };
+    if (e.code === 'Space') { e.preventDefault(); if (cur > 0 && cur < 99) { lastSpeed[id] = cur; press('0'); } else if (cur === 0) press(String(lastSpeed[id] || raceSpeedPref())); }
+    else if (KEY_SPEEDS[e.key]) { e.preventDefault(); press(KEY_SPEEDS[e.key]); }
+    else if ((e.key === 'b' || e.key === 'B') && race) $('#rBox').click();
+    else if ((e.key === 'j' || e.key === 'J') && rally && RL.kind === 'rx') $('#rlJoker').click();
+  });
 }
 function bindRallyControls() {
   $('#rlSpeed').onclick = e => { const b = e.target.closest('button'); if (!b || !RL) return; RL.speed = +b.dataset.s; setSeg('#rlSpeed', 's', b.dataset.s); if (RL.speed > 0 && RL.speed < 99) { try { localStorage.setItem('boxutca_speed', b.dataset.s); } catch (x) { } } SND.unlock(); };

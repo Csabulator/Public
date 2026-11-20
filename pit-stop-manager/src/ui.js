@@ -81,7 +81,7 @@ function rallyNextCard() {
       ${bar}
       ${rx ? statRow(t('rx.jokerS'), ev.joker.out * 50, 'b') + statRow(t('trk.rain'), ev.rain * 100, 'w', 100, '%')
            : statRow(t('rw.rough'), ev.rough * 10, 'r') + statRow(t('rw.jumps'), ev.jumps * 10, 'b') + statRow(t('trk.rain'), (ev.rain + ev.snow) * 100, 'w', 100, '%')}
-      <button class="btn pri block" style="margin-top:12px" data-act="weekend">${rx ? t('rw.startRx') : t('rw.start')}</button>
+      <button class="btn pri block" style="margin-top:12px" data-act="weekend">${rwPending() ? t('rw.resume', { n: Math.min(RALLY_STAGES, (S.rw.si || 0) + 1), m: RALLY_STAGES }) : rx ? t('rw.startRx') : t('rw.start')}</button>
     </div>
   </div>`;
 }
@@ -398,7 +398,7 @@ function openQuali() {
    <div class="grid2" style="margin:4px 0 10px">${[0, 1].map(s => `<div class="kpi" style="text-align:center"><b class="bigpos">P${myPos[s]}</b><div class="small muted">#${s ? S.num2 : S.num} ${esc(S.drivers[s].name)}</div></div>`).join('')}</div>
    <div class="card gridlist">${W.grid.map((e, i) => `<div class="res g3 ${e.isMe ? 'me' : ''}"><span class="p">${i + 1}</span><span><span class="dot" style="background:${e.color}"></span>${esc(e.driver)} ${natTag(e.nat)} <span class="muted small">${esc(e.name)}</span>${e.isRival ? ' <span class="tt r">RIV</span>' : ''}</span><span class="small muted">#${e.num}</span></div>`).join('')}</div>
    ${W.tr.oval ? '' : `<h2 class="sec">${t('wk.startTire')}</h2>${[0, 1].map(s => `<div class="row" style="margin-bottom:6px"><span style="min-width:64px">#${s ? S.num2 : S.num}</span><div class="seg grow" data-wt="${s}"><button data-ty="S" class="${tires[s] === 'S' ? 'on' : ''}">${t('tire.S')}</button><button data-ty="W" class="${tires[s] === 'W' ? 'on' : ''}">${t('tire.W')}</button></div></div>`).join('')}<div class="small muted" style="margin-top:6px">${t('wk.tireInfo')}</div>`}
-   <div class="small muted" style="margin:12px 2px">${t('wk.howto')}</div>
+   <div class="small muted" style="margin:12px 2px">${t('wk.howto')}</div>${keysHint()}
    <div class="row"><button class="btn grow" id="backPr">${t('ui.back')}</button><button class="btn pri grow" id="goRace">${t('wk.go')}</button></div>`);
   $('#mc').querySelectorAll('[data-wt]').forEach(sg => sg.onclick = e => { const b = e.target.closest('button'); if (!b) return; tires[+sg.dataset.wt] = b.dataset.ty; sg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); });
   $('#backPr').onclick = openPractice;

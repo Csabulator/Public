@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.7.0 – 2026-11-20
+- Rally: progress is saved between stages. The stage start, service park and road section screens have a "Back to the main menu (saved)" button; the home screen then offers "Continue rally". Leaving or reloading during a stage drives that stage automatically on return, so a bad stage cannot be replayed.
+- Keyboard shortcuts in races, rally stages and rallycross: Space = pause / resume, 1–4 = speed (½×, 1×, 2×, 4×), B = BOX, J = joker. Shown as a hint on devices with a mouse.
+
 ## 3.6.3 – 2026-11-20
 - Circuit: a car that makes a mistake (!) now slides off the track on the outside of the corner (towards the wall on ovals), leaves brown marks on the grass and rejoins.
 - Rally: trees, rocks and spectators are kept clear of every part of the road, also where the road passes close to itself (checked on 360 stages: nothing on the road).

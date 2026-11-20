@@ -209,7 +209,7 @@ const rxResult = L => L.cars.slice().sort((a, b) => (a.dnf - b.dnf) || a.time - 
 function rxIntro(label, crews, laps, done) {
   modal(`<h3>${label}</h3><div class="small muted">${t('rx.laps', { n: laps })}</div>
    <div class="card gridlist" style="margin-top:10px">${crews.map((c, i) => `<div class="res g3 ${c.isMe ? 'me' : ''}"><span class="p">${i + 1}</span><span><span class="dot" style="background:${c.color}"></span>${esc(c.driver)} ${natTag(c.nat)}${c.isRival ? ' <span class="tt r">RIV</span>' : ''}</span><span class="small muted">#${c.num}</span></div>`).join('')}</div>
-   <div class="small muted" style="margin:10px 2px">${t('rx.howto', { p: RX_PEN })}</div>
+   <div class="small muted" style="margin:10px 2px">${t('rx.howto', { p: RX_PEN })}</div>${keysHint()}
    <button class="btn pri block" id="rxStart">${t('rl.start')}</button>`);
   $('#rxStart').onclick = () => { SND.unlock(); closeModal(); rxRun(label, crews, laps, done); };
 }
