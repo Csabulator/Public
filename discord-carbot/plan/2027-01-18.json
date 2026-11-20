@@ -1,0 +1,35 @@
+{
+  "_sugo": "Szerkesztheto: szoveg (max. a config.json max_karakter erteke, alapbol 300), kepek (max. 3 URL), allapot (tervezett / jovahagyott / kihagy), kuldes_ideje (pl. \"18:30\", ures = alapertelmezett). Masik auto: auto_id legyen egy id a cars/*.json-bol, vagy \"\" a sorsolashoz (ilyenkor a szoveg es a kepek is cserelodnek). muvelet: \"masik-auto\" | \"uj-kepek\" (kovetkezo 3 kep) | \"kuldes-most\". Mentes (commit) utan par percen belul feldolgozza.",
+  "sorszam": 15,
+  "nap": "2027-01-18",
+  "allapot": "tervezett",
+  "muvelet": "",
+  "probalkozas": 0,
+  "kikuldve": null,
+  "uzenet_id": null,
+  "auto_id": "vw-polo-r-wrc",
+  "auto_nev": "Volkswagen Polo R WRC",
+  "kategoria": "Rali – WRC",
+  "szoveg": "Volkswagen Polo R WRC (2013) – 1,6 l turbó soros 4, kb. 318 LE, 425 Nm, összkerék. 2013–16 között négy egyéni (Ogier) és négy márkacím.",
+  "kepek": [
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/70/Volkswagen_Polo_R_WRC_Street_IMG_8226.jpg/1920px-Volkswagen_Polo_R_WRC_Street_IMG_8226.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Volkswagen_Polo_R_WRC_Street_IMG_8226.jpg",
+      "szerzo": "Alexander Migl (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Volkswagen_Polo_R_WRC%2C_Geneva_2014_%28Ank_Kumar%29.jpg/1920px-Volkswagen_Polo_R_WRC%2C_Geneva_2014_%28Ank_Kumar%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Volkswagen_Polo_R_WRC,_Geneva_2014_(Ank_Kumar).jpg",
+      "szerzo": "Ank Kumar (CC BY-SA 4.0)"
+    },
+    {
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Volkswagen_Polo_R_WRC_-_Mondial_de_l%27Automobile_de_Paris_2014_-_002.jpg/1920px-Volkswagen_Polo_R_WRC_-_Mondial_de_l%27Automobile_de_Paris_2014_-_002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "oldal": "https://commons.wikimedia.org/wiki/File:Volkswagen_Polo_R_WRC_-_Mondial_de_l%27Automobile_de_Paris_2014_-_002.jpg",
+      "szerzo": "Thesupermat (CC BY-SA 3.0)"
+    }
+  ],
+  "kep_offset": 0,
+  "automatikus": false,
+  "hiba": null,
+  "figyelmeztetes": null
+}
