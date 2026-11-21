@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.11.3 – 2026-11-21
+- Lakes, sand traps, forests and grass patches have a closed, continuous outline (no step where the outline meets itself).
+
 ## 3.11.2 – 2026-11-21
 - No corner is tighter than a minimum radius any more (very sharp spline tips, e.g. the Sierra Desert hairpin, are rounded), so the inner edge and the kerb no longer fold over.
 - Kerbs follow the inner track edge in every corner.

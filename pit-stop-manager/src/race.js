@@ -598,8 +598,10 @@ function kerbRuns(tr) {
   return { on, side, rad, runs };
 }
 function blob(g, x, y, r, n, sr, wob = .35) {
+  // one radius per corner point; the outline closes on its first point, so there is no step where it meets itself
+  const rs = Array.from({ length: n }, () => r * (1 - wob / 2 + sr() * wob)); sr();   // the extra draw keeps every map's scenery where it was
   g.beginPath();
-  for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = r * (1 - wob / 2 + sr() * wob); const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr; k ? g.lineTo(px, py) : g.moveTo(px, py); }
+  for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2, px = x + Math.cos(a) * rs[k], py = y + Math.sin(a) * rs[k]; k ? g.lineTo(px, py) : g.moveTo(px, py); }
   g.closePath();
 }
 // scenery around the circuit: mottled grass, lakes, forests, car parks, buildings, paddock, service road
