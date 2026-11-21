@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.10.0 – 2026-11-21
+- New ¼× speed in every mode (circuit, oval, rally, rallycross); it is the default until another speed is chosen. Keys: 1–5 = ¼×, ½×, 1×, 2×, 4×.
+- Chase camera on circuits and ovals: zoomed in behind the selected car, the map turns with the road. Toggle with the button on the map or the C key; the choice is remembered. Shows position and car number in the corner.
+
 ## 3.9.3 – 2026-11-21
 - Nearly square screens (unfolded foldables) are back to the original layout: wide map on top, controls and leaderboard under it. The side-by-side layout squeezed the map. The message bar stays under the map, and the leaderboard scrolls inside the screen.
 

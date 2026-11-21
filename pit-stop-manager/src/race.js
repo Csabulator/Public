@@ -89,7 +89,7 @@ function startRace(startTires, opts = {}) {
   $('#rSeries').textContent = t('tier.' + S.disc + '.' + S.tier);
   $('#race').classList.remove('hidden'); document.body.style.overflow = 'hidden';
   $('#pTire').classList.toggle('hidden', tr.oval);
-  R.speed = raceSpeedPref(); setSeg('#rSpeed', 's', String(R.speed)); setSeg('#rOrd', 'o', 'free');
+  R.speed = raceSpeedPref(); R.cam = camPref(); camLabel(); setSeg('#rSpeed', 's', String(R.speed)); setSeg('#rOrd', 'o', 'free');
   selectCar(0);
   sizeCanvas(); drawBG();
   tick(t('rt.grid'));
@@ -109,7 +109,7 @@ function startRace(startTires, opts = {}) {
   };
   R.raf = requestAnimationFrame(loop);
 }
-function raceSpeedPref() { let v = .5; try { const x = +localStorage.getItem('boxutca_speed'); if ([.5, 1, 2, 4].includes(x)) v = x; } catch (e) { } return v; }
+function raceSpeedPref() { let v = .25; try { const x = +localStorage.getItem('boxutca_speed'); if ([.25, .5, 1, 2, 4].includes(x)) v = x; } catch (e) { } return v; }
 function setSeg(sel, key, val) { document.querySelectorAll(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset[key] === String(val))); }
 // kind: info | radio | warn | bad | good (colours the ticker edge)
 function tick(text, kind = 'info') {
@@ -468,6 +468,7 @@ function updateLB() {
   updateBoxBtn();
 }
 function bindRaceControls() {
+  $('#rCam').onclick = () => setCam(R && R.cam === 'chase' ? 'top' : 'chase');
   $('#rSpeed').onclick = e => { const b = e.target.closest('button'); if (!b || !R) return; R.speed = +b.dataset.s; setSeg('#rSpeed', 's', b.dataset.s); if (R.speed > 0 && R.speed < 99) { try { localStorage.setItem('boxutca_speed', b.dataset.s); } catch (x) { } } SND.unlock(); };
   $('#rCar').onclick = e => { const b = e.target.closest('button'); if (!b || !R) return; selectCar(+b.dataset.c); };
   $('#rMode').onclick = e => {
@@ -528,6 +529,22 @@ const posAt = (prog, lane) => posLat(prog, lane * .3);
 const smooth = x => x * x * (3 - 2 * x);
 const pitRamp = u => smooth(clamp(u / .22, 0, 1)) * smooth(clamp((1 - u) / .22, 0, 1));
 let MARKS = null;
+const CHASE_Z = 2.6;
+function camPref() { try { return localStorage.getItem('boxutca_cam') === 'chase' ? 'chase' : 'top'; } catch (e) { return 'top'; } }
+function camLabel() { const b = $('#rCam'); if (b && R) { b.textContent = R.cam === 'chase' ? t('cam.top') : t('cam.chase'); b.classList.toggle('on', R.cam === 'chase'); } }
+function setCam(v) {
+  if (!R) return; R.cam = v; R.camX = null; try { localStorage.setItem('boxutca_cam', v); } catch (e) { }
+  camLabel(); const old = MARKS; drawBG(); if (old) MARKS.getContext('2d').drawImage(old, 0, 0); draw();
+}
+// chase view: small position / gap line, because the leaderboard is out of sight on small screens
+function chaseHud(g, W, H) {
+  const ord = raceOrder(), me = R.my[R.sel], i = ord.indexOf(me);
+  if (i < 0) return;
+  const txt = `P${i + 1}  #${me.num}`;
+  g.font = '700 13px system-ui,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; const w = g.measureText(txt).width + 18;
+  g.fillStyle = 'rgba(0,0,0,.55)'; roundRect(g, 8, H - 34, w, 26, 8); g.fill();
+  g.fillStyle = '#ffb21e'; g.fillText(txt, 17, H - 16);
+}
 /* skid marks on the circuit: only when a car slides or locks up; they stay and get darker where it happens often */
 function skidMarks() {
   if (!MARKS || R.caution > 0) return;
@@ -696,10 +713,23 @@ function drawRunoff(g, tr, KR, sr) {
     g.setLineDash([2, 2]); poly(bar, Math.max(2, TW * .12), '#2a2c30'); g.setLineDash([]); poly(bar, 1, 'rgba(255,255,255,.35)');
   });
 }
+// average colour along the map edge: fills the area outside the map in the chase view without a hard border
+function edgeColour() {
+  try {
+    const g = BG.getContext('2d'), w = BG.width, h = BG.height; let r = 0, gg = 0, b = 0, n = 0;
+    for (const [x, y, ww, hh] of [[0, 0, w, 4], [0, h - 4, w, 4], [0, 0, 4, h], [w - 4, 0, 4, h]]) {
+      const d = g.getImageData(x, y, ww, hh).data; for (let i = 0; i < d.length; i += 16) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
+    }
+    return `rgb(${r / n | 0},${gg / n | 0},${b / n | 0})`;
+  } catch (e) { return null; }
+}
 function drawBG() {
-  const W = CV.width / DPR, H = CV.height / DPR; BG = document.createElement('canvas'); BG.width = CV.width; BG.height = CV.height;
+  const W = CV.width / DPR, H = CV.height / DPR; BG = document.createElement('canvas');
+  // the chase camera zooms in, so the background is drawn sharper then (kept under ~9 Mpx for phones)
+  const BS = R.cam === 'chase' ? Math.min(DPR * CHASE_Z, Math.sqrt(9e6 / (W * H))) : DPR;
+  BG.width = Math.round(W * BS); BG.height = Math.round(H * BS);
   MARKS = document.createElement('canvas'); MARKS.width = CV.width; MARKS.height = CV.height;
-  const g = BG.getContext('2d'); g.scale(DPR, DPR); const tr = R.tr, N = tr.N;
+  const g = BG.getContext('2d'); g.scale(BS, BS); const tr = R.tr, N = tr.N;
   g.fillStyle = tr.oval ? '#2b4f2d' : '#2c5a30'; g.fillRect(0, 0, W, H);
   const path = () => { g.beginPath(); tr.pts.forEach((p, i) => { const q = P(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); g.closePath(); };
   const near = (x, y, d) => { for (let i = 0; i < N; i += 4) { const q = P(tr.pts[i]); if (Math.hypot(q[0] - x, q[1] - y) < d) return true; } return false; };
@@ -756,6 +786,7 @@ function drawBG() {
   const pl = posLat(0, PIT_OFF); g.save(); g.translate(pl.x, pl.y); g.rotate(pl.ang); g.fillStyle = '#fff'; g.fillRect(-1, -TW * .3, 2, TW * .6); g.restore();
   const lbl = (pr, txt) => { const p = posLat(pr, PIT_OFF + 1.35); g.fillStyle = 'rgba(255,255,255,.8)'; g.font = `700 ${Math.max(8, Math.min(16, TW * .32))}px "Barlow Condensed","Arial Narrow",sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, p.x, p.y); };
   lbl(-tr.pitE + L * .06, 'PIT IN'); lbl(-tr.pitE + L * .94, 'PIT OUT');
+  R.edgeCol = R.cam === 'chase' ? edgeColour() : null;
 }
 function carPos(c) {
   if (c.pit) return posLat(c.prog, PIT_OFF * pitRamp(pitU(c)));
@@ -830,16 +861,32 @@ function drawCar(g, c) {
 }
 function draw() {
   if (!R || R.headless) return;
-  const g = CTX, W = CV.width / DPR, H = CV.height / DPR;
-  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(BG, 0, 0); if (MARKS) g.drawImage(MARKS, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = CTX, W = CV.width / DPR, H = CV.height / DPR, chase = R.cam === 'chase';
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  if (chase) {
+    // chase camera: zoomed in behind the selected car, the map turns so the car always drives up the screen
+    // the view points along the road a little ahead, so the track in front runs up the screen even in hairpins
+    const c = R.my[R.sel], p = carPos(c), q = posLat(c.prog + 5, 0), r0 = posLat(c.prog - 1, 0);
+    const aim = Math.atan2(q.y - r0.y, q.x - r0.x);
+    if (R.camX == null) { R.camX = p.x; R.camY = p.y; R.camA = aim; }
+    const da = Math.atan2(Math.sin(aim - R.camA), Math.cos(aim - R.camA));
+    R.camX = lerp(R.camX, p.x, .25); R.camY = lerp(R.camY, p.y, .25); R.camA += da * .14;
+    g.fillStyle = R.edgeCol || '#2c5a30'; g.fillRect(0, 0, CV.width, CV.height);
+    g.setTransform(DPR, 0, 0, DPR, 0, 0); g.translate(W / 2, H * .64); g.rotate(-R.camA - Math.PI / 2); g.scale(CHASE_Z, CHASE_Z); g.translate(-R.camX, -R.camY);
+    g.drawImage(BG, 0, 0, W, H); if (MARKS) g.drawImage(MARKS, 0, 0, W, H);
+  } else { R.camX = null; g.drawImage(BG, 0, 0, CV.width, CV.height); if (MARKS) g.drawImage(MARKS, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0); }
   skidMarks();
-  if (night()) { g.fillStyle = 'rgba(6,10,28,.58)'; g.fillRect(0, 0, W, H); }
-  if (R.wet > .02) { g.fillStyle = `rgba(25,40,65,${R.wet * .3})`; g.fillRect(0, 0, W, H); }
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+  if (night()) { g.fillStyle = 'rgba(6,10,28,.58)'; g.fillRect(0, 0, CV.width, CV.height); }
+  if (R.wet > .02) { g.fillStyle = `rgba(25,40,65,${R.wet * .3})`; g.fillRect(0, 0, CV.width, CV.height); }
+  g.restore();
   R.cars.filter(c => !c.isMe).forEach(c => drawCar(g, c)); R.my.forEach(c => drawCar(g, c));
   if (R.caution > 0 && !R.tr.oval) {
     const ld = R.cars.filter(c => !c.finished && !c.dnf && !c.pit).sort((a, b) => b.prog - a.prog)[0];
     if (ld) { const p = posAt(ld.prog + 14, 0); g.save(); g.translate(p.x, p.y); g.rotate(p.ang); drawCarShape(g, 'gt', '#e9ebee', '', TW * .72, TW * .38); g.fillStyle = '#ffb21e'; g.fillRect(-TW * .06, -TW * .13, TW * .12, TW * .26); g.restore(); }
   }
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (chase) chaseHud(g, W, H);
   if (R.rain > 0) {
     g.strokeStyle = 'rgba(200,215,235,.35)'; g.lineWidth = 1; g.beginPath();
     const n = R.rain * 140;
