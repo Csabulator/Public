@@ -135,7 +135,7 @@ function rxRepairHtml(final) {
   const d = RW.dmg, total = DMG_KEYS.reduce((a, k) => a + d[k], 0);
   if (total < .02) return '';
   const cr = Math.round(total * 2600 * TIER_MULT[S.tier] * (1 - S.staff.shop * .03) / 50) * 50;
-  return `<h2 class="sec">${t('rx.repairT')}</h2><div class="card">${rallyTele(RW)}<button class="btn team block" style="margin-top:8px" id="rxFix" data-cr="${cr}">${t('rx.repair', { m: money(cr) })}</button></div>`;
+  return `<h2 class="sec">${t('rx.repairT')}</h2><div class="tele tcard">${rallyTele({ dmg: RW.dmg, wear: RW.wear || 0 })}</div><button class="btn team block" style="margin-top:8px" id="rxFix" data-cr="${cr}">${t('rx.repair', { m: money(cr) })}</button>`;
 }
 function rxBindRepair(again) {
   const b = $('#rxFix'); if (!b) return;

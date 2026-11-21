@@ -406,6 +406,18 @@ function rlSizeCanvas() {
   RLC = { cv, g: cv.getContext('2d'), w, h, dpr };
 }
 window.addEventListener('resize', () => { if (RL) { rlSizeCanvas(); } });
+/* driving line across the full road width: wide on the way in, clip the inside at the apex, run wide again on the exit.
+   Worked out once per stage from the road's turning, in metres from the centre (+ = right of travel). */
+function rallyLine(st) {
+  const N = st.N, c = new Float32Array(N), raw = new Float32Array(N), R = 22;
+  for (let q = 0; q < N - 1; q++) { const d = st.h[q + 1] - st.h[q]; c[q] = Math.atan2(Math.sin(d), Math.cos(d)) / DS; }
+  const wt = []; for (let d = -R; d <= R; d++) wt.push(1.4 * Math.exp(-((d / 4) ** 2)) - .35 * Math.exp(-(((Math.abs(d) - 11) / 5) ** 2)));
+  for (let q = 0; q < N; q++) { let sum = 0; for (let d = -R; d <= R; d++) { const k = q + d; if (k >= 0 && k < N) sum += c[k] * wt[d + R]; } raw[q] = clamp(sum * 30, -2.6, 2.6); }
+  const out = new Float32Array(N);
+  for (let q = 0; q < N; q++) { let a = 0, n = 0; for (let d = -3; d <= 3; d++) { const k = q + d; if (k >= 0 && k < N) { a += raw[k]; n++; } } out[q] = a / n; }
+  for (let q = 0; q < 3 && q < N; q++) { out[q] *= q / 3; out[N - 1 - q] *= q / 3; }
+  return out;
+}
 const SCEN = { forest: ['#1d3523', '#2f5a35', '#3d6b3f'], snow: ['#cfd8e2', '#5d7a68', '#2f4a3a'], desert: ['#b9925c', '#8d6a3d', '#6f5534'], coast: ['#4c6b3a', '#6f8f4a', '#3b5a30'] };
 function drawStage() {
   const L = RL; if (!L || !RLC) return;
@@ -420,7 +432,8 @@ function drawStage() {
   // driving line and drift (visual only): cut towards the apex, the rear steps out on loose surfaces
   let cA = 0; for (let q = i; q < Math.min(st.N, i + 6); q++) cA += st.cv[q]; cA /= 6;
   const sfc = st.sf[i], loose = sfc === 'A' ? .36 : sfc === 'N' ? .56 : .5, mu = SURF[sfc].grip * (L.wx.wet ? .85 : 1);
-  const tLat = L.hold > 0 ? 0 : Math.sign(cA) * clamp(Math.abs(cA) * 70, 0, 2.2);
+  if (!st.rl) st.rl = rallyLine(st);
+  const tLat = L.hold > 0 ? 0 : lerp(st.rl[i], st.rl[j], fr) * [.75, .9, 1][L.mode];
   const tYaw = L.hold > 0 || L.v < 6 ? 0 : Math.sign(cA) * clamp(L.v * L.v * Math.abs(cA) / (9.81 * mu) * loose * [.75, 1, 1.3][L.mode], 0, .72);
   L.lat = lerp(L.lat || 0, tLat, sm(3.5)); L.yaw = lerp(L.yaw || 0, tYaw, sm(6));
   const wob = L.v > 10 && L.hold <= 0 ? (Math.sin(L.t * 1.7) * (sfc === 'A' ? .03 : .05) + Math.sin(L.t * 4.3 + 1) * .015) : 0;
@@ -456,13 +469,15 @@ function drawStage() {
   // lines along the road, offset sideways (metres): wheel ruts on loose surfaces, painted lines on tarmac
   const along = (off, test, style, wid, dash) => {
     g.strokeStyle = style; g.lineWidth = Math.max(1, wid * k); g.setLineDash(dash ? dash.map(d => d * k) : []);
-    let open = false;
+    let open = false, q0 = a;
     for (let q = a; q <= b; q++) {
       const okq = test(st.sf[q]);
       const nx = Math.cos(st.h[q] + Math.PI / 2), ny = Math.sin(st.h[q] + Math.PI / 2), xx = X(st.x[q] + nx * off), yy = Y(st.y[q] + ny * off);
-      if (okq && !open) { g.beginPath(); g.moveTo(xx, yy); open = true; } else if (okq) g.lineTo(xx, yy);
-      if ((!okq || q === b) && open) { g.stroke(); open = false; }
+      if (okq && !open) { g.beginPath(); g.moveTo(xx, yy); open = true; q0 = q; } else if (okq) g.lineTo(xx, yy);
+      // the dash pattern is tied to the distance along the stage, so it does not slide when the drawn window moves
+      if ((!okq || q === b) && open) { g.lineDashOffset = q0 * DS * k; g.stroke(); open = false; }
     }
+    g.lineDashOffset = 0;
     g.setLineDash([]);
   };
   const isLoose = sf => sf !== 'A';
@@ -627,7 +642,7 @@ function stageUI() {
   $('#rlLb').innerHTML = `<div class="pest small muted">${t('rl.liveTimes')}</div>` + fin.slice(0, 10).map((e, k) => lbRow(e.tm != null ? k + 1 : '–', e.c, e.tm == null ? (e.c.isMe ? (L.retired ? '<span class="g dnf">DNF</span>' : fmtT(L.t)) : '') : k === 0 ? fmtT(e.tm) : fmtGap(e.tm - best))).join('');
 }
 // same panel as on the circuit: car sketch on the left, bars on the right
-function rallyTele(W, head, foot = '') {
+function rallyTele(W, head = `#${S.num} · ${esc(lastName(S.drivers[0].name))}`, foot = '') {
   const d = W.dmg, bar = (k, v) => `<div class="trow"><span>${t('rdmg.' + k)}</span><div class="bar"><i style="width:${Math.round(v * 100)}%;background:${condCol(v)}"></i></div><b>${Math.round(v * 100)}%</b></div>`;
   const tw = clamp(1 - W.wear, 0, 1);
   const car = teleCarSVG({ wear: (1 - tw) * 1.2, tire: 'S', dmg: { a: d.body, s: d.susp, e: Math.max(d.engine, d.gear) } });

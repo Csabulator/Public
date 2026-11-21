@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.12.1 – 2026-11-21
+- Rally: the dashed centre line no longer slides as the car drives (the dash pattern is tied to the distance along the stage).
+- Rally: the car uses the whole road — wide on the way into a corner, inside at the apex, wide again on the exit (Attack uses the most width, Conserve the least).
+- The damage panel at the roadside repair, the stage result and the rallycross repair no longer shows "undefined".
+- Rally / rallycross result: the prize line now reads "Prize money (one car, Px)" and the salary line "driver + co-driver". The amount was always for the one car; the old label was copied from the two-car circuit screen.
+
 ## 3.12.0 – 2026-11-21
 - Rally and rallycross screens look like the circuit race screen: ✕ and sound button in the header, same map size, the same car panel (car sketch with damage, bars) and the same leaderboard rows (number, name, nationality, team).
 

@@ -267,7 +267,7 @@ function showStageResult(si, rank, next) {
    ${me.sr && !me.dnf ? `<div class="card warn small" style="margin-top:8px">${t('rl.srInfo')}</div>` : ''}
    <h2 class="sec">${t('rl.stageRes')}</h2><div class="card">${list(rank, c => c.times[si])}</div>
    <h2 class="sec">${t('rl.overallRes')}</h2><div class="card">${list(ov, c => c.total + c.pen)}</div>
-   ${!me.out ? `<h2 class="sec">${t('tele.dmg')}</h2><div class="card">${rallyTele(RW)}</div>` : ''}
+   ${!me.out ? `<h2 class="sec">${t('tele.dmg')}</h2><div class="tele tcard">${rallyTele(RW)}</div>` : ''}
    <button class="btn pri block" style="margin-top:12px" id="srNext">${t('ui.continue')}</button>`);
   $('#srNext').onclick = () => { closeModal(); next(); };
 }
@@ -276,7 +276,7 @@ function roadSection() {
   const W = RW, d = W.dmg, canFix = DMG_KEYS.some(k => d[k] > .02) || (W.flat && W.spares > 0);
   rwSnapshot({ k: 'road' });
   modal(`<h3>${t('road.t')}</h3><p class="small muted">${t('road.p')}</p>
-   <div class="card">${rallyTele(W)}<div class="small muted" style="margin-top:4px">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}${W.flat ? ' · <b class="neg">' + t('rl.flat') + '</b>' : ''}</div></div>
+   <div class="tele tcard">${rallyTele(W, undefined, `<span class="muted">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}</span>${W.flat ? ' <b class="neg">' + t('rl.flat') + '</b>' : ''}`)}</div>
    <div class="row col" style="margin-top:12px">
     <button class="btn team" id="rdFix" ${canFix ? '' : 'disabled'}>${t('road.fix')}</button>
     <button class="btn pri" id="rdGo">${t('road.go')}</button>
@@ -382,8 +382,8 @@ function showRallyResult(r) {
    <div class="small muted" style="margin-top:8px">${t('res.rival', { r: esc(S.rival.name), p: r.rvBest === 99 ? 'DNF' : 'P' + r.rvBest, a: S.h2h.me, b: S.h2h.rv })}</div>
    <h2 class="sec">${t('res.money')}</h2>
    <div class="card">
-    ${line(t('res.prize2'), r.prize, 'pos')}${line(t('res.spBase'), r.spBase, 'pos')}${line(t('res.spBonus'), r.spBonus, 'pos')}
-    ${line(t('res.salary2'), r.sal, 'neg')}${line(t('res.upkeep'), r.upk, 'neg')}${r.repair ? line(t('rres.service'), r.repair, 'neg') : ''}
+    ${line(t('res.prize1', { p: r.pos ? 'P' + r.pos : 'DNF' }), r.prize, 'pos')}${line(t('res.spBase'), r.spBase, 'pos')}${line(t('res.spBonus'), r.spBonus, 'pos')}
+    ${line(t('res.salaryRl'), r.sal, 'neg')}${line(t('res.upkeep'), r.upk, 'neg')}${r.repair ? line(t('rres.service'), r.repair, 'neg') : ''}
     <div class="money-line t"><span>${t('res.net')}</span><span class="${r.net >= 0 ? 'pos' : 'neg'}">${r.net >= 0 ? '+' : '−'}${money(Math.abs(r.net))}</span></div>
     ${r.spLines.length ? `<div class="small muted" style="margin-top:8px;line-height:1.6">${r.spLines.map(esc).join('<br>')}</div>` : ''}
     <div class="small muted" style="margin-top:6px">${t('res.rep')}: ${r.repD >= 0 ? '+' : ''}${r.repD.toFixed(1)} ★</div>
