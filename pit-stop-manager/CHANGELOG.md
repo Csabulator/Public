@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.9.1 – 2026-11-21
+- Unfolded foldables and other nearly square screens (from about 760 px wide) now get the map and the controls side by side, so the whole leaderboard fits without scrolling.
+- The message bar sits under the map instead of covering its bottom edge (circuit, rally and rallycross).
+
 ## 3.9.0 – 2026-11-21
 - Engine sound rebuilt per car type: firing frequency from rpm and cylinder count, gears with shifts, throttle load (louder and brighter on the gas, burble on the lift), random wander, exhaust rasp, pops on lifting, cars passing by on circuits and rallycross.
   - Stock car: deep cross-plane V8 with a strong lope and two sub-harmonics.

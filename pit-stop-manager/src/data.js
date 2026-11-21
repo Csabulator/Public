@@ -17,7 +17,7 @@ function shade(hex, amt) {
 }
 
 /* ===================== balance constants ===================== */
-const VERSION = '3.9.0';
+const VERSION = '3.9.1';
 const TEAM_COLORS = ['#e8392f', '#ff8a1e', '#f5c518', '#2fbf71', '#14b8c4', '#2f7bf5', '#7a4cf0', '#e64598', '#f2f2f2', '#2b2f36'];
 const TIER_BASE = [24, 45, 67, 88];          // AI performance level per tier
 const TIER_MULT = [1.25, 2.1, 3.6, 6.0];     // money multiplier per tier

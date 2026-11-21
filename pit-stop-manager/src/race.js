@@ -506,9 +506,10 @@ let CV, CTX, BG, DPR = 1, TW = 10;
 const FIT = { s: 1, ox: 0, oy: 0 };
 function sizeCanvas() {
   CV = $('#cv'); const st = $('#stage'), body = $('.race .rbody');
-  const side = getComputedStyle(body).display === 'grid';
+  const side = getComputedStyle(body).display === 'grid', tk = $('#rTick');
+  const tkH = tk ? tk.offsetHeight + 14 : 0;   // the message bar sits under the map, not on it
   const w = Math.max(200, st.clientWidth || Math.min(760, window.innerWidth));
-  const h = side ? Math.max(180, body.clientHeight) : Math.round(Math.max(170, Math.min(w * .7, window.innerHeight * .38)));
+  const h = side ? Math.max(180, body.clientHeight - tkH) : Math.round(Math.max(170, Math.min(w * .7, window.innerHeight * .38)));
   DPR = Math.min(2, window.devicePixelRatio || 1);
   CV.width = w * DPR; CV.height = h * DPR; CV.style.height = h + 'px'; CTX = CV.getContext('2d');
   const pad = Math.min(w, h) * .08;

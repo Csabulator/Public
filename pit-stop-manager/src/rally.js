@@ -400,8 +400,8 @@ function worldPat(g, tile, m, ox, oy, k) {
 let RLC = null;
 function rlSizeCanvas() {
   const cv = $('#rlCv'), box = $('#rlStage'), dpr = Math.min(2, window.devicePixelRatio || 1);
-  const wide = window.matchMedia('(min-aspect-ratio:5/4) and (min-width:640px)').matches;
-  const w = box.clientWidth || 360, h = wide ? Math.max(260, box.clientHeight) : Math.round(Math.min(w * .78, window.innerHeight * .5));
+  const wide = getComputedStyle($('#rally .rbody')).display === 'grid', tk = $('#rlTick'), tkH = tk ? tk.offsetHeight + 14 : 0;
+  const w = box.clientWidth || 360, h = wide ? Math.max(260, $('#rally .rbody').clientHeight - tkH) : Math.round(Math.min(w * .78, window.innerHeight * .5));
   cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
   RLC = { cv, g: cv.getContext('2d'), w, h, dpr };
 }
