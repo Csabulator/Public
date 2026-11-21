@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.11.1 – 2026-11-21
+- The chase camera is removed again: races are shown from above only. The slower ½× speed stays.
+
 ## 3.11.0 – 2026-11-21
 - ½× is now half as fast as before in every mode (it runs at the old ¼× pace); the separate ¼× button is gone. Keys 1–4 again.
 - The chase camera is now a real view from behind the car: low camera, perspective road and horizon, cars seen from behind with tail lights and wings, marker over your own cars. The overview stays the default.

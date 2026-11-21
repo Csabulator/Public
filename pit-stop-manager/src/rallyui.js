@@ -403,7 +403,7 @@ function showRallyResult(r) {
     runQueue(q, end);
   };
 }
-/* keyboard: Space = pause / resume, 1-4 = speed, B = BOX and C = camera (circuit), J = joker (rallycross) */
+/* keyboard: Space = pause / resume, 1-4 = speed, B = BOX (circuit), J = joker (rallycross) */
 const KEY_SPEEDS = { '1': '0.25', '2': '1', '3': '2', '4': '4' };
 function bindKeys() {
   let lastSpeed = {};
@@ -417,7 +417,6 @@ function bindKeys() {
     if (e.code === 'Space') { e.preventDefault(); if (cur > 0 && cur < 99) { lastSpeed[id] = cur; press('0'); } else if (cur === 0) press(String(lastSpeed[id] || raceSpeedPref())); }
     else if (KEY_SPEEDS[e.key]) { e.preventDefault(); press(KEY_SPEEDS[e.key]); }
     else if ((e.key === 'b' || e.key === 'B') && race) $('#rBox').click();
-    else if ((e.key === 'c' || e.key === 'C') && race) $('#rCam').click();
     else if ((e.key === 'j' || e.key === 'J') && rally && RL.kind === 'rx') $('#rlJoker').click();
   });
 }

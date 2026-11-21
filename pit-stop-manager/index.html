@@ -313,8 +313,6 @@ details.card summary{cursor:pointer;list-style:none}details.card summary::-webki
 .ev-ico{width:52px;height:40px;display:flex;align-items:center;justify-content:center;gap:3px;font-family:var(--fc);font-weight:800;color:var(--amber);background:var(--card2);border-radius:8px}
 .ev-ico i{width:9px;height:24px;border-radius:3px;display:block}
 
-.race .camBtn{position:absolute;left:8px;top:8px;z-index:2;background:rgba(10,12,16,.72);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:5px 10px;font-size:13px;font-weight:700}
-.race .camBtn.on{border-color:var(--amber);color:var(--amber)}
 
 </style>
 </head>
@@ -346,7 +344,7 @@ details.card summary{cursor:pointer;list-style:none}details.card summary::-webki
     <div class="lap" id="rLap">1/12</div>
   </div>
   <div class="rbody">
-    <div class="stage" id="stage"><canvas id="cv"></canvas><button class="camBtn" id="rCam" type="button"></button><div class="ticker" id="rTick"></div></div>
+    <div class="stage" id="stage"><canvas id="cv"></canvas><div class="ticker" id="rTick"></div></div>
     <div class="side">
       <div class="ctrl c2">
         <div class="seg carsel" id="rCar"><button data-c="0" class="on">#1</button><button data-c="1">#2</button></div>
@@ -420,7 +418,7 @@ function shade(hex, amt) {
 }
 
 /* ===================== balance constants ===================== */
-const VERSION = '3.11.0';
+const VERSION = '3.11.1';
 const TEAM_COLORS = ['#e8392f', '#ff8a1e', '#f5c518', '#2fbf71', '#14b8c4', '#2f7bf5', '#7a4cf0', '#e64598', '#f2f2f2', '#2b2f36'];
 const TIER_BASE = [24, 45, 67, 88];          // AI performance level per tier
 const TIER_MULT = [1.25, 2.1, 3.6, 6.0];     // money multiplier per tier
@@ -570,9 +568,7 @@ const I18N = {
     "rw.exit": "Kilépés a főmenübe (mentve)",
     "rw.saved": "Mentve. A rallyt a kezdőlapon folytathatod.",
     "rw.resume": "Rally folytatása · GYS {n}/{m}",
-    "keys.hint": "Billentyűk: Szóköz = szünet, 1–4 = sebesség (½×, 1×, 2×, 4×), B = BOX, C = kamera, J = Joker.",
-    "cam.chase": "🎥 Követő",
-    "cam.top": "🗺 Felülnézet",
+    "keys.hint": "Billentyűk: Szóköz = szünet, 1–4 = sebesség (½×, 1×, 2×, 4×), B = BOX, J = Joker.",
     "rt.rainSoon": "Eső közeleg: kb. {n} kör múlva megérkezik. Készüljetek az esőgumira!",
     "rt.heavySoon": "Kb. {n} kör múlva erősödik az eső.",
     "rt.lightSoon": "Kb. {n} kör múlva gyengül az eső.",
@@ -1103,9 +1099,7 @@ const I18N = {
     "rw.exit": "Back to the main menu (saved)",
     "rw.saved": "Saved. Continue the rally from the home screen.",
     "rw.resume": "Continue rally · SS {n}/{m}",
-    "keys.hint": "Keys: Space = pause, 1–4 = speed (½×, 1×, 2×, 4×), B = BOX, C = camera, J = joker.",
-    "cam.chase": "🎥 Chase",
-    "cam.top": "🗺 Overview",
+    "keys.hint": "Keys: Space = pause, 1–4 = speed (½×, 1×, 2×, 4×), B = BOX, J = joker.",
     "rt.rainSoon": "Rain is coming: about {n} laps away. Get ready for wet tyres!",
     "rt.heavySoon": "The rain will get heavier in about {n} laps.",
     "rt.lightSoon": "The rain will ease in about {n} laps.",
@@ -2628,7 +2622,7 @@ function startRace(startTires, opts = {}) {
   $('#rSeries').textContent = t('tier.' + S.disc + '.' + S.tier);
   $('#race').classList.remove('hidden'); document.body.style.overflow = 'hidden';
   $('#pTire').classList.toggle('hidden', tr.oval);
-  R.speed = raceSpeedPref(); R.cam = camPref(); camLabel(); setSeg('#rSpeed', 's', String(R.speed)); setSeg('#rOrd', 'o', 'free');
+  R.speed = raceSpeedPref(); setSeg('#rSpeed', 's', String(R.speed)); setSeg('#rOrd', 'o', 'free');
   selectCar(0);
   sizeCanvas(); drawBG();
   tick(t('rt.grid'));
@@ -3008,7 +3002,6 @@ function updateLB() {
   updateBoxBtn();
 }
 function bindRaceControls() {
-  $('#rCam').onclick = () => setCam(R && R.cam === 'chase' ? 'top' : 'chase');
   $('#rSpeed').onclick = e => { const b = e.target.closest('button'); if (!b || !R) return; R.speed = +b.dataset.s; setSeg('#rSpeed', 's', b.dataset.s); if (R.speed > 0 && R.speed < 99) { try { localStorage.setItem('boxutca_speed', b.dataset.s); } catch (x) { } } SND.unlock(); };
   $('#rCar').onclick = e => { const b = e.target.closest('button'); if (!b || !R) return; selectCar(+b.dataset.c); };
   $('#rMode').onclick = e => {
@@ -3069,129 +3062,11 @@ const posAt = (prog, lane) => posLat(prog, lane * .3);
 const smooth = x => x * x * (3 - 2 * x);
 const pitRamp = u => smooth(clamp(u / .22, 0, 1)) * smooth(clamp((1 - u) / .22, 0, 1));
 let MARKS = null;
-const CHASE_Z = 2.6;
-function camPref() { try { return localStorage.getItem('boxutca_cam') === 'chase' ? 'chase' : 'top'; } catch (e) { return 'top'; } }
-function camLabel() { const b = $('#rCam'); if (b && R) { b.textContent = R.cam === 'chase' ? t('cam.top') : t('cam.chase'); b.classList.toggle('on', R.cam === 'chase'); } }
-function setCam(v) {
-  if (!R) return; R.cam = v; R.camX = null; try { localStorage.setItem('boxutca_cam', v); } catch (e) { }
-  camLabel(); const old = MARKS; drawBG(); if (old) MARKS.getContext('2d').drawImage(old, 0, 0); draw();
-}
 // safety car position (it runs a little ahead of the leader)
 function scPos() {
   if (!(R.caution > 0) || R.tr.oval) return null;
   const ld = R.cars.filter(c => !c.finished && !c.dnf && !c.pit).sort((a, b) => b.prog - a.prog)[0];
   return ld ? posAt(ld.prog + 14, 0) : null;
-}
-/* ---------- chase camera: a low view from behind the selected car ----------
-   The ground is the same top-down map, turned so the car drives "up", then drawn row by row
-   with perspective (near rows big, far rows small). Cars are drawn as rear-view sprites. */
-const CH3 = { G: null, dummy: null };
-function chase3D(g, W, H) {
-  const me = R.my[R.sel], p = carPos(me), q = posLat(me.prog + 6, 0), r0 = posLat(me.prog - 1, 0);
-  const aim = Math.atan2(q.y - r0.y, q.x - r0.x);
-  if (R.camX == null) { R.camX = p.x; R.camY = p.y; R.camA = aim; }
-  R.camX = lerp(R.camX, p.x, .35); R.camY = lerp(R.camY, p.y, .35);
-  R.camA += Math.atan2(Math.sin(aim - R.camA), Math.cos(aim - R.camA)) * .1;
-  const a = R.camA, fx = Math.cos(a), fy = Math.sin(a), rx = -fy, ry = fx;
-  const D = TW * 3.3, camH = TW * 1.15, hor = Math.round(H * .36), F = (H * .76 - hor) * D / camH;
-  const Cx = R.camX - fx * D, Cy = R.camY - fy * D, zFar = TW * 34, zNear = TW * 1.3;
-  const Lmax = (W / 2) * zFar / F;
-  let sG = 1.6; const area = 2 * Lmax * zFar * sG * sG; if (area > 4e6) sG *= Math.sqrt(4e6 / area);
-  const gw = Math.ceil(2 * Lmax * sG), gh = Math.ceil(zFar * sG);
-  if (!CH3.G || CH3.G.width !== gw || CH3.G.height !== gh) { CH3.G = document.createElement('canvas'); CH3.G.width = gw; CH3.G.height = gh; }
-  const gc = CH3.G.getContext('2d');
-  gc.setTransform(1, 0, 0, 1, 0, 0); gc.fillStyle = R.edgeCol || '#2c5a30'; gc.fillRect(0, 0, gw, gh);
-  gc.setTransform(sG * rx, -sG * fx, sG * ry, -sG * fy, sG * Lmax - sG * (rx * Cx + ry * Cy), sG * zFar + sG * (fx * Cx + fy * Cy));
-  gc.drawImage(BG, 0, 0, W, H); if (MARKS) gc.drawImage(MARKS, 0, 0, W, H);
-  // keep skid marks, slides and spray state moving (drawn off screen)
-  if (!CH3.dummy) { const d = document.createElement('canvas'); d.width = d.height = 1; CH3.dummy = d.getContext('2d'); }
-  R.cars.forEach(c => drawCar(CH3.dummy, c)); skidMarks();
-  g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  // sky and distant hills (they slide sideways as the car turns)
-  const nt = night(), wet = R.wet || 0;
-  const sky = g.createLinearGradient(0, 0, 0, hor);
-  sky.addColorStop(0, nt ? '#070b1f' : wet > .3 ? '#5f6b78' : '#5d97d6'); sky.addColorStop(1, nt ? '#1d2448' : wet > .3 ? '#aab4bf' : '#cfe2f3');
-  g.fillStyle = sky; g.fillRect(0, 0, W, hor + 1);
-  const hill = (amp, per, col, off) => {
-    g.fillStyle = col; g.beginPath(); g.moveTo(0, hor + 1);
-    for (let x = 0; x <= W; x += 6) { const u = (x / W - .5) * 1.6 - a * per + off; g.lineTo(x, hor - amp * (.55 + .25 * Math.sin(u * 3.1) + .2 * Math.sin(u * 7.3 + 1.7))); }
-    g.lineTo(W, hor + 1); g.closePath(); g.fill();
-  };
-  hill(H * .09, 1, nt ? '#141a2c' : '#5f7d8f', 0); hill(H * .05, 1.6, nt ? '#0e1a14' : '#2f5a35', 2.3);
-  // ground, row by row
-  const hz = nt ? '#10182c' : wet > .3 ? '#8e9aa5' : '#b9cfd8';
-  g.fillStyle = hz; g.fillRect(0, hor, W, 3);
-  g.imageSmoothingEnabled = true;
-  for (let y = hor + 1; y < H; y++) {
-    const z = camH * F / (y - hor + .5); if (z > zFar) continue;
-    const hw = (W / 2) * z / F, sy = (zFar - z) * sG, sh = Math.max(1, sG * z * z / (camH * F));
-    g.drawImage(CH3.G, (Lmax - hw) * sG, sy, 2 * hw * sG, sh, 0, y, W, 1.2);
-  }
-  const fog = g.createLinearGradient(0, hor, 0, hor + (H - hor) * .3);
-  fog.addColorStop(0, hz); fog.addColorStop(1, 'rgba(0,0,0,0)');
-  g.save(); g.globalAlpha = .85; g.fillStyle = fog; g.fillRect(0, hor, W, (H - hor) * .3); g.restore();
-  if (nt) { g.fillStyle = 'rgba(6,10,28,.5)'; g.fillRect(0, hor, W, H - hor); }
-  if (wet > .02) { g.fillStyle = `rgba(25,40,65,${wet * .25})`; g.fillRect(0, hor, W, H - hor); }
-  // cars, far to near
-  const proj = (x, y) => { const dx = x - Cx, dy = y - Cy, z = dx * fx + dy * fy, l = dx * rx + dy * ry; return { z, sx: W / 2 + l * F / z, sy: hor + camH * F / z, k: F / z }; };
-  const items = [];
-  R.cars.forEach(c => { if (c.prog < -50) return; const cp = carPos(c), pr = proj(cp.x, cp.y); if (pr.z > zNear && pr.z < zFar) items.push({ pr, c, ang: cp.ang + (c.yaw || 0) * R.tr.pitSide }); });
-  const scp = scPos(); if (scp) { const pr = proj(scp.x, scp.y); if (pr.z > zNear && pr.z < zFar) items.push({ pr, sc: true, ang: scp.ang }); }
-  items.sort((u, v) => v.pr.z - u.pr.z).forEach(it => {
-    const { pr } = it; if (pr.sx < -TW * pr.k || pr.sx > W + TW * pr.k) return;
-    const rel = it.ang - a, haze = clamp((pr.z / zFar - .45) * 1.6, 0, .8);
-    if (it.sc) rearCar(g, pr.sx, pr.sy, pr.k * TW, rel, '#e9ebee', 'gt', false, true, '', haze, nt);
-    else rearCar(g, pr.sx, pr.sy, pr.k * TW, rel, it.c.color, R.kind, it.c.isMe, false, it.c.num, haze, nt, it.c === me, it.c.seat);
-  });
-}
-// a car seen from behind; s = pixels per track width at its distance
-function rearCar(g, x, y, s, rel, color, kind, mine, sc, num, haze, nt, focus, seat) {
-  const cs = Math.abs(Math.cos(rel)), sn = Math.abs(Math.sin(rel));
-  const w = s * (.44 * cs + .8 * sn), h = s * ({ stock: .3, proto: .22, rally: .3 }[kind] || .25);
-  g.save();
-  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(x, y, w * .62, Math.max(1, h * .2), 0, 0, 7); g.fill();
-  const tyre = (tx, tw) => { g.fillStyle = '#0c0c0d'; roundRect(g, tx, y - h * .5, tw, h * .5, Math.min(tw, h) * .2); g.fill(); };
-  const tw = s * .1;
-  tyre(x - w / 2 - tw * .1, tw); tyre(x + w / 2 - tw * .9, tw);
-  const dark = shade(color, -55), bodyTop = y - h * .95;
-  g.fillStyle = color; roundRect(g, x - w / 2 + tw * .3, bodyTop, w - tw * .6, h * .78, h * .14); g.fill();
-  g.fillStyle = dark; g.fillRect(x - w / 2 + tw * .3, y - h * .35, w - tw * .6, h * .18);   // diffuser
-  // cabin / glass
-  const cw = w * (kind === 'proto' ? .42 : kind === 'stock' ? .7 : .6), ch = h * (kind === 'proto' ? .34 : .42);
-  g.fillStyle = shade(color, -20); g.beginPath(); g.moveTo(x - cw / 2 - w * .06, bodyTop + 1); g.lineTo(x - cw / 2 + w * .05, bodyTop - ch); g.lineTo(x + cw / 2 - w * .05, bodyTop - ch); g.lineTo(x + cw / 2 + w * .06, bodyTop + 1); g.closePath(); g.fill();
-  g.fillStyle = nt ? '#0a0d14' : '#1b2430'; g.beginPath(); g.moveTo(x - cw / 2, bodyTop); g.lineTo(x - cw / 2 + w * .08, bodyTop - ch * .82); g.lineTo(x + cw / 2 - w * .08, bodyTop - ch * .82); g.lineTo(x + cw / 2, bodyTop); g.closePath(); g.fill();
-  // tail lights
-  const lw = Math.max(1.5, w * .14), lh = Math.max(1, h * .1), glow = nt || (R.wet || 0) > .3;
-  g.fillStyle = glow ? '#ff3030' : '#c4161c';
-  g.fillRect(x - w / 2 + tw * .5, bodyTop + h * .12, lw, lh); g.fillRect(x + w / 2 - tw * .5 - lw, bodyTop + h * .12, lw, lh);
-  if (glow) { g.fillStyle = 'rgba(255,40,40,.25)'; g.beginPath(); g.ellipse(x, bodyTop + h * .17, w * .6, h * .3, 0, 0, 7); g.fill(); }
-  // rear wing
-  if (kind !== 'stock') {
-    const wy = bodyTop - ch - h * (kind === 'proto' ? .05 : .18);
-    g.fillStyle = '#202328';
-    g.fillRect(x - w * .18, wy, Math.max(1, w * .02), bodyTop - wy); g.fillRect(x + w * .16, wy, Math.max(1, w * .02), bodyTop - wy);
-    g.fillStyle = shade(color, -70); g.fillRect(x - w * .4, wy, w * .8, Math.max(1.2, h * .07));
-    g.fillRect(x - w * .41, wy - h * .03, Math.max(1, w * .025), h * .17); g.fillRect(x + w * .385, wy - h * .03, Math.max(1, w * .025), h * .17);
-  } else { g.fillStyle = dark; g.fillRect(x - w * .42, bodyTop - h * .05, w * .84, Math.max(1, h * .07)); }
-  if (seat === 1) { g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(x - w * .38, bodyTop + h * .3, w * .76, Math.max(1, h * .05)); }
-  if (sc) { g.fillStyle = '#ffb21e'; g.fillRect(x - cw * .3, bodyTop - ch - h * .12, cw * .6, h * .1); }
-  if (num !== '' && s > 26) { g.fillStyle = '#fff'; g.font = `800 ${Math.round(h * .26)}px "Barlow Condensed","Arial Narrow",sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(num, x, bodyTop + h * .38); }
-  if (haze > 0) { g.globalAlpha = haze; g.fillStyle = nt ? '#10182c' : '#b9cfd8'; g.fillRect(x - w / 2 - 2, bodyTop - ch - h * .3, w + 4, h * 1.7 + ch); g.globalAlpha = 1; }
-  if (mine) {   // marker over own cars, bigger for the one the camera follows
-    const my = bodyTop - ch - h * .45 - (focus ? 4 : 0), m = Math.max(5, Math.min(12, s * .14));
-    g.fillStyle = focus ? '#ffb21e' : 'rgba(255,178,30,.6)'; g.beginPath(); g.moveTo(x - m, my - m); g.lineTo(x + m, my - m); g.lineTo(x, my); g.closePath(); g.fill();
-  }
-  g.restore();
-}
-
-// chase view: small position / gap line, because the leaderboard is out of sight on small screens
-function chaseHud(g, W, H) {
-  const ord = raceOrder(), me = R.my[R.sel], i = ord.indexOf(me);
-  if (i < 0) return;
-  const txt = `P${i + 1}  #${me.num}`;
-  g.font = '700 13px system-ui,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; const w = g.measureText(txt).width + 18;
-  g.fillStyle = 'rgba(0,0,0,.55)'; roundRect(g, 8, H - 34, w, 26, 8); g.fill();
-  g.fillStyle = '#ffb21e'; g.fillText(txt, 17, H - 16);
 }
 /* skid marks on the circuit: only when a car slides or locks up; they stay and get darker where it happens often */
 function skidMarks() {
@@ -3361,20 +3236,9 @@ function drawRunoff(g, tr, KR, sr) {
     g.setLineDash([2, 2]); poly(bar, Math.max(2, TW * .12), '#2a2c30'); g.setLineDash([]); poly(bar, 1, 'rgba(255,255,255,.35)');
   });
 }
-// average colour along the map edge: fills the area outside the map in the chase view without a hard border
-function edgeColour() {
-  try {
-    const g = BG.getContext('2d'), w = BG.width, h = BG.height; let r = 0, gg = 0, b = 0, n = 0;
-    for (const [x, y, ww, hh] of [[0, 0, w, 4], [0, h - 4, w, 4], [0, 0, 4, h], [w - 4, 0, 4, h]]) {
-      const d = g.getImageData(x, y, ww, hh).data; for (let i = 0; i < d.length; i += 16) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
-    }
-    return `rgb(${r / n | 0},${gg / n | 0},${b / n | 0})`;
-  } catch (e) { return null; }
-}
 function drawBG() {
   const W = CV.width / DPR, H = CV.height / DPR; BG = document.createElement('canvas');
-  // the chase camera zooms in, so the background is drawn sharper then (kept under ~9 Mpx for phones)
-  const BS = R.cam === 'chase' ? Math.min(DPR * CHASE_Z, Math.sqrt(9e6 / (W * H))) : DPR;
+  const BS = DPR;
   BG.width = Math.round(W * BS); BG.height = Math.round(H * BS);
   MARKS = document.createElement('canvas'); MARKS.width = CV.width; MARKS.height = CV.height;
   const g = BG.getContext('2d'); g.scale(BS, BS); const tr = R.tr, N = tr.N;
@@ -3434,7 +3298,6 @@ function drawBG() {
   const pl = posLat(0, PIT_OFF); g.save(); g.translate(pl.x, pl.y); g.rotate(pl.ang); g.fillStyle = '#fff'; g.fillRect(-1, -TW * .3, 2, TW * .6); g.restore();
   const lbl = (pr, txt) => { const p = posLat(pr, PIT_OFF + 1.35); g.fillStyle = 'rgba(255,255,255,.8)'; g.font = `700 ${Math.max(8, Math.min(16, TW * .32))}px "Barlow Condensed","Arial Narrow",sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, p.x, p.y); };
   lbl(-tr.pitE + L * .06, 'PIT IN'); lbl(-tr.pitE + L * .94, 'PIT OUT');
-  R.edgeCol = R.cam === 'chase' ? edgeColour() : null;
 }
 function carPos(c) {
   if (c.pit) return posLat(c.prog, PIT_OFF * pitRamp(pitU(c)));
@@ -3509,11 +3372,10 @@ function drawCar(g, c) {
 }
 function draw() {
   if (!R || R.headless) return;
-  const g = CTX, W = CV.width / DPR, H = CV.height / DPR, chase = R.cam === 'chase';
+  const g = CTX, W = CV.width / DPR, H = CV.height / DPR;
   g.setTransform(1, 0, 0, 1, 0, 0);
-  if (chase) chase3D(g, W, H);
-  else {
-    R.camX = null; g.drawImage(BG, 0, 0, CV.width, CV.height); if (MARKS) g.drawImage(MARKS, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  {
+    g.drawImage(BG, 0, 0, CV.width, CV.height); if (MARKS) g.drawImage(MARKS, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0);
     skidMarks();
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
     if (night()) { g.fillStyle = 'rgba(6,10,28,.58)'; g.fillRect(0, 0, CV.width, CV.height); }
@@ -3523,7 +3385,6 @@ function draw() {
     const sc = scPos(); if (sc) { g.save(); g.translate(sc.x, sc.y); g.rotate(sc.ang); drawCarShape(g, 'gt', '#e9ebee', '', TW * .72, TW * .38); g.fillStyle = '#ffb21e'; g.fillRect(-TW * .06, -TW * .13, TW * .12, TW * .26); g.restore(); }
   }
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if (chase) chaseHud(g, W, H);
   if (R.rain > 0) {
     g.strokeStyle = 'rgba(200,215,235,.35)'; g.lineWidth = 1; g.beginPath();
     const n = R.rain * 140;
@@ -5305,7 +5166,7 @@ function showRallyResult(r) {
     runQueue(q, end);
   };
 }
-/* keyboard: Space = pause / resume, 1-4 = speed, B = BOX and C = camera (circuit), J = joker (rallycross) */
+/* keyboard: Space = pause / resume, 1-4 = speed, B = BOX (circuit), J = joker (rallycross) */
 const KEY_SPEEDS = { '1': '0.25', '2': '1', '3': '2', '4': '4' };
 function bindKeys() {
   let lastSpeed = {};
@@ -5319,7 +5180,6 @@ function bindKeys() {
     if (e.code === 'Space') { e.preventDefault(); if (cur > 0 && cur < 99) { lastSpeed[id] = cur; press('0'); } else if (cur === 0) press(String(lastSpeed[id] || raceSpeedPref())); }
     else if (KEY_SPEEDS[e.key]) { e.preventDefault(); press(KEY_SPEEDS[e.key]); }
     else if ((e.key === 'b' || e.key === 'B') && race) $('#rBox').click();
-    else if ((e.key === 'c' || e.key === 'C') && race) $('#rCam').click();
     else if ((e.key === 'j' || e.key === 'J') && rally && RL.kind === 'rx') $('#rlJoker').click();
   });
 }
