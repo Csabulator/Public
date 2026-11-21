@@ -744,7 +744,7 @@ function drawBG() {
   g.strokeStyle = 'rgba(255,255,255,.72)'; g.lineWidth = Math.max(1, TW * .045);
   for (const sd of [-1, 1]) { g.beginPath(); for (let i = 0; i <= N; i += 2) { const q = posLat(i % N, sd * .46); i ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y); } g.closePath(); g.stroke(); }
   if (!tr.oval) {   // kerbs: red and white blocks on the inside of every corner, following its radius
-    const { on, side, rad } = KR, lat = i => side[i] * Math.min(.5, rad[i] * .8 / TW);
+    const { on, side } = KR, lat = i => side[i] * .5;   // the track never gets tighter than MIN_R, so the kerb can follow the inner edge
     g.lineCap = 'butt'; g.lineWidth = Math.max(2, TW * .17);
     let k = 0;
     for (let i = 0; i < N; i += 2) {

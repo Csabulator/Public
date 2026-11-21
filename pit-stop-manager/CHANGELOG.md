@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.11.2 – 2026-11-21
+- No corner is tighter than a minimum radius any more (very sharp spline tips, e.g. the Sierra Desert hairpin, are rounded), so the inner edge and the kerb no longer fold over.
+- Kerbs follow the inner track edge in every corner.
+
 ## 3.11.1 – 2026-11-21
 - The chase camera is removed again: races are shown from above only. The slower ½× speed stays.
 

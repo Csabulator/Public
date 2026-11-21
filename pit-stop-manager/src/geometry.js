@@ -58,11 +58,31 @@ function filletPath(pts, r) {
   }
   return dense;
 }
+// no corner tighter than r (map units): very sharp spline tips are rounded off, so the inner edge and its kerb never fold over
+function minRadius(pts, r, k = 3) {
+  const n = pts.length, P = pts.map(p => p.slice());
+  const rad = i => {
+    const a = P[(i - k + n) % n], b = P[i], c = P[(i + k) % n];
+    const ab = Math.hypot(b[0] - a[0], b[1] - a[1]), bc = Math.hypot(c[0] - b[0], c[1] - b[1]), ca = Math.hypot(a[0] - c[0], a[1] - c[1]);
+    const cr = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
+    return cr < 1e-12 ? 1e9 : ab * bc * ca / (2 * cr);
+  };
+  for (let it = 0; it < 400; it++) {
+    const bad = []; for (let i = 0; i < n; i++) if (rad(i) < r) bad.push(i);
+    if (!bad.length) break;
+    const mark = new Set(); bad.forEach(i => { for (let d = -k * 2; d <= k * 2; d++) mark.add((i + d + n) % n); });
+    const nx = P.map(p => p.slice());
+    mark.forEach(i => { const a = P[(i - 1 + n) % n], c = P[(i + 1) % n]; nx[i] = [lerp(P[i][0], (a[0] + c[0]) / 2, .5), lerp(P[i][1], (a[1] + c[1]) / 2, .5)]; });
+    for (let i = 0; i < n; i++) P[i] = nx[i];
+  }
+  return P;
+}
+const MIN_R = .06;
 const TRACK_CACHE = {};
 function buildTrack(pool, idx) {
   const key = pool + idx; if (TRACK_CACHE[key]) return TRACK_CACHE[key];
   const T = POOLS[pool][idx];
-  const raw = T.o ? ovalPts(T.o) : T.sharp ? filletPath(T.pts, .065) : catmull(T.pts, 24);
+  const raw = T.o ? ovalPts(T.o) : T.sharp ? filletPath(T.pts, .065) : minRadius(catmull(T.pts, 24), MIN_R);
   // resample by arc length into N equally spaced points
   const N = 800, seg = [0];
   for (let i = 1; i <= raw.length; i++) { const a = raw[i - 1], b = raw[i % raw.length]; seg.push(seg[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1])); }
