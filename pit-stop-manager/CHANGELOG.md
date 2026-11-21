@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.11.0 – 2026-11-21
+- ½× is now half as fast as before in every mode (it runs at the old ¼× pace); the separate ¼× button is gone. Keys 1–4 again.
+- The chase camera is now a real view from behind the car: low camera, perspective road and horizon, cars seen from behind with tail lights and wings, marker over your own cars. The overview stays the default.
+
 ## 3.10.0 – 2026-11-21
 - New ¼× speed in every mode (circuit, oval, rally, rallycross); it is the default until another speed is chosen. Keys: 1–5 = ¼×, ½×, 1×, 2×, 4×.
 - Chase camera on circuits and ovals: zoomed in behind the selected car, the map turns with the road. Toggle with the button on the map or the C key; the choice is remembered. Shows position and car number in the corner.

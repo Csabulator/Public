@@ -403,8 +403,8 @@ function showRallyResult(r) {
     runQueue(q, end);
   };
 }
-/* keyboard: Space = pause / resume, 1-5 = speed, B = BOX and C = camera (circuit), J = joker (rallycross) */
-const KEY_SPEEDS = { '1': '0.25', '2': '0.5', '3': '1', '4': '2', '5': '4' };
+/* keyboard: Space = pause / resume, 1-4 = speed, B = BOX and C = camera (circuit), J = joker (rallycross) */
+const KEY_SPEEDS = { '1': '0.25', '2': '1', '3': '2', '4': '4' };
 function bindKeys() {
   let lastSpeed = {};
   document.addEventListener('keydown', e => {
