@@ -572,22 +572,141 @@ function wxIcons(g, xr, y, rain, next, snow) {
   if (next != null) { icon(x, next, false, true); x -= s + 10; g.fillStyle = '#fff'; g.font = `800 13px ${FC}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('›', x + s + 5, y + s / 2); g.textAlign = 'left'; x -= 2; }
   icon(x, rain, snow, false);
 }
+/* ---------- detailed circuit map ---------- */
+// corner runs: where the track is tight, which side is the inside, local radius in pixels
+function kerbRuns(tr) {
+  const N = tr.N;
+  const dA = i => { let d = tr.ang[(i + 3) % N] - tr.ang[(i - 3 + N) % N]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
+  const rad = Array.from({ length: N }, (_, i) => { const a = P(tr.pts[(i - 3 + N) % N]), b = P(tr.pts[(i + 3) % N]); return Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.max(1e-4, Math.abs(dA(i))); });
+  const tight = rad.map(r => r < TW * 7);
+  const on = tight.map((v, i) => { for (let d = -4; d <= 4; d++) if (tight[(i + d + N) % N]) return true; return false; });
+  const side = new Array(N).fill(0), runs = [];
+  for (let i = 0; i < N; i++) if (on[i] && !side[i]) {
+    let j = i, best = i; while (on[j % N] && j < i + N) { if (rad[j % N] < rad[best % N]) best = j; j++; }
+    const sd = Math.sign(dA(best % N)) * tr.pitSide;
+    for (let q = i; q < j; q++) side[q % N] = sd;
+    runs.push({ s: i, e: j, apex: best % N, side: sd, r: rad[best % N] });
+  }
+  return { on, side, rad, runs };
+}
+function blob(g, x, y, r, n, sr, wob = .35) {
+  g.beginPath();
+  for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = r * (1 - wob / 2 + sr() * wob); const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr; k ? g.lineTo(px, py) : g.moveTo(px, py); }
+  g.closePath();
+}
+// scenery around the circuit: mottled grass, lakes, forests, car parks, buildings, paddock, service road
+function drawScenery(g, W, H, tr, sr, near, KR) {
+  for (let k = 0; k < 220; k++) { const x = sr() * W, y = sr() * H, r = 18 + sr() * 70; g.fillStyle = sr() < .5 ? 'rgba(255,255,240,.03)' : 'rgba(0,20,0,.05)'; blob(g, x, y, r, 9, sr, .5); g.fill(); }
+  g.globalAlpha = .06; g.fillStyle = '#000'; for (let x = 0; x < W; x += 26) g.fillRect(x, 0, 13, H); g.globalAlpha = 1;
+  const taken = [];
+  const free = (x, y, r) => x > r * .4 && y > r * .4 && x < W - r * .4 && y < H - r * .4 && !near(x, y, TW * 2.6 + r) && taken.every(t => Math.hypot(t[0] - x, t[1] - y) > t[2] + r);
+  // paddock behind the pit garages: team trucks and hospitality
+  const L = tr.pitE + tr.pitX;
+  let lastT = null;
+  for (let k = 0; k < 9; k++) {
+    const u = .3 + .4 * k / 8, p = posLat(-tr.pitE + u * L, PIT_OFF + 2.2);
+    if (near(p.x, p.y, TW * 1.5) || (lastT && Math.hypot(p.x - lastT.x, p.y - lastT.y) < TW * .9)) continue;
+    lastT = p;
+    g.save(); g.translate(p.x, p.y); g.rotate(p.ang + Math.PI / 2);
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(-TW * .45 + 2, -TW * .16 + 3, TW * .9, TW * .32);
+    g.fillStyle = '#e6e8ec'; g.fillRect(-TW * .45, -TW * .16, TW * .72, TW * .32);
+    g.fillStyle = AI_COLORS[k % AI_COLORS.length]; g.fillRect(TW * .29, -TW * .16, TW * .16, TW * .32);
+    g.restore(); taken.push([p.x, p.y, TW * .6]);
+  }
+  // lakes
+  for (let k = 0, n = 0; k < 60 && n < 2; k++) {
+    const x = sr() * W, y = sr() * H, r = TW * (1.3 + sr() * 1.8); if (!free(x, y, r * 1.35)) continue; n++;
+    const s0 = seed0(sr);
+    g.fillStyle = '#b8a880'; blob(g, x, y, r * 1.1, 14, mkr(s0), .3); g.fill();
+    g.fillStyle = '#2d5d7d'; blob(g, x, y, r, 14, mkr(s0), .3); g.fill();
+    g.fillStyle = 'rgba(120,180,220,.25)'; blob(g, x - r * .2, y - r * .25, r * .5, 10, sr, .3); g.fill();
+    taken.push([x, y, r * 1.3]);
+  }
+  // car parks with parked cars, and buildings
+  const lots = [];
+  for (let k = 0, n = 0; k < 90 && n < 5; k++) {
+    const w = TW * (2.4 + sr() * 2.2), h = TW * (1.8 + sr() * 1.2), x = sr() * W, y = sr() * H, r = Math.hypot(w, h) / 2;
+    if (!free(x, y, r)) continue; n++;
+    const ang = (sr() < .5 ? 0 : Math.PI / 2) + (sr() - .5) * .5, building = sr() < .35;
+    g.save(); g.translate(x, y); g.rotate(ang);
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(-w / 2 + 3, -h / 2 + 4, w, h);
+    if (building) {
+      g.fillStyle = '#9aa0a8'; g.fillRect(-w / 2, -h / 2, w, h * .6); g.fillStyle = '#c3c8cf'; g.fillRect(-w / 2, -h / 2, w, h * .12);
+      g.fillStyle = '#7d838b'; for (let q = 1; q < 5; q++) g.fillRect(-w / 2 + w * q / 5 - 1, -h / 2, 2, h * .6);
+    } else {
+      g.fillStyle = '#5f646b'; g.fillRect(-w / 2, -h / 2, w, h);
+      g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 1;
+      const rows = Math.max(2, Math.floor(h / (TW * .55))), sw = TW * .3;
+      for (let rI = 0; rI < rows; rI++) {
+        const yy = -h / 2 + (rI + .5) * h / rows;
+        g.beginPath(); g.moveTo(-w / 2 + 3, yy); g.lineTo(w / 2 - 3, yy); g.stroke();
+        for (let xx = -w / 2 + 3; xx < w / 2 - sw; xx += sw) {
+          if (sr() < .55) { g.fillStyle = ['#d9d9d9', '#2f6fd1', '#c33', '#222', '#e8c13a', '#7a8794'][Math.floor(sr() * 6)]; g.fillRect(xx + sw * .2, yy - (rI % 2 ? -2 : sw * .9), sw * .6, sw * .7); }
+        }
+      }
+    }
+    g.restore(); taken.push([x, y, r]); lots.push([x, y]);
+  }
+  // service road joining the car parks to the edge of the map
+  g.strokeStyle = '#6b7078'; g.lineWidth = Math.max(2, TW * .3); g.lineCap = 'round';
+  lots.forEach(([x, y]) => {
+    const ex = x < W / 2 ? 0 : W, ey = y;
+    let ok = true; for (let q = 0; q <= 10; q++) { const px = lerp(x, ex, q / 10); if (near(px, ey, TW * 1.4)) { ok = false; break; } }
+    if (ok) { g.beginPath(); g.moveTo(x, y); g.lineTo(ex, ey); g.stroke(); }
+  });
+  // grandstands on the outside of the bigger corners
+  (KR.runs || []).slice(0, 4).forEach(run => {
+    const p = posLat(run.apex, -run.side * 2.5); if (near(p.x, p.y, TW * 1.6)) return;
+    g.save(); g.translate(p.x, p.y); g.rotate(p.ang);
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(-TW * 1.2 + 2, -TW * .3 + 3, TW * 2.4, TW * .6);
+    for (let rI = 0; rI < 4; rI++) { g.fillStyle = rI % 2 ? '#3b4250' : '#4a5263'; g.fillRect(-TW * 1.2, -TW * .3 + rI * TW * .15, TW * 2.4, TW * .15); }
+    for (let q = 0; q < 26; q++) { g.fillStyle = ['#e8392f', '#2f7bf5', '#f5c518', '#fff', '#2fbf71'][q % 5]; g.fillRect(-TW * 1.15 + sr() * TW * 2.3, -TW * .28 + sr() * TW * .56, 1.6, 1.6); }
+    g.restore(); taken.push([p.x, p.y, TW * 1.3]);
+  });
+  // forests: dense clumps of trees, then scattered single trees
+  const tree = (x, y, r) => {
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.arc(x + r * .35, y + r * .45, r, 0, 7); g.fill();
+    g.fillStyle = sr() < .5 ? '#1d4421' : '#24522a'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    g.fillStyle = 'rgba(120,170,90,.22)'; g.beginPath(); g.arc(x - r * .3, y - r * .3, r * .5, 0, 7); g.fill();
+  };
+  for (let c = 0, n = 0; c < 120 && n < 12; c++) {
+    const cx = sr() * W, cy = sr() * H; if (!free(cx, cy, TW * 1.2)) continue; n++;
+    const R0 = TW * (1.4 + sr() * 1.6);
+    for (let k = 0; k < 40; k++) { const a = sr() * 7, d = Math.sqrt(sr()) * R0, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d, r = 3 + sr() * 5; if (free(x, y, r)) tree(x, y, r); }
+  }
+  for (let k = 0; k < 170; k++) { const x = sr() * W, y = sr() * H, r = 3 + sr() * 5; if (free(x, y, r)) tree(x, y, r); }
+}
+const seed0 = sr => Math.floor(sr() * 1e6);
+const mkr = s0 => { let q = s0; return () => ((q = (q * 9301 + 49297) % 233280) / 233280); };
+// run-off: gravel traps on the outside of corners with a tyre barrier behind them
+function drawRunoff(g, tr, KR, sr) {
+  const N = tr.N;
+  KR.runs.forEach((run, ri) => {
+    const len = run.e - run.s; if (len < 4 || run.r > TW * 4.5) return;   // only the real corners get a gravel trap
+    const tarmac = false;
+    const pts = [], bar = [];
+    const trim = Math.floor(len * .22);   // only around the middle of the corner, where cars slide off
+    for (let q = run.s + trim; q <= run.e - trim + 2; q += 2) { const i = ((q % N) + N) % N; pts.push(posLat(i, -run.side * .86)); bar.push(posLat(i, -run.side * 1.24)); }
+    if (pts.length < 3) return;
+    const poly = (arr, w, col) => { g.beginPath(); arr.forEach((p, k) => k ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.lineWidth = w; g.strokeStyle = col; g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke(); };
+    poly(pts, TW * .66, tarmac ? '#5d636b' : '#cdb98a');
+    if (!tarmac) { g.fillStyle = 'rgba(120,100,60,.35)'; pts.forEach(p => { for (let k = 0; k < 3; k++) g.fillRect(p.x + (sr() - .5) * TW * .55, p.y + (sr() - .5) * TW * .55, 1.2, 1.2); }); }
+    else { g.setLineDash([TW * .25, TW * .25]); poly(pts.map(p => p), TW * .08, 'rgba(220,40,40,.5)'); g.setLineDash([]); }
+    g.setLineDash([2, 2]); poly(bar, Math.max(2, TW * .12), '#2a2c30'); g.setLineDash([]); poly(bar, 1, 'rgba(255,255,255,.35)');
+  });
+}
 function drawBG() {
   const W = CV.width / DPR, H = CV.height / DPR; BG = document.createElement('canvas'); BG.width = CV.width; BG.height = CV.height;
   MARKS = document.createElement('canvas'); MARKS.width = CV.width; MARKS.height = CV.height;
   const g = BG.getContext('2d'); g.scale(DPR, DPR); const tr = R.tr, N = tr.N;
   g.fillStyle = tr.oval ? '#2b4f2d' : '#2c5a30'; g.fillRect(0, 0, W, H);
-  g.globalAlpha = .07; g.fillStyle = '#000'; for (let x = 0; x < W; x += 26) g.fillRect(x, 0, 13, H); g.globalAlpha = 1;
   const path = () => { g.beginPath(); tr.pts.forEach((p, i) => { const q = P(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); g.closePath(); };
-  const near = (x, y, d) => { for (let i = 0; i < N; i += 6) { const q = P(tr.pts[i]); if (Math.hypot(q[0] - x, q[1] - y) < d) return true; } return false; };
-  let seed = tr.idx * 9301 + 49297; const sr = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
-  if (!tr.oval) {
-    for (let k = 0; k < 70; k++) {
-      const x = sr() * W, y = sr() * H, r = 4 + sr() * 7; if (near(x, y, TW * 2.6 + r)) continue;
-      g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.arc(x + 2, y + 3, r, 0, 7); g.fill();
-      g.fillStyle = sr() < .5 ? '#1e4722' : '#25562a'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-    }
-  } else { path(); g.fillStyle = '#2e6232'; g.fill(); g.strokeStyle = '#7d8289'; g.lineWidth = TW * 1.9; g.lineJoin = 'round'; path(); g.stroke(); }
+  const near = (x, y, d) => { for (let i = 0; i < N; i += 4) { const q = P(tr.pts[i]); if (Math.hypot(q[0] - x, q[1] - y) < d) return true; } return false; };
+  let seed = tr.idx * 9301 + 49297 + (tr.oval ? 777 : 0); const sr = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  const KR = kerbRuns(tr);
+  drawScenery(g, W, H, tr, sr, near, KR);
+  if (tr.oval) { path(); g.fillStyle = '#2e6232'; g.fill(); g.strokeStyle = '#7d8289'; g.lineWidth = TW * 1.9; g.lineJoin = 'round'; path(); g.stroke(); }
+  else drawRunoff(g, tr, KR, sr);
   const gs = posLat(0, -1.6);
   g.save(); g.translate(gs.x, gs.y); g.rotate(gs.ang);
   for (let k = -3; k <= 3; k++) { g.fillStyle = k % 2 ? '#3b4250' : '#454d5c'; g.fillRect(k * TW * 1.1 - TW * .55, -TW * .4, TW * 1.05, TW * .8); }
@@ -611,20 +730,12 @@ function drawBG() {
   if (tr.oval) { g.strokeStyle = '#d2d6dc'; g.lineWidth = TW + 6; path(); g.stroke(); }
   g.strokeStyle = tr.oval ? '#484c53' : '#4c5057'; g.lineWidth = TW; path(); g.stroke();
   g.strokeStyle = 'rgba(255,255,255,.1)'; g.lineWidth = 1; g.setLineDash(tr.oval ? [6, 8] : [4, 10]); path(); g.stroke(); g.setLineDash([]);
+  // white track-limit lines along both edges
+  g.strokeStyle = 'rgba(255,255,255,.72)'; g.lineWidth = Math.max(1, TW * .045);
+  for (const sd of [-1, 1]) { g.beginPath(); for (let i = 0; i <= N; i += 2) { const q = posLat(i % N, sd * .46); i ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y); } g.closePath(); g.stroke(); }
   if (!tr.oval) {   // kerbs: red and white blocks on the inside of every corner, following its radius
+    const { on, side, rad } = KR, lat = i => side[i] * Math.min(.5, rad[i] * .8 / TW);
     g.lineCap = 'butt'; g.lineWidth = Math.max(2, TW * .17);
-    const dA = i => { let d = tr.ang[(i + 3) % N] - tr.ang[(i - 3 + N) % N]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
-    const rad = i => { const a = P(tr.pts[(i - 3 + N) % N]), b = P(tr.pts[(i + 3) % N]); return Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.max(1e-4, Math.abs(dA(i))); };
-    const tight = Array.from({ length: N }, (_, i) => rad(i) < TW * 7);
-    const on = tight.map((v, i) => { for (let d = -4; d <= 4; d++) if (tight[(i + d + N) % N]) return true; return false; });
-    // the side of a kerb run comes from its tightest point, so a run never flips sides
-    const side = new Array(N).fill(0);
-    for (let i = 0; i < N; i++) if (on[i] && !side[i]) {
-      let j = i, best = i; while (on[j % N] && j < i + N) { if (rad(j % N) < rad(best % N)) best = j; j++; }
-      const sd = Math.sign(dA(best % N)) * tr.pitSide;
-      for (let q = i; q < j; q++) side[q % N] = sd;
-    }
-    const lat = i => side[i] * Math.min(.5, rad(i) * .8 / TW);
     let k = 0;
     for (let i = 0; i < N; i += 2) {
       const i2 = (i + 2) % N;

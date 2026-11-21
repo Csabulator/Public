@@ -414,7 +414,7 @@ function shade(hex, amt) {
 }
 
 /* ===================== balance constants ===================== */
-const VERSION = '3.7.0';
+const VERSION = '3.8.0';
 const TEAM_COLORS = ['#e8392f', '#ff8a1e', '#f5c518', '#2fbf71', '#14b8c4', '#2f7bf5', '#7a4cf0', '#e64598', '#f2f2f2', '#2b2f36'];
 const TIER_BASE = [24, 45, 67, 88];          // AI performance level per tier
 const TIER_MULT = [1.25, 2.1, 3.6, 6.0];     // money multiplier per tier
@@ -2156,19 +2156,28 @@ const PROTO_BODY = 'M40 182 L40 160 Q38 128 44 116 L56 110 Q96 100 120 102 Q150 
 const RALLY_BODY = 'M560 178 L560 163 Q560 140 554 128 L548 118 Q544 110 534 107 L441 85 Q400 50 362 27 Q340 24 314 24 L152 26 Q136 28 130 32 L100 72 L87 92 Q80 104 77 118 L75 163 Q76 174 87 176 L111.9 176 A44 44 0 1 1 192.1 176 L425.9 176 A44 44 0 1 1 506.1 176 L548 178 Z';
 const STOCK_BODY = 'M48 596 L44 560 Q44 520 70 500 Q90 478 130 468 C200 455 280 446 330 438 L420 384 Q440 372 480 370 L630 370 Q662 372 692 396 L790 436 L884 440 L912 446 L922 454 Q930 492 922 530 L912 552 L758 574 A66 66 0 1 0 642 578 L636 592 L272 592 L264 586 A66 66 0 1 0 162 586 L150 592 L60 600 Z';
 function sideWheel(x, y, o) {
-  const n = 10; let spokes = '';
-  for (let i = 0; i < n; i++) {
-    const a = i / n * Math.PI * 2, d = .07, p = (r, aa) => `${(x + Math.cos(aa) * r).toFixed(1)} ${(y + Math.sin(aa) * r).toFixed(1)}`;
-    spokes += `<path d="M${p(6, a - .16)} L${p(25, a - d)} L${p(25, a + d)} L${p(6, a + .16)} Z" fill="${o.rim}"/>`;
+  const n = 10, p = (r, aa) => `${(x + Math.cos(aa) * r).toFixed(1)} ${(y + Math.sin(aa) * r).toFixed(1)}`;
+  let spokes = '', holes = '';
+  for (let i = 0; i < n; i++) {   // twin spokes with an edge shadow and a highlight
+    const a = i / n * Math.PI * 2, d = .065;
+    spokes += `<path d="M${p(7, a - .17)} L${p(25.5, a - d)} L${p(25.5, a + d)} L${p(7, a + .17)} Z" fill="${o.rim}" stroke="#000" stroke-opacity=".45" stroke-width=".7"/>`
+      + `<path d="M${p(7, a - .17)} L${p(25.5, a - d)} L${p(25.5, a + d)} L${p(7, a + .17)} Z" fill="url(#spoke${o.id})"/>`;
   }
-  const glow = o.glow ? `<circle cx="${x}" cy="${y}" r="20" fill="url(#bglow${o.id})" opacity="${o.glow}"/>` : '';
-  return `<g><circle cx="${x}" cy="${y}" r="38" fill="#101012"/><circle cx="${x}" cy="${y}" r="38" fill="url(#tyre${o.id})"/>
-    <circle cx="${x}" cy="${y}" r="28.5" fill="#1a1b1e"/><circle cx="${x}" cy="${y}" r="22" fill="url(#disc${o.id})"/>
-    <circle cx="${x}" cy="${y}" r="17" fill="none" stroke="#3b3e43" stroke-width="5" stroke-dasharray="1.2 2.4" opacity=".7"/>${glow}
-    <path d="M${x - 9} ${y - 20} A21 21 0 0 1 ${x + 11} ${y - 19} L${x + 8} ${y - 13} A14 14 0 0 0 ${x - 6} ${y - 14} Z" fill="${o.caliper}" transform="rotate(-30 ${x} ${y})"/>
-    ${spokes}<circle cx="${x}" cy="${y}" r="27" fill="none" stroke="${o.rim}" stroke-width="2.5"/>
-    <circle cx="${x}" cy="${y}" r="5.5" fill="#222"/><circle cx="${x}" cy="${y}" r="3" fill="#d33"/>
-    <path d="M${x - 30} ${y - 18} A35 35 0 0 1 ${x + 4} ${y - 35}" stroke="#fff" stroke-opacity=".08" stroke-width="3" fill="none"/></g>`;
+  for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; holes += `<circle cx="${(x + Math.cos(a) * 15).toFixed(1)}" cy="${(y + Math.sin(a) * 15).toFixed(1)}" r="1.1" fill="#2b2e33"/><circle cx="${(x + Math.cos(a + .17) * 19).toFixed(1)}" cy="${(y + Math.sin(a + .17) * 19).toFixed(1)}" r="1.1" fill="#2b2e33"/>`; }
+  const glow = o.glow ? `<circle cx="${x}" cy="${y}" r="21" fill="url(#bglow${o.id})" opacity="${o.glow}"/>` : '';
+  const tp = `tp${o.id}_${Math.round(x)}`;
+  return `<g><ellipse cx="${x}" cy="${y + 37}" rx="31" ry="4" fill="#000" opacity=".6"/>
+    <circle cx="${x}" cy="${y}" r="38" fill="#101012"/><circle cx="${x}" cy="${y}" r="38" fill="url(#tyre${o.id})"/>
+    <circle cx="${x}" cy="${y}" r="36.6" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="1"/>
+    <path id="${tp}" d="M${x - 33} ${y} A33 33 0 0 1 ${x + 33} ${y}" fill="none"/>
+    <text font-family="${FC}" font-weight="800" font-size="6" letter-spacing="1.3" fill="#d9dbe0" opacity=".5"><textPath href="#${tp}" startOffset="50%" text-anchor="middle">PIT STOP · SLICK</textPath></text>
+    <circle cx="${x}" cy="${y}" r="28.5" fill="url(#barrel${o.id})"/><circle cx="${x}" cy="${y}" r="22" fill="url(#disc${o.id})"/>
+    <circle cx="${x}" cy="${y}" r="21.5" fill="none" stroke="#5c6168" stroke-width="1" opacity=".8"/>${holes}${glow}
+    <path d="M${x - 9} ${y - 20} A21 21 0 0 1 ${x + 11} ${y - 19} L${x + 8} ${y - 13} A14 14 0 0 0 ${x - 6} ${y - 14} Z" fill="${o.caliper}" stroke="#000" stroke-opacity=".4" stroke-width=".8" transform="rotate(-30 ${x} ${y})"/>
+    ${spokes}<circle cx="${x}" cy="${y}" r="27" fill="none" stroke="${o.rim}" stroke-width="2.6"/><circle cx="${x}" cy="${y}" r="27" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="1"/>
+    <circle cx="${x}" cy="${y}" r="7.5" fill="${o.rim}"/><circle cx="${x}" cy="${y}" r="7.5" fill="url(#spoke${o.id})"/>
+    <path d="M${p(4.6, 0)} L${p(4.6, Math.PI / 3)} L${p(4.6, Math.PI * 2 / 3)} L${p(4.6, Math.PI)} L${p(4.6, Math.PI * 4 / 3)} L${p(4.6, Math.PI * 5 / 3)} Z" fill="#26282c"/><circle cx="${x}" cy="${y}" r="2.2" fill="#d33"/>
+    <path d="M${x - 30} ${y - 18} A35 35 0 0 1 ${x + 4} ${y - 35}" stroke="#fff" stroke-opacity=".1" stroke-width="3" fill="none"/></g>`;
 }
 function carSideSVG(opts) {
   const { kind = 'gt', color, num, parts, sponsor, bg = true } = opts;
@@ -2187,7 +2196,11 @@ function carSideSVG(opts) {
   const stripes = (pts) => `<path d="${pts[0]}" fill="#141518"/><path d="${pts[1]}" fill="${accent}"/><path d="${pts[2]}" fill="${shade(accent, -60)}"/>`;
   const defs = `<defs>
     <linearGradient id="body${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${light}"/><stop offset=".38" stop-color="${color}"/><stop offset=".75" stop-color="${mid}"/><stop offset="1" stop-color="${dark}"/></linearGradient>
-    <linearGradient id="glass${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c3a48"/><stop offset=".5" stop-color="#121a22"/><stop offset="1" stop-color="#0b0f14"/></linearGradient>
+    <linearGradient id="glass${id}" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#5a6f84"/><stop offset=".22" stop-color="#2e3d4c"/><stop offset=".5" stop-color="#141c25"/><stop offset="1" stop-color="#0a0e13"/></linearGradient>
+    <linearGradient id="ao${id}" x1="0" y1="0" x2="0" y2="1"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset=".82" stop-color="#000" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>
+    <linearGradient id="spec${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".14" stop-color="#fff" stop-opacity=".06"/><stop offset=".3" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="spoke${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>
+    <radialGradient id="barrel${id}" cx=".5" cy=".5" r=".5"><stop offset=".6" stop-color="#0c0d0f"/><stop offset=".95" stop-color="#2a2c31"/><stop offset="1" stop-color="#3a3d43"/></radialGradient>
     <linearGradient id="refl${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
     <radialGradient id="tyre${id}" cx=".5" cy=".5" r=".5"><stop offset=".7" stop-color="#18181b"/><stop offset=".93" stop-color="#2a2a2e"/><stop offset="1" stop-color="#0c0c0d"/></radialGradient>
     <radialGradient id="disc${id}" cx=".45" cy=".4" r=".6"><stop offset="0" stop-color="#9aa0a8"/><stop offset="1" stop-color="#4a4e55"/></radialGradient>
@@ -2212,7 +2225,7 @@ function carSideSVG(opts) {
     <circle cx="147" cy="158" r="42" fill="#070708"/><circle cx="502" cy="158" r="42" fill="#070708"/>
     <g transform="translate(0 ${-rideH})">
     ${aS >= 2 ? wing : ''}
-    <path d="${GT_BODY}" fill="url(#body${id})"/>
+    <path d="${GT_BODY}" fill="url(#body${id})"/><path d="${GT_BODY}" fill="url(#ao${id})"/><path d="${GT_BODY}" fill="url(#spec${id})"/>
     <g clip-path="url(#clip${id})">${stripes(['M456 150 C360 142 250 104 30 96 L30 103 C250 112 350 152 446 160 Z', 'M446 160 C350 152 250 113 30 104 L30 109 C250 119 345 157 438 165 Z', 'M438 165 C345 157 250 120 30 110 L30 115 C250 126 340 162 430 170 Z'])}${shine}</g>
     ${aS < 2 ? wing : ''}
     <path d="M188 170 L461 170 L459 160 L192 159 Z" fill="${carbon}"/>
@@ -2244,7 +2257,7 @@ function carSideSVG(opts) {
     <circle cx="136" cy="158" r="42" fill="#070708"/><circle cx="502" cy="158" r="42" fill="#070708"/>
     <g transform="translate(0 ${-rideH * .6})">
     <path d="M290 80 L${wx + 18} ${wy + 4} L${wx + 22} ${wy + 16} L272 98 Z" fill="${mid}"/><path d="M290 80 L${wx + 18} ${wy + 4}" stroke="${light}" stroke-width="2"/>
-    <path d="${PROTO_BODY}" fill="url(#body${id})"/>
+    <path d="${PROTO_BODY}" fill="url(#body${id})"/><path d="${PROTO_BODY}" fill="url(#ao${id})"/><path d="${PROTO_BODY}" fill="url(#spec${id})"/>
     <g clip-path="url(#clip${id})">${stripes(['M600 150 C470 140 330 150 36 112 L36 119 C330 157 470 147 600 157 Z', 'M600 157 C470 147 330 157 36 120 L36 125 C330 162 470 152 600 162 Z', 'M600 162 C470 152 330 162 36 126 L36 131 C330 167 470 157 600 167 Z'])}${shine}
       <path d="M36 168 L610 172 L610 190 L36 190 Z" fill="#000" opacity=".25"/></g>
     <path d="M264 104 Q278 86 304 84 Q332 85 350 102 L358 116 L264 116 Z" fill="url(#glass${id})" stroke="#0d0f12" stroke-width="2.5"/>
@@ -2274,7 +2287,7 @@ function carSideSVG(opts) {
     body = `<ellipse cx="318" cy="197" rx="262" ry="9" fill="#000" opacity=".7" filter="url(#blur${id})"/>
     <circle cx="152" cy="158" r="42" fill="#070708"/><circle cx="466" cy="158" r="42" fill="#070708"/>
     <g transform="translate(0 ${-rideH * .8})">
-    <path d="${RALLY_BODY}" fill="url(#body${id})"/>
+    <path d="${RALLY_BODY}" fill="url(#body${id})"/><path d="${RALLY_BODY}" fill="url(#ao${id})"/><path d="${RALLY_BODY}" fill="url(#spec${id})"/>
     <g clip-path="url(#clip${id})">${stripes(['M560 148 C450 138 300 118 70 96 L70 103 C300 125 450 145 560 155 Z', 'M560 155 C450 145 300 125 70 104 L70 109 C300 131 450 151 560 161 Z', 'M560 161 C450 151 300 131 70 110 L70 115 C300 137 450 157 560 167 Z'])}${shine}</g>
     <path d="M107 176 A48 48 0 0 1 197 176 M421 176 A48 48 0 0 1 511 176" fill="none" stroke="${dark}" stroke-width="7" opacity=".55"/>
     <path d="M428 88 L368 36 Q362 32 352 32 L175 33 L132 78 Q130 86 140 88 Z" fill="url(#glass${id})" stroke="#0d0f12" stroke-width="2.5"/>
@@ -2301,7 +2314,8 @@ function carSideSVG(opts) {
     const sh = 14 + aS * 11;   // spoiler blade height grows with aero
     const lower = color === '#f2f2f2' ? accent : '#f4f5f7';
     const band = color === '#f2f2f2' ? shade(accent, 40) : light;
-    const steel = x => `<g><circle cx="${x}" cy="158" r="38" fill="url(#tyre${id})"/>
+    const steel = x => `<g><ellipse cx="${x}" cy="195" rx="31" ry="4" fill="#000" opacity=".6"/><circle cx="${x}" cy="158" r="38" fill="url(#tyre${id})"/>
+      <path id="tps${id}_${x}" d="M${x - 33} 158 A33 33 0 0 1 ${x + 33} 158" fill="none"/><text font-family="${FC}" font-weight="800" font-size="6" letter-spacing="1.3" fill="#f2c94c" opacity=".7"><textPath href="#tps${id}_${x}" startOffset="50%" text-anchor="middle">PIT STOP · OVAL</textPath></text>
       <circle cx="${x}" cy="158" r="35" fill="none" stroke="${tS >= 1 ? '#c62828' : '#2a2b2f'}" stroke-width="1.2" opacity=".8"/>
       <circle cx="${x}" cy="158" r="25" fill="#16171a"/><circle cx="${x}" cy="158" r="25" fill="none" stroke="${rim}" stroke-width="3"/>
       ${glow ? `<circle cx="${x}" cy="158" r="21" fill="url(#bglow${id})" opacity="${glow}"/>` : ''}
@@ -2313,7 +2327,7 @@ function carSideSVG(opts) {
     <g transform="translate(0 ${-rideH * .5})">
     <g transform="${M}">
       <path d="M872 444 L${894 - aS * 2} ${443 - sh} L${908 - aS * 2} ${443 - sh} L914 447 Z" fill="${dark}" stroke="#9aa3ad" stroke-width="3" stroke-opacity=".6"/>
-      <path d="${STOCK_BODY}" fill="url(#body${id})"/>
+      <path d="${STOCK_BODY}" fill="url(#body${id})"/><path d="${STOCK_BODY}" fill="url(#ao${id})"/><path d="${STOCK_BODY}" fill="url(#spec${id})"/>
       <g clip-path="url(#clip${id})">
         <path d="M30 548 Q200 572 380 540 Q520 502 640 492 Q790 480 940 444 L940 474 Q790 508 640 522 Q520 532 380 566 Q200 596 30 566 Z" fill="${band}"/>
         <path d="M30 566 Q200 596 380 566 Q520 532 640 522 Q790 508 940 474 L940 640 L30 640 Z" fill="${lower}"/>
@@ -2997,22 +3011,141 @@ function wxIcons(g, xr, y, rain, next, snow) {
   if (next != null) { icon(x, next, false, true); x -= s + 10; g.fillStyle = '#fff'; g.font = `800 13px ${FC}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('›', x + s + 5, y + s / 2); g.textAlign = 'left'; x -= 2; }
   icon(x, rain, snow, false);
 }
+/* ---------- detailed circuit map ---------- */
+// corner runs: where the track is tight, which side is the inside, local radius in pixels
+function kerbRuns(tr) {
+  const N = tr.N;
+  const dA = i => { let d = tr.ang[(i + 3) % N] - tr.ang[(i - 3 + N) % N]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
+  const rad = Array.from({ length: N }, (_, i) => { const a = P(tr.pts[(i - 3 + N) % N]), b = P(tr.pts[(i + 3) % N]); return Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.max(1e-4, Math.abs(dA(i))); });
+  const tight = rad.map(r => r < TW * 7);
+  const on = tight.map((v, i) => { for (let d = -4; d <= 4; d++) if (tight[(i + d + N) % N]) return true; return false; });
+  const side = new Array(N).fill(0), runs = [];
+  for (let i = 0; i < N; i++) if (on[i] && !side[i]) {
+    let j = i, best = i; while (on[j % N] && j < i + N) { if (rad[j % N] < rad[best % N]) best = j; j++; }
+    const sd = Math.sign(dA(best % N)) * tr.pitSide;
+    for (let q = i; q < j; q++) side[q % N] = sd;
+    runs.push({ s: i, e: j, apex: best % N, side: sd, r: rad[best % N] });
+  }
+  return { on, side, rad, runs };
+}
+function blob(g, x, y, r, n, sr, wob = .35) {
+  g.beginPath();
+  for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = r * (1 - wob / 2 + sr() * wob); const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr; k ? g.lineTo(px, py) : g.moveTo(px, py); }
+  g.closePath();
+}
+// scenery around the circuit: mottled grass, lakes, forests, car parks, buildings, paddock, service road
+function drawScenery(g, W, H, tr, sr, near, KR) {
+  for (let k = 0; k < 220; k++) { const x = sr() * W, y = sr() * H, r = 18 + sr() * 70; g.fillStyle = sr() < .5 ? 'rgba(255,255,240,.03)' : 'rgba(0,20,0,.05)'; blob(g, x, y, r, 9, sr, .5); g.fill(); }
+  g.globalAlpha = .06; g.fillStyle = '#000'; for (let x = 0; x < W; x += 26) g.fillRect(x, 0, 13, H); g.globalAlpha = 1;
+  const taken = [];
+  const free = (x, y, r) => x > r * .4 && y > r * .4 && x < W - r * .4 && y < H - r * .4 && !near(x, y, TW * 2.6 + r) && taken.every(t => Math.hypot(t[0] - x, t[1] - y) > t[2] + r);
+  // paddock behind the pit garages: team trucks and hospitality
+  const L = tr.pitE + tr.pitX;
+  let lastT = null;
+  for (let k = 0; k < 9; k++) {
+    const u = .3 + .4 * k / 8, p = posLat(-tr.pitE + u * L, PIT_OFF + 2.2);
+    if (near(p.x, p.y, TW * 1.5) || (lastT && Math.hypot(p.x - lastT.x, p.y - lastT.y) < TW * .9)) continue;
+    lastT = p;
+    g.save(); g.translate(p.x, p.y); g.rotate(p.ang + Math.PI / 2);
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(-TW * .45 + 2, -TW * .16 + 3, TW * .9, TW * .32);
+    g.fillStyle = '#e6e8ec'; g.fillRect(-TW * .45, -TW * .16, TW * .72, TW * .32);
+    g.fillStyle = AI_COLORS[k % AI_COLORS.length]; g.fillRect(TW * .29, -TW * .16, TW * .16, TW * .32);
+    g.restore(); taken.push([p.x, p.y, TW * .6]);
+  }
+  // lakes
+  for (let k = 0, n = 0; k < 60 && n < 2; k++) {
+    const x = sr() * W, y = sr() * H, r = TW * (1.3 + sr() * 1.8); if (!free(x, y, r * 1.35)) continue; n++;
+    const s0 = seed0(sr);
+    g.fillStyle = '#b8a880'; blob(g, x, y, r * 1.1, 14, mkr(s0), .3); g.fill();
+    g.fillStyle = '#2d5d7d'; blob(g, x, y, r, 14, mkr(s0), .3); g.fill();
+    g.fillStyle = 'rgba(120,180,220,.25)'; blob(g, x - r * .2, y - r * .25, r * .5, 10, sr, .3); g.fill();
+    taken.push([x, y, r * 1.3]);
+  }
+  // car parks with parked cars, and buildings
+  const lots = [];
+  for (let k = 0, n = 0; k < 90 && n < 5; k++) {
+    const w = TW * (2.4 + sr() * 2.2), h = TW * (1.8 + sr() * 1.2), x = sr() * W, y = sr() * H, r = Math.hypot(w, h) / 2;
+    if (!free(x, y, r)) continue; n++;
+    const ang = (sr() < .5 ? 0 : Math.PI / 2) + (sr() - .5) * .5, building = sr() < .35;
+    g.save(); g.translate(x, y); g.rotate(ang);
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(-w / 2 + 3, -h / 2 + 4, w, h);
+    if (building) {
+      g.fillStyle = '#9aa0a8'; g.fillRect(-w / 2, -h / 2, w, h * .6); g.fillStyle = '#c3c8cf'; g.fillRect(-w / 2, -h / 2, w, h * .12);
+      g.fillStyle = '#7d838b'; for (let q = 1; q < 5; q++) g.fillRect(-w / 2 + w * q / 5 - 1, -h / 2, 2, h * .6);
+    } else {
+      g.fillStyle = '#5f646b'; g.fillRect(-w / 2, -h / 2, w, h);
+      g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 1;
+      const rows = Math.max(2, Math.floor(h / (TW * .55))), sw = TW * .3;
+      for (let rI = 0; rI < rows; rI++) {
+        const yy = -h / 2 + (rI + .5) * h / rows;
+        g.beginPath(); g.moveTo(-w / 2 + 3, yy); g.lineTo(w / 2 - 3, yy); g.stroke();
+        for (let xx = -w / 2 + 3; xx < w / 2 - sw; xx += sw) {
+          if (sr() < .55) { g.fillStyle = ['#d9d9d9', '#2f6fd1', '#c33', '#222', '#e8c13a', '#7a8794'][Math.floor(sr() * 6)]; g.fillRect(xx + sw * .2, yy - (rI % 2 ? -2 : sw * .9), sw * .6, sw * .7); }
+        }
+      }
+    }
+    g.restore(); taken.push([x, y, r]); lots.push([x, y]);
+  }
+  // service road joining the car parks to the edge of the map
+  g.strokeStyle = '#6b7078'; g.lineWidth = Math.max(2, TW * .3); g.lineCap = 'round';
+  lots.forEach(([x, y]) => {
+    const ex = x < W / 2 ? 0 : W, ey = y;
+    let ok = true; for (let q = 0; q <= 10; q++) { const px = lerp(x, ex, q / 10); if (near(px, ey, TW * 1.4)) { ok = false; break; } }
+    if (ok) { g.beginPath(); g.moveTo(x, y); g.lineTo(ex, ey); g.stroke(); }
+  });
+  // grandstands on the outside of the bigger corners
+  (KR.runs || []).slice(0, 4).forEach(run => {
+    const p = posLat(run.apex, -run.side * 2.5); if (near(p.x, p.y, TW * 1.6)) return;
+    g.save(); g.translate(p.x, p.y); g.rotate(p.ang);
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(-TW * 1.2 + 2, -TW * .3 + 3, TW * 2.4, TW * .6);
+    for (let rI = 0; rI < 4; rI++) { g.fillStyle = rI % 2 ? '#3b4250' : '#4a5263'; g.fillRect(-TW * 1.2, -TW * .3 + rI * TW * .15, TW * 2.4, TW * .15); }
+    for (let q = 0; q < 26; q++) { g.fillStyle = ['#e8392f', '#2f7bf5', '#f5c518', '#fff', '#2fbf71'][q % 5]; g.fillRect(-TW * 1.15 + sr() * TW * 2.3, -TW * .28 + sr() * TW * .56, 1.6, 1.6); }
+    g.restore(); taken.push([p.x, p.y, TW * 1.3]);
+  });
+  // forests: dense clumps of trees, then scattered single trees
+  const tree = (x, y, r) => {
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.arc(x + r * .35, y + r * .45, r, 0, 7); g.fill();
+    g.fillStyle = sr() < .5 ? '#1d4421' : '#24522a'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    g.fillStyle = 'rgba(120,170,90,.22)'; g.beginPath(); g.arc(x - r * .3, y - r * .3, r * .5, 0, 7); g.fill();
+  };
+  for (let c = 0, n = 0; c < 120 && n < 12; c++) {
+    const cx = sr() * W, cy = sr() * H; if (!free(cx, cy, TW * 1.2)) continue; n++;
+    const R0 = TW * (1.4 + sr() * 1.6);
+    for (let k = 0; k < 40; k++) { const a = sr() * 7, d = Math.sqrt(sr()) * R0, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d, r = 3 + sr() * 5; if (free(x, y, r)) tree(x, y, r); }
+  }
+  for (let k = 0; k < 170; k++) { const x = sr() * W, y = sr() * H, r = 3 + sr() * 5; if (free(x, y, r)) tree(x, y, r); }
+}
+const seed0 = sr => Math.floor(sr() * 1e6);
+const mkr = s0 => { let q = s0; return () => ((q = (q * 9301 + 49297) % 233280) / 233280); };
+// run-off: gravel traps on the outside of corners with a tyre barrier behind them
+function drawRunoff(g, tr, KR, sr) {
+  const N = tr.N;
+  KR.runs.forEach((run, ri) => {
+    const len = run.e - run.s; if (len < 4 || run.r > TW * 4.5) return;   // only the real corners get a gravel trap
+    const tarmac = false;
+    const pts = [], bar = [];
+    const trim = Math.floor(len * .22);   // only around the middle of the corner, where cars slide off
+    for (let q = run.s + trim; q <= run.e - trim + 2; q += 2) { const i = ((q % N) + N) % N; pts.push(posLat(i, -run.side * .86)); bar.push(posLat(i, -run.side * 1.24)); }
+    if (pts.length < 3) return;
+    const poly = (arr, w, col) => { g.beginPath(); arr.forEach((p, k) => k ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.lineWidth = w; g.strokeStyle = col; g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke(); };
+    poly(pts, TW * .66, tarmac ? '#5d636b' : '#cdb98a');
+    if (!tarmac) { g.fillStyle = 'rgba(120,100,60,.35)'; pts.forEach(p => { for (let k = 0; k < 3; k++) g.fillRect(p.x + (sr() - .5) * TW * .55, p.y + (sr() - .5) * TW * .55, 1.2, 1.2); }); }
+    else { g.setLineDash([TW * .25, TW * .25]); poly(pts.map(p => p), TW * .08, 'rgba(220,40,40,.5)'); g.setLineDash([]); }
+    g.setLineDash([2, 2]); poly(bar, Math.max(2, TW * .12), '#2a2c30'); g.setLineDash([]); poly(bar, 1, 'rgba(255,255,255,.35)');
+  });
+}
 function drawBG() {
   const W = CV.width / DPR, H = CV.height / DPR; BG = document.createElement('canvas'); BG.width = CV.width; BG.height = CV.height;
   MARKS = document.createElement('canvas'); MARKS.width = CV.width; MARKS.height = CV.height;
   const g = BG.getContext('2d'); g.scale(DPR, DPR); const tr = R.tr, N = tr.N;
   g.fillStyle = tr.oval ? '#2b4f2d' : '#2c5a30'; g.fillRect(0, 0, W, H);
-  g.globalAlpha = .07; g.fillStyle = '#000'; for (let x = 0; x < W; x += 26) g.fillRect(x, 0, 13, H); g.globalAlpha = 1;
   const path = () => { g.beginPath(); tr.pts.forEach((p, i) => { const q = P(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); g.closePath(); };
-  const near = (x, y, d) => { for (let i = 0; i < N; i += 6) { const q = P(tr.pts[i]); if (Math.hypot(q[0] - x, q[1] - y) < d) return true; } return false; };
-  let seed = tr.idx * 9301 + 49297; const sr = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
-  if (!tr.oval) {
-    for (let k = 0; k < 70; k++) {
-      const x = sr() * W, y = sr() * H, r = 4 + sr() * 7; if (near(x, y, TW * 2.6 + r)) continue;
-      g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.arc(x + 2, y + 3, r, 0, 7); g.fill();
-      g.fillStyle = sr() < .5 ? '#1e4722' : '#25562a'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-    }
-  } else { path(); g.fillStyle = '#2e6232'; g.fill(); g.strokeStyle = '#7d8289'; g.lineWidth = TW * 1.9; g.lineJoin = 'round'; path(); g.stroke(); }
+  const near = (x, y, d) => { for (let i = 0; i < N; i += 4) { const q = P(tr.pts[i]); if (Math.hypot(q[0] - x, q[1] - y) < d) return true; } return false; };
+  let seed = tr.idx * 9301 + 49297 + (tr.oval ? 777 : 0); const sr = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  const KR = kerbRuns(tr);
+  drawScenery(g, W, H, tr, sr, near, KR);
+  if (tr.oval) { path(); g.fillStyle = '#2e6232'; g.fill(); g.strokeStyle = '#7d8289'; g.lineWidth = TW * 1.9; g.lineJoin = 'round'; path(); g.stroke(); }
+  else drawRunoff(g, tr, KR, sr);
   const gs = posLat(0, -1.6);
   g.save(); g.translate(gs.x, gs.y); g.rotate(gs.ang);
   for (let k = -3; k <= 3; k++) { g.fillStyle = k % 2 ? '#3b4250' : '#454d5c'; g.fillRect(k * TW * 1.1 - TW * .55, -TW * .4, TW * 1.05, TW * .8); }
@@ -3036,20 +3169,12 @@ function drawBG() {
   if (tr.oval) { g.strokeStyle = '#d2d6dc'; g.lineWidth = TW + 6; path(); g.stroke(); }
   g.strokeStyle = tr.oval ? '#484c53' : '#4c5057'; g.lineWidth = TW; path(); g.stroke();
   g.strokeStyle = 'rgba(255,255,255,.1)'; g.lineWidth = 1; g.setLineDash(tr.oval ? [6, 8] : [4, 10]); path(); g.stroke(); g.setLineDash([]);
+  // white track-limit lines along both edges
+  g.strokeStyle = 'rgba(255,255,255,.72)'; g.lineWidth = Math.max(1, TW * .045);
+  for (const sd of [-1, 1]) { g.beginPath(); for (let i = 0; i <= N; i += 2) { const q = posLat(i % N, sd * .46); i ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y); } g.closePath(); g.stroke(); }
   if (!tr.oval) {   // kerbs: red and white blocks on the inside of every corner, following its radius
+    const { on, side, rad } = KR, lat = i => side[i] * Math.min(.5, rad[i] * .8 / TW);
     g.lineCap = 'butt'; g.lineWidth = Math.max(2, TW * .17);
-    const dA = i => { let d = tr.ang[(i + 3) % N] - tr.ang[(i - 3 + N) % N]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
-    const rad = i => { const a = P(tr.pts[(i - 3 + N) % N]), b = P(tr.pts[(i + 3) % N]); return Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.max(1e-4, Math.abs(dA(i))); };
-    const tight = Array.from({ length: N }, (_, i) => rad(i) < TW * 7);
-    const on = tight.map((v, i) => { for (let d = -4; d <= 4; d++) if (tight[(i + d + N) % N]) return true; return false; });
-    // the side of a kerb run comes from its tightest point, so a run never flips sides
-    const side = new Array(N).fill(0);
-    for (let i = 0; i < N; i++) if (on[i] && !side[i]) {
-      let j = i, best = i; while (on[j % N] && j < i + N) { if (rad(j % N) < rad(best % N)) best = j; j++; }
-      const sd = Math.sign(dA(best % N)) * tr.pitSide;
-      for (let q = i; q < j; q++) side[q % N] = sd;
-    }
-    const lat = i => side[i] * Math.min(.5, rad(i) * .8 / TW);
     let k = 0;
     for (let i = 0; i < N; i += 2) {
       const i2 = (i + 2) % N;
@@ -3913,25 +4038,83 @@ function genStage(ev, seed, km) {
   }
   const tw = ev.twist, W = [.05 + .12 * tw, .1 + .15 * tw, .2, .25, .2 * (1.3 - tw), .2 * (1.4 - tw)];
   const RAD = [12, 22, 38, 60, 95, 150];
-  let i = Math.round(rr(40, 80) / DS), drift = 0;
-  const corners = [];
-  while (i < N) {
-    const sl = Math.max(4, Math.round(rr(40, 300) * (1.6 - tw) / DS));
-    if (sl > 16 && R() < ev.jumps * .55) ft[Math.min(N - 1, i + Math.floor(sl / 2))] = 1;
-    else if (sl > 12 && sf[i] !== 'A' && R() < .07) ft[Math.min(N - 1, i + Math.floor(sl / 2))] = 2;
-    i += sl; if (i >= N) break;
-    let r = R() * W.reduce((a, b) => a + b, 0), sev = 1;
-    for (let k = 0; k < 6; k++) { r -= W[k]; if (r <= 0) { sev = k + 1; break; } }
-    const Rm = RAD[sev - 1], ang = sev === 1 ? rr(2.4, 3.0) : rr(.4, 1.5);
-    let dir = R() < .5 ? -1 : 1; if (Math.abs(drift) > 2.4) dir = -Math.sign(drift);
-    const len = Math.max(2, Math.round(ang * Rm / DS));
-    corners.push({ s: i, e: Math.min(N - 1, i + len), sev, dir });
-    for (let j = 0; j < len && i + j < N; j++) cv[i + j] = dir / Rm;
-    drift += dir * ang; i += len;
-  }
+  /* the road is laid down segment by segment; a segment that would come closer than MIN metres to a part of the
+     road more than SEP samples back is rolled again. Corners prefer the side with more free space, and when nothing
+     fits the generator steps back a few segments, so the stage never touches or crosses itself. */
+  const MIN = 70, SEP = 120, NEAR2 = 20, GC = 45, rgrid = new Map(), gk = (a, b) => a + ',' + b;
   const x = new Float32Array(N), y = new Float32Array(N), h = new Float32Array(N);
-  let hh = rr(0, Math.PI * 2), xx = 0, yy = 0;
-  for (let k = 0; k < N; k++) { hh += cv[k] * DS; xx += Math.cos(hh) * DS; yy += Math.sin(hh) * DS; x[k] = xx; y[k] = yy; h[k] = hh; }
+  let i = 0, hh = rr(0, Math.PI * 2), xx = 0, yy = 0, drift = 0, forced = 0;
+  const cellOf = (px, py) => gk(Math.floor(px / GC), Math.floor(py / GC));
+  const near = (px, py, k, d) => {
+    const cx = Math.floor(px / GC), cy = Math.floor(py / GC), rC = Math.ceil(d / GC); let n = 0;
+    for (let dx = -rC; dx <= rC; dx++) for (let dy = -rC; dy <= rC; dy++) {
+      const arr = rgrid.get(gk(cx + dx, cy + dy)); if (!arr) continue;
+      for (const j of arr) { const dd = Math.hypot(x[j] - px, y[j] - py); if ((k - j > SEP && dd < d) || (k - j > 12 && dd < NEAR2)) n++; }
+    }
+    return n;
+  };
+  const trySeg = (len, curv, check) => {
+    let a = hh, px = xx, py = yy; const pts = [];
+    for (let j = 0; j < len && i + j < N; j++) {
+      a += curv * DS; px += Math.cos(a) * DS; py += Math.sin(a) * DS;
+      if (check && near(px, py, i + j, MIN)) return null;
+      pts.push([px, py, a]);
+    }
+    return pts;
+  };
+  const commit = (pts, curv) => {
+    pts.forEach(([px, py, a]) => {
+      x[i] = px; y[i] = py; h[i] = a; cv[i] = curv;
+      const key = cellOf(px, py); if (!rgrid.has(key)) rgrid.set(key, []); rgrid.get(key).push(i);
+      i++;
+    });
+    if (pts.length) { const l = pts[pts.length - 1]; xx = l[0]; yy = l[1]; hh = l[2]; }
+  };
+  const undoTo = st => {   // remove everything laid after a saved state
+    for (let k = st.i; k < i; k++) { const arr = rgrid.get(cellOf(x[k], y[k])); if (arr) { const q = arr.indexOf(k); if (q >= 0) arr.splice(q, 1); } ft[k] = 0; cv[k] = 0; }
+    i = st.i; hh = st.hh; xx = st.xx; yy = st.yy; drift = st.drift; corners.length = st.nc;
+  };
+  // which side is freer: probe ahead-left and ahead-right
+  const freeSide = () => {
+    const pr = s2 => near(xx + Math.cos(hh + s2 * .9) * 140, yy + Math.sin(hh + s2 * .9) * 140, i + SEP + 1, 130);
+    const l = pr(-1), r2 = pr(1);
+    return l === r2 ? 0 : l < r2 ? -1 : 1;
+  };
+  const corners = [];
+  commit(trySeg(Math.round(rr(40, 80) / DS), 0, false), 0);
+  const stack = []; let fails = 0;
+  const placePair = force => {
+    // straight
+    let sl = Math.max(4, Math.round(rr(40, 300) * (1.6 - tw) / DS)), pts = null;
+    for (let t2 = 0; t2 < 6 && !pts; t2++) { pts = trySeg(sl, 0, !force); if (!pts) sl = Math.max(4, Math.floor(sl * .55)); }
+    if (!pts) return false;
+    const s0 = i; commit(pts, 0);
+    if (sl > 16 && R() < ev.jumps * .55) ft[Math.min(N - 1, s0 + Math.floor(sl / 2))] = 1;
+    else if (sl > 12 && sf[s0] !== 'A' && R() < .07) ft[Math.min(N - 1, s0 + Math.floor(sl / 2))] = 2;
+    if (i >= N) return true;
+    const fs = freeSide();
+    for (let t2 = 0; t2 < 14; t2++) {
+      let r = R() * W.reduce((a2, b2) => a2 + b2, 0), sev = 1;
+      for (let k = 0; k < 6; k++) { r -= W[k]; if (r <= 0) { sev = k + 1; break; } }
+      if (t2 >= 8) sev = Math.max(sev, 3);
+      const Rm = RAD[sev - 1], ang = sev === 1 ? rr(2.4, 3.0) : rr(.4, 1.5);
+      let dir = R() < .5 ? -1 : 1;
+      if (fs && R() < .85) dir = fs; else if (Math.abs(drift) > 2.4) dir = -Math.sign(drift);
+      if (t2 >= 7) dir = t2 % 2 ? 1 : -1;
+      const len = Math.max(2, Math.round(ang * Rm / DS)), p2 = trySeg(len, dir / Rm, !force);
+      if (p2) { corners.push({ s: i, e: Math.min(N - 1, i + p2.length), sev, dir }); commit(p2, dir / Rm); drift += dir * ang; return true; }
+    }
+    return false;
+  };
+  while (i < N) {
+    const st0 = { i, hh, xx, yy, drift, nc: corners.length };
+    const force = fails > 3000;
+    if (placePair(force)) { stack.push(st0); if (force) forced++; continue; }
+    undoTo(st0); fails++;
+    // step back a few segments and try again; the longer it is stuck, the further back
+    const back = Math.min(stack.length, 1 + (fails % 5) + Math.floor(fails / 60) * 2);
+    for (let k = 0; k < back; k++) undoTo(stack.pop());
+  }
   // reference speed profile (a typical car on fresh tyres, dry)
   const v = new Float32Array(N), VMAX = 50;
   for (let k = 0; k < N; k++) {
@@ -3963,7 +4146,7 @@ function genStage(ev, seed, km) {
     return true;
   };
   const decorOk = decor.filter(d => clear(d[0], d[1], d[2] === 0 ? d[3] : .7));
-  const st = { N, km, x, y, h, cv, ft, sf, v, tc, ref: tt, corners, frac, decor: decorOk, seed };
+  const st = { N, km, x, y, h, cv, ft, sf, v, tc, ref: tt, corners, frac, decor: decorOk, seed, forced };
   STAGE_CACHE[key] = st; return st;
 }
 
@@ -4312,7 +4495,7 @@ function drawStage() {
     L.wx.snow ? g.fill() : g.stroke();
   }
   // minimap
-  const mw = Math.min(120, w * .3), mh = mw * .75, mx = w - mw - 8, my = 8;
+  const mw = Math.min(150, w * .34), mh = mw * .75, mx = w - mw - 8, my = 8;
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (let q = 0; q < st.N; q += 10) { x0 = Math.min(x0, st.x[q]); x1 = Math.max(x1, st.x[q]); y0 = Math.min(y0, st.y[q]); y1 = Math.max(y1, st.y[q]); }
   const ms = Math.min((mw - 12) / (x1 - x0 || 1), (mh - 12) / (y1 - y0 || 1)), MX = v => mx + 6 + (v - x0) * ms, MY = v => my + 6 + (v - y0) * ms;

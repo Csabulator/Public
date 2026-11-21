@@ -28,25 +28,83 @@ function genStage(ev, seed, km) {
   }
   const tw = ev.twist, W = [.05 + .12 * tw, .1 + .15 * tw, .2, .25, .2 * (1.3 - tw), .2 * (1.4 - tw)];
   const RAD = [12, 22, 38, 60, 95, 150];
-  let i = Math.round(rr(40, 80) / DS), drift = 0;
-  const corners = [];
-  while (i < N) {
-    const sl = Math.max(4, Math.round(rr(40, 300) * (1.6 - tw) / DS));
-    if (sl > 16 && R() < ev.jumps * .55) ft[Math.min(N - 1, i + Math.floor(sl / 2))] = 1;
-    else if (sl > 12 && sf[i] !== 'A' && R() < .07) ft[Math.min(N - 1, i + Math.floor(sl / 2))] = 2;
-    i += sl; if (i >= N) break;
-    let r = R() * W.reduce((a, b) => a + b, 0), sev = 1;
-    for (let k = 0; k < 6; k++) { r -= W[k]; if (r <= 0) { sev = k + 1; break; } }
-    const Rm = RAD[sev - 1], ang = sev === 1 ? rr(2.4, 3.0) : rr(.4, 1.5);
-    let dir = R() < .5 ? -1 : 1; if (Math.abs(drift) > 2.4) dir = -Math.sign(drift);
-    const len = Math.max(2, Math.round(ang * Rm / DS));
-    corners.push({ s: i, e: Math.min(N - 1, i + len), sev, dir });
-    for (let j = 0; j < len && i + j < N; j++) cv[i + j] = dir / Rm;
-    drift += dir * ang; i += len;
-  }
+  /* the road is laid down segment by segment; a segment that would come closer than MIN metres to a part of the
+     road more than SEP samples back is rolled again. Corners prefer the side with more free space, and when nothing
+     fits the generator steps back a few segments, so the stage never touches or crosses itself. */
+  const MIN = 70, SEP = 120, NEAR2 = 20, GC = 45, rgrid = new Map(), gk = (a, b) => a + ',' + b;
   const x = new Float32Array(N), y = new Float32Array(N), h = new Float32Array(N);
-  let hh = rr(0, Math.PI * 2), xx = 0, yy = 0;
-  for (let k = 0; k < N; k++) { hh += cv[k] * DS; xx += Math.cos(hh) * DS; yy += Math.sin(hh) * DS; x[k] = xx; y[k] = yy; h[k] = hh; }
+  let i = 0, hh = rr(0, Math.PI * 2), xx = 0, yy = 0, drift = 0, forced = 0;
+  const cellOf = (px, py) => gk(Math.floor(px / GC), Math.floor(py / GC));
+  const near = (px, py, k, d) => {
+    const cx = Math.floor(px / GC), cy = Math.floor(py / GC), rC = Math.ceil(d / GC); let n = 0;
+    for (let dx = -rC; dx <= rC; dx++) for (let dy = -rC; dy <= rC; dy++) {
+      const arr = rgrid.get(gk(cx + dx, cy + dy)); if (!arr) continue;
+      for (const j of arr) { const dd = Math.hypot(x[j] - px, y[j] - py); if ((k - j > SEP && dd < d) || (k - j > 12 && dd < NEAR2)) n++; }
+    }
+    return n;
+  };
+  const trySeg = (len, curv, check) => {
+    let a = hh, px = xx, py = yy; const pts = [];
+    for (let j = 0; j < len && i + j < N; j++) {
+      a += curv * DS; px += Math.cos(a) * DS; py += Math.sin(a) * DS;
+      if (check && near(px, py, i + j, MIN)) return null;
+      pts.push([px, py, a]);
+    }
+    return pts;
+  };
+  const commit = (pts, curv) => {
+    pts.forEach(([px, py, a]) => {
+      x[i] = px; y[i] = py; h[i] = a; cv[i] = curv;
+      const key = cellOf(px, py); if (!rgrid.has(key)) rgrid.set(key, []); rgrid.get(key).push(i);
+      i++;
+    });
+    if (pts.length) { const l = pts[pts.length - 1]; xx = l[0]; yy = l[1]; hh = l[2]; }
+  };
+  const undoTo = st => {   // remove everything laid after a saved state
+    for (let k = st.i; k < i; k++) { const arr = rgrid.get(cellOf(x[k], y[k])); if (arr) { const q = arr.indexOf(k); if (q >= 0) arr.splice(q, 1); } ft[k] = 0; cv[k] = 0; }
+    i = st.i; hh = st.hh; xx = st.xx; yy = st.yy; drift = st.drift; corners.length = st.nc;
+  };
+  // which side is freer: probe ahead-left and ahead-right
+  const freeSide = () => {
+    const pr = s2 => near(xx + Math.cos(hh + s2 * .9) * 140, yy + Math.sin(hh + s2 * .9) * 140, i + SEP + 1, 130);
+    const l = pr(-1), r2 = pr(1);
+    return l === r2 ? 0 : l < r2 ? -1 : 1;
+  };
+  const corners = [];
+  commit(trySeg(Math.round(rr(40, 80) / DS), 0, false), 0);
+  const stack = []; let fails = 0;
+  const placePair = force => {
+    // straight
+    let sl = Math.max(4, Math.round(rr(40, 300) * (1.6 - tw) / DS)), pts = null;
+    for (let t2 = 0; t2 < 6 && !pts; t2++) { pts = trySeg(sl, 0, !force); if (!pts) sl = Math.max(4, Math.floor(sl * .55)); }
+    if (!pts) return false;
+    const s0 = i; commit(pts, 0);
+    if (sl > 16 && R() < ev.jumps * .55) ft[Math.min(N - 1, s0 + Math.floor(sl / 2))] = 1;
+    else if (sl > 12 && sf[s0] !== 'A' && R() < .07) ft[Math.min(N - 1, s0 + Math.floor(sl / 2))] = 2;
+    if (i >= N) return true;
+    const fs = freeSide();
+    for (let t2 = 0; t2 < 14; t2++) {
+      let r = R() * W.reduce((a2, b2) => a2 + b2, 0), sev = 1;
+      for (let k = 0; k < 6; k++) { r -= W[k]; if (r <= 0) { sev = k + 1; break; } }
+      if (t2 >= 8) sev = Math.max(sev, 3);
+      const Rm = RAD[sev - 1], ang = sev === 1 ? rr(2.4, 3.0) : rr(.4, 1.5);
+      let dir = R() < .5 ? -1 : 1;
+      if (fs && R() < .85) dir = fs; else if (Math.abs(drift) > 2.4) dir = -Math.sign(drift);
+      if (t2 >= 7) dir = t2 % 2 ? 1 : -1;
+      const len = Math.max(2, Math.round(ang * Rm / DS)), p2 = trySeg(len, dir / Rm, !force);
+      if (p2) { corners.push({ s: i, e: Math.min(N - 1, i + p2.length), sev, dir }); commit(p2, dir / Rm); drift += dir * ang; return true; }
+    }
+    return false;
+  };
+  while (i < N) {
+    const st0 = { i, hh, xx, yy, drift, nc: corners.length };
+    const force = fails > 3000;
+    if (placePair(force)) { stack.push(st0); if (force) forced++; continue; }
+    undoTo(st0); fails++;
+    // step back a few segments and try again; the longer it is stuck, the further back
+    const back = Math.min(stack.length, 1 + (fails % 5) + Math.floor(fails / 60) * 2);
+    for (let k = 0; k < back; k++) undoTo(stack.pop());
+  }
   // reference speed profile (a typical car on fresh tyres, dry)
   const v = new Float32Array(N), VMAX = 50;
   for (let k = 0; k < N; k++) {
@@ -78,7 +136,7 @@ function genStage(ev, seed, km) {
     return true;
   };
   const decorOk = decor.filter(d => clear(d[0], d[1], d[2] === 0 ? d[3] : .7));
-  const st = { N, km, x, y, h, cv, ft, sf, v, tc, ref: tt, corners, frac, decor: decorOk, seed };
+  const st = { N, km, x, y, h, cv, ft, sf, v, tc, ref: tt, corners, frac, decor: decorOk, seed, forced };
   STAGE_CACHE[key] = st; return st;
 }
 
@@ -427,7 +485,7 @@ function drawStage() {
     L.wx.snow ? g.fill() : g.stroke();
   }
   // minimap
-  const mw = Math.min(120, w * .3), mh = mw * .75, mx = w - mw - 8, my = 8;
+  const mw = Math.min(150, w * .34), mh = mw * .75, mx = w - mw - 8, my = 8;
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (let q = 0; q < st.N; q += 10) { x0 = Math.min(x0, st.x[q]); x1 = Math.max(x1, st.x[q]); y0 = Math.min(y0, st.y[q]); y1 = Math.max(y1, st.y[q]); }
   const ms = Math.min((mw - 12) / (x1 - x0 || 1), (mh - 12) / (y1 - y0 || 1)), MX = v => mx + 6 + (v - x0) * ms, MY = v => my + 6 + (v - y0) * ms;

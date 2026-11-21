@@ -98,19 +98,28 @@ const PROTO_BODY = 'M40 182 L40 160 Q38 128 44 116 L56 110 Q96 100 120 102 Q150 
 const RALLY_BODY = 'M560 178 L560 163 Q560 140 554 128 L548 118 Q544 110 534 107 L441 85 Q400 50 362 27 Q340 24 314 24 L152 26 Q136 28 130 32 L100 72 L87 92 Q80 104 77 118 L75 163 Q76 174 87 176 L111.9 176 A44 44 0 1 1 192.1 176 L425.9 176 A44 44 0 1 1 506.1 176 L548 178 Z';
 const STOCK_BODY = 'M48 596 L44 560 Q44 520 70 500 Q90 478 130 468 C200 455 280 446 330 438 L420 384 Q440 372 480 370 L630 370 Q662 372 692 396 L790 436 L884 440 L912 446 L922 454 Q930 492 922 530 L912 552 L758 574 A66 66 0 1 0 642 578 L636 592 L272 592 L264 586 A66 66 0 1 0 162 586 L150 592 L60 600 Z';
 function sideWheel(x, y, o) {
-  const n = 10; let spokes = '';
-  for (let i = 0; i < n; i++) {
-    const a = i / n * Math.PI * 2, d = .07, p = (r, aa) => `${(x + Math.cos(aa) * r).toFixed(1)} ${(y + Math.sin(aa) * r).toFixed(1)}`;
-    spokes += `<path d="M${p(6, a - .16)} L${p(25, a - d)} L${p(25, a + d)} L${p(6, a + .16)} Z" fill="${o.rim}"/>`;
+  const n = 10, p = (r, aa) => `${(x + Math.cos(aa) * r).toFixed(1)} ${(y + Math.sin(aa) * r).toFixed(1)}`;
+  let spokes = '', holes = '';
+  for (let i = 0; i < n; i++) {   // twin spokes with an edge shadow and a highlight
+    const a = i / n * Math.PI * 2, d = .065;
+    spokes += `<path d="M${p(7, a - .17)} L${p(25.5, a - d)} L${p(25.5, a + d)} L${p(7, a + .17)} Z" fill="${o.rim}" stroke="#000" stroke-opacity=".45" stroke-width=".7"/>`
+      + `<path d="M${p(7, a - .17)} L${p(25.5, a - d)} L${p(25.5, a + d)} L${p(7, a + .17)} Z" fill="url(#spoke${o.id})"/>`;
   }
-  const glow = o.glow ? `<circle cx="${x}" cy="${y}" r="20" fill="url(#bglow${o.id})" opacity="${o.glow}"/>` : '';
-  return `<g><circle cx="${x}" cy="${y}" r="38" fill="#101012"/><circle cx="${x}" cy="${y}" r="38" fill="url(#tyre${o.id})"/>
-    <circle cx="${x}" cy="${y}" r="28.5" fill="#1a1b1e"/><circle cx="${x}" cy="${y}" r="22" fill="url(#disc${o.id})"/>
-    <circle cx="${x}" cy="${y}" r="17" fill="none" stroke="#3b3e43" stroke-width="5" stroke-dasharray="1.2 2.4" opacity=".7"/>${glow}
-    <path d="M${x - 9} ${y - 20} A21 21 0 0 1 ${x + 11} ${y - 19} L${x + 8} ${y - 13} A14 14 0 0 0 ${x - 6} ${y - 14} Z" fill="${o.caliper}" transform="rotate(-30 ${x} ${y})"/>
-    ${spokes}<circle cx="${x}" cy="${y}" r="27" fill="none" stroke="${o.rim}" stroke-width="2.5"/>
-    <circle cx="${x}" cy="${y}" r="5.5" fill="#222"/><circle cx="${x}" cy="${y}" r="3" fill="#d33"/>
-    <path d="M${x - 30} ${y - 18} A35 35 0 0 1 ${x + 4} ${y - 35}" stroke="#fff" stroke-opacity=".08" stroke-width="3" fill="none"/></g>`;
+  for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; holes += `<circle cx="${(x + Math.cos(a) * 15).toFixed(1)}" cy="${(y + Math.sin(a) * 15).toFixed(1)}" r="1.1" fill="#2b2e33"/><circle cx="${(x + Math.cos(a + .17) * 19).toFixed(1)}" cy="${(y + Math.sin(a + .17) * 19).toFixed(1)}" r="1.1" fill="#2b2e33"/>`; }
+  const glow = o.glow ? `<circle cx="${x}" cy="${y}" r="21" fill="url(#bglow${o.id})" opacity="${o.glow}"/>` : '';
+  const tp = `tp${o.id}_${Math.round(x)}`;
+  return `<g><ellipse cx="${x}" cy="${y + 37}" rx="31" ry="4" fill="#000" opacity=".6"/>
+    <circle cx="${x}" cy="${y}" r="38" fill="#101012"/><circle cx="${x}" cy="${y}" r="38" fill="url(#tyre${o.id})"/>
+    <circle cx="${x}" cy="${y}" r="36.6" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="1"/>
+    <path id="${tp}" d="M${x - 33} ${y} A33 33 0 0 1 ${x + 33} ${y}" fill="none"/>
+    <text font-family="${FC}" font-weight="800" font-size="6" letter-spacing="1.3" fill="#d9dbe0" opacity=".5"><textPath href="#${tp}" startOffset="50%" text-anchor="middle">PIT STOP · SLICK</textPath></text>
+    <circle cx="${x}" cy="${y}" r="28.5" fill="url(#barrel${o.id})"/><circle cx="${x}" cy="${y}" r="22" fill="url(#disc${o.id})"/>
+    <circle cx="${x}" cy="${y}" r="21.5" fill="none" stroke="#5c6168" stroke-width="1" opacity=".8"/>${holes}${glow}
+    <path d="M${x - 9} ${y - 20} A21 21 0 0 1 ${x + 11} ${y - 19} L${x + 8} ${y - 13} A14 14 0 0 0 ${x - 6} ${y - 14} Z" fill="${o.caliper}" stroke="#000" stroke-opacity=".4" stroke-width=".8" transform="rotate(-30 ${x} ${y})"/>
+    ${spokes}<circle cx="${x}" cy="${y}" r="27" fill="none" stroke="${o.rim}" stroke-width="2.6"/><circle cx="${x}" cy="${y}" r="27" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="1"/>
+    <circle cx="${x}" cy="${y}" r="7.5" fill="${o.rim}"/><circle cx="${x}" cy="${y}" r="7.5" fill="url(#spoke${o.id})"/>
+    <path d="M${p(4.6, 0)} L${p(4.6, Math.PI / 3)} L${p(4.6, Math.PI * 2 / 3)} L${p(4.6, Math.PI)} L${p(4.6, Math.PI * 4 / 3)} L${p(4.6, Math.PI * 5 / 3)} Z" fill="#26282c"/><circle cx="${x}" cy="${y}" r="2.2" fill="#d33"/>
+    <path d="M${x - 30} ${y - 18} A35 35 0 0 1 ${x + 4} ${y - 35}" stroke="#fff" stroke-opacity=".1" stroke-width="3" fill="none"/></g>`;
 }
 function carSideSVG(opts) {
   const { kind = 'gt', color, num, parts, sponsor, bg = true } = opts;
@@ -129,7 +138,11 @@ function carSideSVG(opts) {
   const stripes = (pts) => `<path d="${pts[0]}" fill="#141518"/><path d="${pts[1]}" fill="${accent}"/><path d="${pts[2]}" fill="${shade(accent, -60)}"/>`;
   const defs = `<defs>
     <linearGradient id="body${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${light}"/><stop offset=".38" stop-color="${color}"/><stop offset=".75" stop-color="${mid}"/><stop offset="1" stop-color="${dark}"/></linearGradient>
-    <linearGradient id="glass${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c3a48"/><stop offset=".5" stop-color="#121a22"/><stop offset="1" stop-color="#0b0f14"/></linearGradient>
+    <linearGradient id="glass${id}" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#5a6f84"/><stop offset=".22" stop-color="#2e3d4c"/><stop offset=".5" stop-color="#141c25"/><stop offset="1" stop-color="#0a0e13"/></linearGradient>
+    <linearGradient id="ao${id}" x1="0" y1="0" x2="0" y2="1"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset=".82" stop-color="#000" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>
+    <linearGradient id="spec${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".14" stop-color="#fff" stop-opacity=".06"/><stop offset=".3" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="spoke${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>
+    <radialGradient id="barrel${id}" cx=".5" cy=".5" r=".5"><stop offset=".6" stop-color="#0c0d0f"/><stop offset=".95" stop-color="#2a2c31"/><stop offset="1" stop-color="#3a3d43"/></radialGradient>
     <linearGradient id="refl${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
     <radialGradient id="tyre${id}" cx=".5" cy=".5" r=".5"><stop offset=".7" stop-color="#18181b"/><stop offset=".93" stop-color="#2a2a2e"/><stop offset="1" stop-color="#0c0c0d"/></radialGradient>
     <radialGradient id="disc${id}" cx=".45" cy=".4" r=".6"><stop offset="0" stop-color="#9aa0a8"/><stop offset="1" stop-color="#4a4e55"/></radialGradient>
@@ -154,7 +167,7 @@ function carSideSVG(opts) {
     <circle cx="147" cy="158" r="42" fill="#070708"/><circle cx="502" cy="158" r="42" fill="#070708"/>
     <g transform="translate(0 ${-rideH})">
     ${aS >= 2 ? wing : ''}
-    <path d="${GT_BODY}" fill="url(#body${id})"/>
+    <path d="${GT_BODY}" fill="url(#body${id})"/><path d="${GT_BODY}" fill="url(#ao${id})"/><path d="${GT_BODY}" fill="url(#spec${id})"/>
     <g clip-path="url(#clip${id})">${stripes(['M456 150 C360 142 250 104 30 96 L30 103 C250 112 350 152 446 160 Z', 'M446 160 C350 152 250 113 30 104 L30 109 C250 119 345 157 438 165 Z', 'M438 165 C345 157 250 120 30 110 L30 115 C250 126 340 162 430 170 Z'])}${shine}</g>
     ${aS < 2 ? wing : ''}
     <path d="M188 170 L461 170 L459 160 L192 159 Z" fill="${carbon}"/>
@@ -186,7 +199,7 @@ function carSideSVG(opts) {
     <circle cx="136" cy="158" r="42" fill="#070708"/><circle cx="502" cy="158" r="42" fill="#070708"/>
     <g transform="translate(0 ${-rideH * .6})">
     <path d="M290 80 L${wx + 18} ${wy + 4} L${wx + 22} ${wy + 16} L272 98 Z" fill="${mid}"/><path d="M290 80 L${wx + 18} ${wy + 4}" stroke="${light}" stroke-width="2"/>
-    <path d="${PROTO_BODY}" fill="url(#body${id})"/>
+    <path d="${PROTO_BODY}" fill="url(#body${id})"/><path d="${PROTO_BODY}" fill="url(#ao${id})"/><path d="${PROTO_BODY}" fill="url(#spec${id})"/>
     <g clip-path="url(#clip${id})">${stripes(['M600 150 C470 140 330 150 36 112 L36 119 C330 157 470 147 600 157 Z', 'M600 157 C470 147 330 157 36 120 L36 125 C330 162 470 152 600 162 Z', 'M600 162 C470 152 330 162 36 126 L36 131 C330 167 470 157 600 167 Z'])}${shine}
       <path d="M36 168 L610 172 L610 190 L36 190 Z" fill="#000" opacity=".25"/></g>
     <path d="M264 104 Q278 86 304 84 Q332 85 350 102 L358 116 L264 116 Z" fill="url(#glass${id})" stroke="#0d0f12" stroke-width="2.5"/>
@@ -216,7 +229,7 @@ function carSideSVG(opts) {
     body = `<ellipse cx="318" cy="197" rx="262" ry="9" fill="#000" opacity=".7" filter="url(#blur${id})"/>
     <circle cx="152" cy="158" r="42" fill="#070708"/><circle cx="466" cy="158" r="42" fill="#070708"/>
     <g transform="translate(0 ${-rideH * .8})">
-    <path d="${RALLY_BODY}" fill="url(#body${id})"/>
+    <path d="${RALLY_BODY}" fill="url(#body${id})"/><path d="${RALLY_BODY}" fill="url(#ao${id})"/><path d="${RALLY_BODY}" fill="url(#spec${id})"/>
     <g clip-path="url(#clip${id})">${stripes(['M560 148 C450 138 300 118 70 96 L70 103 C300 125 450 145 560 155 Z', 'M560 155 C450 145 300 125 70 104 L70 109 C300 131 450 151 560 161 Z', 'M560 161 C450 151 300 131 70 110 L70 115 C300 137 450 157 560 167 Z'])}${shine}</g>
     <path d="M107 176 A48 48 0 0 1 197 176 M421 176 A48 48 0 0 1 511 176" fill="none" stroke="${dark}" stroke-width="7" opacity=".55"/>
     <path d="M428 88 L368 36 Q362 32 352 32 L175 33 L132 78 Q130 86 140 88 Z" fill="url(#glass${id})" stroke="#0d0f12" stroke-width="2.5"/>
@@ -243,7 +256,8 @@ function carSideSVG(opts) {
     const sh = 14 + aS * 11;   // spoiler blade height grows with aero
     const lower = color === '#f2f2f2' ? accent : '#f4f5f7';
     const band = color === '#f2f2f2' ? shade(accent, 40) : light;
-    const steel = x => `<g><circle cx="${x}" cy="158" r="38" fill="url(#tyre${id})"/>
+    const steel = x => `<g><ellipse cx="${x}" cy="195" rx="31" ry="4" fill="#000" opacity=".6"/><circle cx="${x}" cy="158" r="38" fill="url(#tyre${id})"/>
+      <path id="tps${id}_${x}" d="M${x - 33} 158 A33 33 0 0 1 ${x + 33} 158" fill="none"/><text font-family="${FC}" font-weight="800" font-size="6" letter-spacing="1.3" fill="#f2c94c" opacity=".7"><textPath href="#tps${id}_${x}" startOffset="50%" text-anchor="middle">PIT STOP · OVAL</textPath></text>
       <circle cx="${x}" cy="158" r="35" fill="none" stroke="${tS >= 1 ? '#c62828' : '#2a2b2f'}" stroke-width="1.2" opacity=".8"/>
       <circle cx="${x}" cy="158" r="25" fill="#16171a"/><circle cx="${x}" cy="158" r="25" fill="none" stroke="${rim}" stroke-width="3"/>
       ${glow ? `<circle cx="${x}" cy="158" r="21" fill="url(#bglow${id})" opacity="${glow}"/>` : ''}
@@ -255,7 +269,7 @@ function carSideSVG(opts) {
     <g transform="translate(0 ${-rideH * .5})">
     <g transform="${M}">
       <path d="M872 444 L${894 - aS * 2} ${443 - sh} L${908 - aS * 2} ${443 - sh} L914 447 Z" fill="${dark}" stroke="#9aa3ad" stroke-width="3" stroke-opacity=".6"/>
-      <path d="${STOCK_BODY}" fill="url(#body${id})"/>
+      <path d="${STOCK_BODY}" fill="url(#body${id})"/><path d="${STOCK_BODY}" fill="url(#ao${id})"/><path d="${STOCK_BODY}" fill="url(#spec${id})"/>
       <g clip-path="url(#clip${id})">
         <path d="M30 548 Q200 572 380 540 Q520 502 640 492 Q790 480 940 444 L940 474 Q790 508 640 522 Q520 532 380 566 Q200 596 30 566 Z" fill="${band}"/>
         <path d="M30 566 Q200 596 380 566 Q520 532 640 522 Q790 508 940 474 L940 640 L30 640 Z" fill="${lower}"/>

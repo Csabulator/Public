@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.8.0 – 2026-11-21
+- Detailed circuit maps: mottled grass, forests and single trees with shadows, lakes, car parks with parked cars, buildings, service roads, a paddock with team trucks behind the pits, grandstands on the outside of corners, gravel traps with tyre barriers on the outside of the real corners, white track-limit lines.
+- Rally stages never touch or cross themselves: the generator rolls a segment again when it would come within 70 m of a distant part of the road (or within 20 m of a nearby one, hairpins excepted), prefers the freer side for corners and steps back when stuck. Checked on 480 stages. The minimap is a little larger.
+- More realistic side views for every car: shading on the lower body and a highlight on the top, sky reflection in the glass, deeper twin-spoke rims with edge shadows, centre-lock nut, drilled brake discs, tyre sidewall lettering and contact shadows.
+
 ## 3.7.0 – 2026-11-20
 - Rally: progress is saved between stages. The stage start, service park and road section screens have a "Back to the main menu (saved)" button; the home screen then offers "Continue rally". Leaving or reloading during a stage drives that stage automatically on return, so a bad stage cannot be replayed.
 - Keyboard shortcuts in races, rally stages and rallycross: Space = pause / resume, 1–4 = speed (½×, 1×, 2×, 4×), B = BOX, J = joker. Shown as a hint on devices with a mouse.
