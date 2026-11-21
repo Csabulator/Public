@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.9.2 – 2026-11-21
+- Buttons in the team colour now use dark text on light colours (white, yellow…), so they stay readable.
+- Disabled buttons are less faded.
+- The side-by-side race layout already starts at 700 px width (Fold inner screen at any display zoom).
+
 ## 3.9.1 – 2026-11-21
 - Unfolded foldables and other nearly square screens (from about 760 px wide) now get the map and the controls side by side, so the whole leaderboard fits without scrolling.
 - The message bar sits under the map instead of covering its bottom edge (circuit, rally and rallycross).

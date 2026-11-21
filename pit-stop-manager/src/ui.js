@@ -19,10 +19,19 @@ function staticTexts() {
   document.documentElement.lang = LANG;
   document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
 }
+// dark text on light team colours (white, yellow, light blue...), white text on dark ones
+function teamInk(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return '#fff';
+  const n = parseInt(m[1], 16), lin = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+  const L = .2126 * lin(n >> 16) + .7152 * lin(n >> 8 & 255) + .0722 * lin(n & 255);
+  return L > .35 ? '#111' : '#fff';
+}
 function renderTop() {
   $('#top').classList.remove('hidden'); $('#nav').classList.remove('hidden');
+  const ink = teamInk(S.color);
   document.documentElement.style.setProperty('--team', S.color);
-  const b = $('#tBadge'); b.textContent = S.num; b.style.color = S.color === '#f2f2f2' || S.color === '#f5c518' ? '#111' : '#fff';
+  document.documentElement.style.setProperty('--team-ink', ink);
+  const b = $('#tBadge'); b.textContent = S.num; b.style.color = ink;
   $('#tName').textContent = S.teamName;
   $('#tSeries').textContent = t('top.season', { n: S.season }) + ' · ' + tierName(S.disc, S.tier);
   const m = $('#tMoney'); m.textContent = money(S.money); m.classList.toggle('neg', S.money < 0);
