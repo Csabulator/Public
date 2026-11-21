@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.9.3 – 2026-11-21
+- Nearly square screens (unfolded foldables) are back to the original layout: wide map on top, controls and leaderboard under it. The side-by-side layout squeezed the map. The message bar stays under the map, and the leaderboard scrolls inside the screen.
+
 ## 3.9.2 – 2026-11-21
 - Buttons in the team colour now use dark text on light colours (white, yellow…), so they stay readable.
 - Disabled buttons are less faded.
