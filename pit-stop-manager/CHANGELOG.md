@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.9.0 – 2026-11-21
+- Engine sound rebuilt per car type: firing frequency from rpm and cylinder count, gears with shifts, throttle load (louder and brighter on the gas, burble on the lift), random wander, exhaust rasp, pops on lifting, cars passing by on circuits and rallycross.
+  - Stock car: deep cross-plane V8 with a strong lope and two sub-harmonics.
+  - GT: six-cylinder. Prototype: high-revving with a hybrid whine. Rally/rallycross: turbo four with whistle and pops.
+- Rally textures: world-aligned, seamless surface textures (grainy tarmac with edge and centre lines, stony gravel with wheel ruts, rippled sand, packed snow), textured ground per landscape, darker verges, denser scenery drawn per landscape (broadleaf trees, snowy pines, desert rocks and shrubs, coastal bushes).
+- Rallycross: textured tarmac and gravel, white edge lines, tyre barrier around the circuit, grandstand by the start.
+
 ## 3.8.0 – 2026-11-21
 - Detailed circuit maps: mottled grass, forests and single trees with shadows, lakes, car parks with parked cars, buildings, service roads, a paddock with team trucks behind the pits, grandstands on the outside of corners, gravel traps with tyre barriers on the outside of the real corners, white track-limit lines.
 - Rally stages never touch or cross themselves: the generator rolls a segment again when it would come within 70 m of a distant part of the road (or within 20 m of a nearby one, hairpins excepted), prefers the freer side for corners and steps back when stuck. Checked on 480 stages. The minimap is a little larger.

@@ -414,7 +414,7 @@ function shade(hex, amt) {
 }
 
 /* ===================== balance constants ===================== */
-const VERSION = '3.8.0';
+const VERSION = '3.9.0';
 const TEAM_COLORS = ['#e8392f', '#ff8a1e', '#f5c518', '#2fbf71', '#14b8c4', '#2f7bf5', '#7a4cf0', '#e64598', '#f2f2f2', '#2b2f36'];
 const TIER_BASE = [24, 45, 67, 88];          // AI performance level per tier
 const TIER_MULT = [1.25, 2.1, 3.6, 6.0];     // money multiplier per tier
@@ -2385,12 +2385,22 @@ function teleCarSVG(c) {
 
 /* ---- audio.js ---- */
 /* ===================== sound (Web Audio, synthesised – no files) =====================
-   Engine note follows the selected car's speed; radio blips, pit-gun bursts.
-   Can be switched off; the setting is remembered in this browser. */
+   Engine sound per car type: firing frequency from rpm and cylinder count, gears with shifts,
+   throttle load (accelerating = louder and brighter, lifting = burble / pops), a V8 lope,
+   exhaust rasp, turbo whistle, hybrid whine, small random wander and cars passing by.
+   Radio blips, pit-gun bursts. Can be switched off; the setting is remembered in this browser. */
 const SND = (() => {
-  let ctx = null, on = true, eng = null;
+  let ctx = null, on = true, eng = null, noiseBuf = null;
   try { on = localStorage.getItem('boxutca_sound') !== '0'; } catch (e) { }
   const ok = () => on && ctx && ctx.state === 'running';
+  // cyl = cylinders (4-stroke: firing frequency = rpm / 60 * cyl / 2); gears = top of each gear as a share of top speed
+  const PROFILES = {
+    stock: { cyl: 8, idle: 900, max: 7200, gears: [.4, .56, .72, .9], vol: .09, cut: 1100, lope: .65, sub: .65, sub2: .5, rasp: .2, turbo: 0, whine: 0, pops: .02, pass: true },
+    gt: { cyl: 6, idle: 1100, max: 8000, gears: [.22, .34, .46, .58, .72, .86], vol: .07, cut: 2400, lope: .15, sub: .3, sub2: .12, rasp: .18, turbo: 0, whine: 0, pops: .03, pass: true },
+    proto: { cyl: 8, idle: 1600, max: 10200, gears: [.24, .36, .48, .6, .73, .86], vol: .065, cut: 3400, lope: .08, sub: .15, rasp: .15, turbo: 0, whine: .018, pops: .02, pass: true },
+    rally: { cyl: 4, idle: 1300, max: 7600, gears: [.2, .32, .45, .58, .72, .86], vol: .07, cut: 2300, lope: .1, sub: .25, sub2: .08, rasp: .3, turbo: .014, whine: 0, pops: .1, pass: false },
+  };
+  PROFILES.rx = { ...PROFILES.rally, pass: true };
   function unlock() {
     if (!on) return;
     try {
@@ -2398,22 +2408,101 @@ const SND = (() => {
       if (ctx.state === 'suspended') ctx.resume();
     } catch (e) { ctx = null; }
   }
-  function start() {
+  function noise() {
+    if (noiseBuf) return noiseBuf;
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return noiseBuf;
+  }
+  // a buzzy, slightly uneven combustion wave (strong low harmonics, odd ones a bit louder)
+  function engineWave(cyl) {
+    const n = 24, re = new Float32Array(n), im = new Float32Array(n);
+    for (let k = 1; k < n; k++) im[k] = (1 / Math.pow(k, cyl === 8 ? 1.05 : .9)) * (k % 2 ? 1 : .6) * (k === 1 ? 1.2 : 1);
+    return ctx.createPeriodicWave(re, im);
+  }
+  function start(kind = 'gt') {
     unlock(); if (!ok() || eng) return;
-    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-    o1.type = 'sawtooth'; o2.type = 'square'; f.type = 'lowpass'; f.frequency.value = 900; f.Q.value = 3; g.gain.value = 0;
-    o1.connect(f); o2.connect(f); f.connect(g); g.connect(ctx.destination); o1.start(); o2.start();
-    eng = { o1, o2, f, g };
+    const P = PROFILES[kind] || PROFILES.gt, t = ctx.currentTime;
+    const out = ctx.createGain(), comp = ctx.createDynamicsCompressor(), lp = ctx.createBiquadFilter();
+    comp.threshold.value = -18; comp.ratio.value = 4; lp.type = 'lowpass'; lp.Q.value = .8; lp.frequency.value = P.cut; out.gain.value = 0;
+    lp.connect(out); out.connect(comp); comp.connect(ctx.destination);
+    // main combustion tone, amplitude-modulated by a slow "lope" (V8 burble)
+    const main = ctx.createOscillator(), mainG = ctx.createGain(); main.setPeriodicWave(engineWave(P.cyl)); mainG.gain.value = .55;
+    const lfo = ctx.createOscillator(), lfoG = ctx.createGain(); lfo.type = 'sine'; lfoG.gain.value = P.lope * .45;
+    lfo.connect(lfoG); lfoG.connect(mainG.gain); main.connect(mainG); mainG.connect(lp);
+    // sub-harmonic (half the firing frequency): the deep body of the sound
+    const sub = ctx.createOscillator(), subG = ctx.createGain(); sub.type = 'triangle'; subG.gain.value = P.sub * .5; sub.connect(subG); subG.connect(lp);
+    // a second, deeper one (quarter of the firing frequency): the V8 rumble
+    const sub2 = ctx.createOscillator(), sub2G = ctx.createGain(); sub2.type = 'sawtooth'; sub2G.gain.value = (P.sub2 || 0) * .45; sub2.connect(sub2G); sub2G.connect(lp);
+    // exhaust rasp: band-passed noise that follows the firing frequency
+    const ns = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), nG = ctx.createGain();
+    ns.buffer = noise(); ns.loop = true; bp.type = 'bandpass'; bp.Q.value = 1.3; nG.gain.value = 0; ns.connect(bp); bp.connect(nG); nG.connect(lp);
+    // turbo whistle and hybrid whine (high, quiet, bypass the low-pass)
+    const tb = ctx.createOscillator(), tbG = ctx.createGain(); tb.type = 'sine'; tbG.gain.value = 0; tb.connect(tbG); tbG.connect(out);
+    const wh = ctx.createOscillator(), whG = ctx.createGain(); wh.type = 'sine'; whG.gain.value = 0; wh.connect(whG); whG.connect(out);
+    [main, lfo, sub, sub2, ns, tb, wh].forEach(o => o.start(t));
+    eng = { P, out, lp, main, mainG, lfo, lfoG, sub, subG, sub2, ns, bp, nG, tb, tbG, wh, whG, nodes: [main, lfo, sub, sub2, ns, tb, wh], s: 0, gear: 0, load: .5, lastT: t, nextPass: t + 3 + Math.random() * 5, shiftT: 0 };
   }
   function engine(speed, inPit) {
     if (!eng || !ok()) return;
     if (!Number.isFinite(speed)) speed = 0;
-    const t = ctx.currentTime, s = clamp(speed, 0, 1.3), base = 55 + s * 150 * (inPit ? .55 : 1);
-    eng.o1.frequency.setTargetAtTime(base, t, .08); eng.o2.frequency.setTargetAtTime(base * .5, t, .08);
-    eng.f.frequency.setTargetAtTime(400 + s * 1400, t, .1);
-    eng.g.gain.setTargetAtTime(s > 0 ? .035 + s * .03 : 0, t, .1);
+    const e = eng, P = e.P, t = ctx.currentTime, dt = Math.max(.001, Math.min(.2, t - e.lastT)); e.lastT = t;
+    const s = clamp(speed, 0, 1.3) * (inPit ? .55 : 1);
+    // throttle load from acceleration (smoothed): on the gas = 1, lifting = 0
+    const acc = (s - e.s) / dt; e.s = s;
+    e.load = lerp(e.load, clamp(.55 + acc * 6, 0, 1), Math.min(1, dt * 6));
+    // gears with a little hysteresis; a shift drops the rpm and briefly cuts the sound
+    const G = P.gears; let g = e.gear;
+    while (g < G.length - 1 && s > G[g] * 1.02) g++;
+    while (g > 0 && s < G[g - 1] * .9) g--;
+    if (g > e.gear && s > .05) e.shiftT = t;
+    e.gear = g;
+    const lo = g ? G[g - 1] : 0, hi = G[g], within = clamp((s - lo * .9) / Math.max(.05, hi - lo * .9), 0, 1.1);
+    let rpm = s < .02 ? P.idle : P.idle + (P.max - P.idle) * (.45 + .55 * within);
+    // a little wander so it is never perfectly steady
+    rpm *= 1 + .012 * Math.sin(t * 2.3) + .007 * Math.sin(t * 7.7 + 1) + (Math.random() - .5) * .004;
+    const fire = rpm / 60 * P.cyl / 2, shiftCut = t - e.shiftT < .09 ? .35 : 1;
+    const tc = .05;
+    e.main.frequency.setTargetAtTime(fire, t, tc);
+    e.sub.frequency.setTargetAtTime(fire / 2, t, tc); e.sub2.frequency.setTargetAtTime(fire / 4, t, tc);
+    e.lfo.frequency.setTargetAtTime(fire / (P.cyl === 8 ? 4 : 6), t, tc);
+    e.lfoG.gain.setTargetAtTime(P.lope * (.3 + (1 - e.load) * .5), t, .1);   // more burble off the throttle
+    e.bp.frequency.setTargetAtTime(fire * 3, t, tc);
+    e.nG.gain.setTargetAtTime(P.rasp * (.25 + e.load * .75) * (s > .02 ? 1 : .3), t, .08);
+    e.lp.frequency.setTargetAtTime(P.cut * (.55 + e.load * .6) * (.7 + .5 * rpm / P.max), t, .08);
+    e.tb.frequency.setTargetAtTime(2200 + e.load * 3800 * rpm / P.max, t, .15);
+    e.tbG.gain.setTargetAtTime(P.turbo * e.load * (rpm / P.max), t, .2);
+    e.wh.frequency.setTargetAtTime(rpm / 60 * 28, t, .1);
+    e.whG.gain.setTargetAtTime(P.whine * (s > .05 ? 1 : 0), t, .2);
+    const vol = s > 0 || speed > 0 ? P.vol * (.6 + .4 * e.load) * (.75 + .25 * rpm / P.max) * shiftCut : 0;
+    e.out.gain.setTargetAtTime(vol, t, .06);
+    // lifting off: pops and crackles from the exhaust
+    if (e.load < .3 && s > .25 && Math.random() < P.pops * dt * 20) pop(.03 + Math.random() * .03);
+    // other cars passing (circuits)
+    if (P.pass && s > .35 && t > e.nextPass) { passBy(fire); e.nextPass = t + 2.5 + Math.random() * 6; }
   }
-  function stop() { if (!eng) return; try { eng.g.gain.setTargetAtTime(0, ctx.currentTime, .05); const e = eng; setTimeout(() => { try { e.o1.stop(); e.o2.stop(); } catch (x) { } }, 300); } catch (e) { } eng = null; }
+  function pop(vol) {
+    const t = ctx.currentTime, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = noise(); f.type = 'bandpass'; f.frequency.value = 700 + Math.random() * 900; f.Q.value = 1.5;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + .07);
+    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t, Math.random()); src.stop(t + .09);
+  }
+  // another car going by: pitch falls (Doppler), pans across, fades in and out
+  function passBy(fire) {
+    const t = ctx.currentTime, len = .9 + Math.random() * .5, f0 = fire * (1.05 + Math.random() * .2);
+    const o = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    o.setPeriodicWave(engineWave(eng ? eng.P.cyl : 8)); lp.type = 'lowpass'; lp.frequency.value = 1800;
+    o.frequency.setValueAtTime(f0 * 1.12, t); o.frequency.linearRampToValueAtTime(f0 * .86, t + len);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.035, t + len * .45); g.gain.exponentialRampToValueAtTime(.0001, t + len);
+    o.connect(lp); lp.connect(g);
+    if (pan) { const d = Math.random() < .5 ? -1 : 1; pan.pan.setValueAtTime(-.8 * d, t); pan.pan.linearRampToValueAtTime(.8 * d, t + len); g.connect(pan); pan.connect(ctx.destination); } else g.connect(ctx.destination);
+    o.start(t); o.stop(t + len + .05);
+  }
+  function stop() {
+    if (!eng) return;
+    try { eng.out.gain.setTargetAtTime(0, ctx.currentTime, .05); const e = eng; setTimeout(() => { e.nodes.forEach(n => { try { n.stop(); } catch (x) { } }); }, 300); } catch (e) { }
+    eng = null;
+  }
   function blip(freq, at, len, vol = .06, type = 'sine') {
     const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = freq;
     g.gain.setValueAtTime(vol, at); g.gain.exponentialRampToValueAtTime(.0001, at + len); o.connect(g); g.connect(ctx.destination); o.start(at); o.stop(at + len + .02);
@@ -2427,13 +2516,14 @@ const SND = (() => {
     f.type = 'bandpass'; f.frequency.value = 2500; g.gain.value = .05; src.buffer = buf; src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t);
     setTimeout(() => { try { const s2 = ctx.createBufferSource(); s2.buffer = buf; s2.connect(f); s2.start(); } catch (e) { } }, 1200);
   }
+  let lastKind = 'gt';
   function toggle() {
     on = !on; try { localStorage.setItem('boxutca_sound', on ? '1' : '0'); } catch (e) { }
-    if (on) { unlock(); if (R && !R.headless) start(); } else stop();
+    if (on) { unlock(); if ((R && !R.headless) || RL) start(lastKind); } else stop();
     paint();
   }
   function paint() { const b = $('#rSnd'); if (b) b.classList.toggle('off', !on); }
-  return { start, stop, engine, radio, gun, toggle, unlock, paint, get on() { return on; } };
+  return { start: k => { lastKind = k || 'gt'; start(lastKind); }, stop, engine, radio, gun, toggle, unlock, paint, get on() { return on; } };
 })();
 
 /* ---- race.js ---- */
@@ -2532,7 +2622,7 @@ function startRace(startTires, opts = {}) {
   selectCar(0);
   sizeCanvas(); drawBG();
   tick(t('rt.grid'));
-  SND.start();
+  SND.start(R.kind);
   let last = performance.now();
   const loop = now => {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
@@ -4131,8 +4221,8 @@ function genStage(ev, seed, km) {
   const frac = {}; sf.forEach(k => { frac[k] = (frac[k] || 0) + 1 / N; });
   // scenery: trees / rocks / spectators beside the road
   const decor = [];
-  for (let k = 0; k < N; k += 3) {
-    if (R() < .55) { const side = R() < .5 ? -1 : 1, off = rr(9, 34) * side, a = h[k] + Math.PI / 2; decor.push([x[k] + Math.cos(a) * off, y[k] + Math.sin(a) * off, R() < .9 ? 0 : 1, rr(1.6, 3.6), k]); }
+  for (let k = 0; k < N; k += 2) {
+    if (R() < .8) { const side = R() < .5 ? -1 : 1, off = rr(9, 44) * side, a = h[k] + Math.PI / 2; decor.push([x[k] + Math.cos(a) * off, y[k] + Math.sin(a) * off, R() < .9 ? 0 : 1, rr(1.6, 3.6), k]); }
   }
   // keep scenery clear of every part of the road (the road may pass near itself): grid lookup of road samples
   const CELL = 20, grid = new Map(), key2 = (a, b) => a + ',' + b;
@@ -4262,7 +4352,7 @@ function startStage(si) {
   $('#rlJoker').classList.add('hidden'); $('#rlModeRow').classList.remove('hidden');
   setSeg('#rlSpeed', 's', String(RL.speed)); setSeg('#rlMode', 'm', '1');
   rlTick(t('rl.startPos', { p: RL.startPos, n }) + (RL.sweep > .5 && !sd.pass && ((st.frac.G || 0) + (st.frac.S || 0)) > .3 ? ' ' + t('rl.sweepNote') : ''), 'info');
-  rlSizeCanvas(); SND.start();
+  rlSizeCanvas(); SND.start('rally');
   let last = performance.now();
   const loop = now => {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
@@ -4369,6 +4459,43 @@ function endStage() {
   rallyStageDone(L);
 }
 
+/* ---------- textures: small tiles drawn once, used as world-aligned patterns ---------- */
+const TEX = {};
+function texTile(key, base, paint) {
+  if (TEX[key]) return TEX[key];
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = base; g.fillRect(0, 0, 128, 128);
+  const R = mulberry(hashStr(key)), rr = (a, b) => a + R() * (b - a);
+  paint(g, R, rr);
+  TEX[key] = c; return c;
+}
+const dots = (g, R, rr, n, cols, s0, s1) => { for (let i = 0; i < n; i++) { g.fillStyle = cols[Math.floor(R() * cols.length)]; const s = rr(s0, s1); g.fillRect(rr(0, 128), rr(0, 128), s, s); } };
+// blobs wrap around the tile edges, so the pattern repeats without seams
+const softBlobs = (g, R, rr, n, col) => { for (let i = 0; i < n; i++) { const x = rr(0, 128), y = rr(0, 128), r = rr(6, 22); g.fillStyle = col; for (const dx of [-128, 0, 128]) for (const dy of [-128, 0, 128]) { g.beginPath(); g.arc(x + dx, y + dy, r, 0, 7); g.fill(); } } };
+function surfTex(sf) {
+  return {
+    A: () => texTile('tA', '#555a63', (g, R, rr) => { dots(g, R, rr, 900, ['#4b5058', '#60656e', '#5a5f68', '#6b7079'], .8, 1.8); g.strokeStyle = 'rgba(30,32,36,.35)'; g.lineWidth = .8; for (let i = 0; i < 4; i++) { g.beginPath(); let x = rr(0, 128), y = rr(0, 128); g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += rr(-14, 14); y += rr(-14, 14); g.lineTo(x, y); } g.stroke(); } }),
+    G: () => texTile('tG', '#a3825a', (g, R, rr) => { softBlobs(g, R, rr, 10, 'rgba(120,92,60,.18)'); dots(g, R, rr, 1300, ['#8c6d48', '#b8976a', '#c9ad84', '#7a6a58', '#9a9288'], .8, 2.6); }),
+    S: () => texTile('tS', '#d6bc86', (g, R, rr) => { g.strokeStyle = 'rgba(160,130,80,.25)'; g.lineWidth = 1.2; for (let y = 4; y < 128; y += 9) { g.beginPath(); for (let x = 0; x <= 128; x += 8) g.lineTo(x, y + Math.sin(x * .1 + y) * 2.5); g.stroke(); } dots(g, R, rr, 400, ['#c4a874', '#e6d2a4'], .8, 1.6); }),
+    N: () => texTile('tN', '#e6ecf3', (g, R, rr) => { softBlobs(g, R, rr, 12, 'rgba(170,190,215,.18)'); dots(g, R, rr, 500, ['#d2dbe6', '#ffffff', '#c3cfdd'], .8, 1.8); }),
+  }[sf]();
+}
+function groundTex(scen) {
+  return {
+    forest: () => texTile('gF', '#22402a', (g, R, rr) => { softBlobs(g, R, rr, 16, 'rgba(10,30,14,.25)'); softBlobs(g, R, rr, 10, 'rgba(90,130,70,.12)'); g.strokeStyle = 'rgba(110,150,90,.25)'; g.lineWidth = 1; for (let i = 0; i < 160; i++) { const x = rr(0, 128), y = rr(0, 128); g.beginPath(); g.moveTo(x, y); g.lineTo(x + rr(-1.5, 1.5), y - rr(2, 4)); g.stroke(); } }),
+    snow: () => texTile('gN', '#d3dce7', (g, R, rr) => { softBlobs(g, R, rr, 14, 'rgba(150,170,200,.16)'); softBlobs(g, R, rr, 8, 'rgba(255,255,255,.4)'); dots(g, R, rr, 200, ['#ffffff', '#bfcbd9'], .8, 1.6); }),
+    desert: () => texTile('gD', '#b9925c', (g, R, rr) => { softBlobs(g, R, rr, 12, 'rgba(150,110,60,.2)'); g.strokeStyle = 'rgba(140,100,55,.22)'; g.lineWidth = 1.2; for (let y = 6; y < 128; y += 12) { g.beginPath(); for (let x = 0; x <= 128; x += 8) g.lineTo(x, y + Math.sin(x * .08 + y * .3) * 3); g.stroke(); } dots(g, R, rr, 300, ['#8f7048', '#cfae7a', '#7d6a55'], .8, 2.2); }),
+    coast: () => texTile('gC', '#4f6d3b', (g, R, rr) => { softBlobs(g, R, rr, 14, 'rgba(30,50,20,.22)'); softBlobs(g, R, rr, 10, 'rgba(160,170,90,.15)'); dots(g, R, rr, 300, ['#3d5a2c', '#6a8a4a', '#8a8a60'], .8, 2); }),
+  }[scen in { forest: 1, snow: 1, desert: 1, coast: 1 } ? scen : 'forest']();
+}
+// a world-aligned pattern: tile covers `m` metres, (ox, oy) = screen position of world (0, 0), k = pixels per metre
+function worldPat(g, tile, m, ox, oy, k) {
+  const p = g.createPattern(tile, 'repeat'), s = k * m / 128;
+  if (p.setTransform) p.setTransform(new DOMMatrix([s, 0, 0, s, ox, oy]));
+  return p;
+}
+
+
 /* ---------- drawing ---------- */
 let RLC = null;
 function rlSizeCanvas() {
@@ -4384,7 +4511,6 @@ function drawStage() {
   const L = RL; if (!L || !RLC) return;
   const { g, w, h, dpr } = RLC, st = L.st, sc = SCEN[L.ev.scen] || SCEN.forest;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = sc[0]; g.fillRect(0, 0, w, h);
   const i = Math.min(st.N - 1, Math.floor(L.s / DS)), fr = L.s / DS - i, j = Math.min(st.N - 1, i + 1);
   // heading interpolated between samples, smoothing driven by real frame time (no jumps between samples)
   const now = performance.now(), fdt = clamp((now - (L.lastDraw || now)) / 1000, 0, .1); L.lastDraw = now;
@@ -4408,6 +4534,8 @@ function drawStage() {
   const camX = px + L.lookX, camY = py + L.lookY;
   const X = px => (px - camX) * k + w / 2, Y = py => (py - camY) * k + h / 2;
   const span = Math.ceil(Math.max(w, h) / k / DS) + 10, a = Math.max(0, i - span), b = Math.min(st.N - 1, i + span);
+  const wox = X(0), woy = Y(0);
+  g.fillStyle = worldPat(g, groundTex(L.ev.scen), 30, wox, woy, k); g.fillRect(0, 0, w, h);
   // road: shoulder, then surface in runs of the same surface
   g.lineCap = 'round'; g.lineJoin = 'round';
   const run = (wid, colF) => {
@@ -4420,7 +4548,28 @@ function drawStage() {
       }
     }
   };
-  run(11, sf => SURF[sf].edge); run(7.5, sf => SURF[sf].col);
+  // verge (darker), shoulder, then the textured surface
+  g.globalAlpha = .35; run(14, () => '#000'); g.globalAlpha = 1;
+  run(11, sf => SURF[sf].edge);
+  const pats = {}; const patOf = sf => pats[sf] || (pats[sf] = worldPat(g, surfTex(sf), sf === 'A' ? 10 : 12, wox, woy, k));
+  run(7.5, patOf);
+  // lines along the road, offset sideways (metres): wheel ruts on loose surfaces, painted lines on tarmac
+  const along = (off, test, style, wid, dash) => {
+    g.strokeStyle = style; g.lineWidth = Math.max(1, wid * k); g.setLineDash(dash ? dash.map(d => d * k) : []);
+    let open = false;
+    for (let q = a; q <= b; q++) {
+      const okq = test(st.sf[q]);
+      const nx = Math.cos(st.h[q] + Math.PI / 2), ny = Math.sin(st.h[q] + Math.PI / 2), xx = X(st.x[q] + nx * off), yy = Y(st.y[q] + ny * off);
+      if (okq && !open) { g.beginPath(); g.moveTo(xx, yy); open = true; } else if (okq) g.lineTo(xx, yy);
+      if ((!okq || q === b) && open) { g.stroke(); open = false; }
+    }
+    g.setLineDash([]);
+  };
+  const isLoose = sf => sf !== 'A';
+  along(-1.0, isLoose, 'rgba(60,40,20,.22)', .7); along(1.0, isLoose, 'rgba(60,40,20,.22)', .7);
+  along(0, isLoose, 'rgba(255,255,255,.08)', .5);
+  along(-3.45, sf => sf === 'A', 'rgba(255,255,255,.7)', .15); along(3.45, sf => sf === 'A', 'rgba(255,255,255,.7)', .15);
+  along(0, sf => sf === 'A', 'rgba(255,255,255,.55)', .14, [3, 5]);
   if (L.wx.wet) { g.globalAlpha = .18; run(7.5, () => '#3a6ea8'); g.globalAlpha = 1; }
   // features
   for (let q = a; q <= b; q++) {
@@ -4432,7 +4581,7 @@ function drawStage() {
   // scenery
   st.decor.forEach(([dx, dy, ty, r]) => {
     const sx = X(dx), sy = Y(dy); if (sx < -20 || sy < -20 || sx > w + 20 || sy > h + 20) return;
-    if (ty === 0) { g.fillStyle = sc[1]; g.beginPath(); g.arc(sx, sy, r * k, 0, Math.PI * 2); g.fill(); g.fillStyle = sc[2]; g.beginPath(); g.arc(sx - r * k * .25, sy - r * k * .25, r * k * .55, 0, Math.PI * 2); g.fill(); }
+    if (ty === 0) drawDecor(g, sx, sy, r * k, L.ev.scen, dx * 13 + dy * 7);
     else { g.fillStyle = ['#e8392f', '#2f7bf5', '#f5c518', '#fff'][Math.floor(dx * 7 + dy) & 3]; g.beginPath(); g.arc(sx, sy, .7 * k, 0, Math.PI * 2); g.fill(); }
   });
   // tyre marks (rally: always; darker when sliding)
@@ -4514,6 +4663,25 @@ function drawStage() {
     const ny = Math.min(56, h * .14);
     g.fillStyle = 'rgba(15,18,23,.85)'; g.fillRect(w / 2 - tw / 2, ny, tw, 30);
     g.fillStyle = '#ffb21e'; g.textAlign = 'center'; g.fillText(note, w / 2, ny + 15); g.textAlign = 'left';
+  }
+}
+// scenery objects by landscape: broadleaf trees, snowy pines, desert rocks and shrubs, coastal bushes
+function drawDecor(g, x, y, r, scen, h) {
+  const v = Math.abs(Math.floor(h)) % 7;
+  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(x + r * .35, y + r * .45, r, r * .85, 0, 0, 7); g.fill();
+  if (scen === 'snow') {   // pine seen from above: dark star, snow on top
+    g.fillStyle = '#2b4a3a'; g.beginPath(); for (let k = 0; k <= 16; k++) { const a = k / 16 * Math.PI * 2, rr = k % 2 ? r * .55 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill();
+    g.fillStyle = 'rgba(245,250,255,.85)'; g.beginPath(); g.arc(x - r * .15, y - r * .15, r * .42, 0, 7); g.fill();
+  } else if (scen === 'desert') {
+    if (v < 4) {   // rock
+      g.fillStyle = ['#8a7b6a', '#7a6a58', '#9a8a74'][v % 3]; g.beginPath();
+      for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2, rr = r * (.7 + ((h * (k + 3)) % 5) / 12); g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill();
+      g.fillStyle = 'rgba(255,255,255,.15)'; g.beginPath(); g.arc(x - r * .25, y - r * .25, r * .35, 0, 7); g.fill();
+    } else { g.fillStyle = '#6d6b3a'; for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(x + Math.cos(k * 1.3) * r * .4, y + Math.sin(k * 1.3) * r * .4, r * .4, 0, 7); g.fill(); } }
+  } else {
+    const c1 = scen === 'coast' ? ['#4f6b2c', '#5d7a34', '#456127'][v % 3] : ['#1f4a26', '#2a5a2e', '#21522a'][v % 3];
+    g.fillStyle = c1; for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(x + Math.cos(k * 1.26 + v) * r * .38, y + Math.sin(k * 1.26 + v) * r * .38, r * .62, 0, 7); g.fill(); }
+    g.fillStyle = 'rgba(160,200,110,.22)'; g.beginPath(); g.arc(x - r * .3, y - r * .3, r * .45, 0, 7); g.fill();
   }
 }
 function drawRallyCar(g, x, y, ang, k, col, ghost, lift = 0) {
@@ -5225,7 +5393,7 @@ function rxRun(label, crews, laps, done) {
   $('#rlWx').innerHTML = W.T.ice ? `<i class="wxd damp"></i>${t('rx.ice')}` : wxBadge({ wet: W.wet }, null);
   $('#rlJoker').classList.remove('hidden'); $('#rlPrompt').classList.add('hidden');
   setSeg('#rlSpeed', 's', String(RL.speed)); setSeg('#rlMode', 'm', '1');
-  rlTick(t('rx.grid'), 'info'); rlSizeCanvas(); SND.start();
+  rlTick(t('rx.grid'), 'info'); rlSizeCanvas(); SND.start('rx');
   let last = performance.now();
   const loop = now => {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
@@ -5273,17 +5441,34 @@ function drawRx() {
   const L = RL; if (!L || !RLC) return;
   const { g, w, h, dpr } = RLC, W = RW, tr = W.tr;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = W.T.ice ? '#cfd8e2' : '#2c4a2e'; g.fillRect(0, 0, w, h);
   const xs = tr.x.concat(tr.jx), ys = tr.y.concat(tr.jy);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
   const k = Math.min((w - 30) / (x1 - x0), (h - 30) / (y1 - y0)), X = v => 15 + (v - x0) * k + (w - 30 - (x1 - x0) * k) / 2, Y = v => 15 + (v - y0) * k + (h - 30 - (y1 - y0) * k) / 2;
+  const wox = X(0), woy = Y(0);
+  g.fillStyle = worldPat(g, groundTex(W.T.ice ? 'snow' : 'forest'), 30, wox, woy, k); g.fillRect(0, 0, w, h);
+  const patA = worldPat(g, surfTex('A'), 10, wox, woy, k), patG = worldPat(g, surfTex('G'), 12, wox, woy, k), patN = worldPat(g, surfTex('N'), 12, wox, woy, k);
+  // grandstand and service area beside the start
+  { const hd0 = tr.h[0], nx = Math.cos(hd0 + Math.PI / 2), ny = Math.sin(hd0 + Math.PI / 2), out = ((tr.x[0] - tr.cx) * nx + (tr.y[0] - tr.cy) * ny) > 0 ? 1 : -1;
+    g.save(); g.translate(X(tr.x[0] + nx * out * 17), Y(tr.y[0] + ny * out * 17)); g.rotate(hd0);
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(-26 * k + 2, -4 * k + 3, 52 * k, 8 * k);
+    for (let r = 0; r < 4; r++) { g.fillStyle = r % 2 ? '#3b4250' : '#4a5263'; g.fillRect(-26 * k, -4 * k + r * 2 * k, 52 * k, 2 * k); }
+    for (let q = 0; q < 60; q++) { g.fillStyle = ['#e8392f', '#2f7bf5', '#f5c518', '#fff'][q % 4]; g.fillRect((-25 + (q * 37 % 50)) * k, (-3.6 + (q * 13 % 7)) * k, 1.5, 1.5); }
+    g.restore(); }
   g.lineCap = 'round'; g.lineJoin = 'round';
   const path = (ax, ay, closed) => { g.beginPath(); g.moveTo(X(ax[0]), Y(ay[0])); for (let i = 1; i < ax.length; i++) g.lineTo(X(ax[i]), Y(ay[i])); if (closed) g.closePath(); };
-  path(tr.jx, tr.jy); g.strokeStyle = '#6e593b'; g.lineWidth = 13 * k; g.stroke(); g.strokeStyle = W.T.ice ? '#eef3f8' : '#a8875b'; g.lineWidth = 9 * k; g.stroke();
+  // tyre barrier around the circuit (outside the verge)
+  path(tr.x, tr.y, true); g.strokeStyle = '#26282c'; g.lineWidth = 21 * k; g.setLineDash([1.2 * k, .6 * k]); g.stroke(); g.setLineDash([]);
+  path(tr.x, tr.y, true); g.strokeStyle = W.T.ice ? '#b9c6d6' : '#3e5a35'; g.lineWidth = 18.5 * k; g.stroke();
+  path(tr.jx, tr.jy); g.strokeStyle = '#6e593b'; g.lineWidth = 13 * k; g.stroke(); g.strokeStyle = W.T.ice ? patN : patG; g.lineWidth = 9 * k; g.stroke();
   path(tr.x, tr.y, true); g.strokeStyle = '#1b1d21'; g.lineWidth = 15 * k; g.stroke();
-  for (let i = 0; i < tr.N; i++) {   // surface per sample
+  for (let i = 0; i < tr.N; i++) {   // textured surface per sample, tarmac with white edge lines
     const j = (i + 1) % tr.N; g.beginPath(); g.moveTo(X(tr.x[i]), Y(tr.y[i])); g.lineTo(X(tr.x[j]), Y(tr.y[j]));
-    g.strokeStyle = W.T.ice ? '#e9eef4' : tr.grav[i] ? '#a8875b' : '#5a5f68'; g.lineWidth = 11 * k; g.stroke();
+    g.strokeStyle = W.T.ice ? patN : tr.grav[i] ? patG : patA; g.lineWidth = 11 * k; g.stroke();
+  }
+  if (!W.T.ice) for (const sd of [-1, 1]) {
+    g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = Math.max(1, .18 * k);
+    for (let i = 0; i < tr.N; i++) { if (tr.grav[i]) continue; const j = (i + 1) % tr.N, n1 = tr.h[i] + Math.PI / 2, n2 = tr.h[j] + Math.PI / 2;
+      g.beginPath(); g.moveTo(X(tr.x[i] + Math.cos(n1) * 5.1 * sd), Y(tr.y[i] + Math.sin(n1) * 5.1 * sd)); g.lineTo(X(tr.x[j] + Math.cos(n2) * 5.1 * sd), Y(tr.y[j] + Math.sin(n2) * 5.1 * sd)); g.stroke(); }
   }
   if (W.wet) { path(tr.x, tr.y, true); g.strokeStyle = 'rgba(58,110,168,.2)'; g.lineWidth = 11 * k; g.stroke(); }
   const jm = Math.floor(tr.jx.length / 2); g.fillStyle = '#ffb21e'; g.font = `800 ${Math.max(10, 9 * k)}px ${FC}`; g.textAlign = 'center'; g.fillText('JOKER', X(tr.jx[jm]), Y(tr.jy[jm]) - 10 * k); g.textAlign = 'left';

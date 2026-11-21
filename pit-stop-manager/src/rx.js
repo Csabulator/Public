@@ -222,7 +222,7 @@ function rxRun(label, crews, laps, done) {
   $('#rlWx').innerHTML = W.T.ice ? `<i class="wxd damp"></i>${t('rx.ice')}` : wxBadge({ wet: W.wet }, null);
   $('#rlJoker').classList.remove('hidden'); $('#rlPrompt').classList.add('hidden');
   setSeg('#rlSpeed', 's', String(RL.speed)); setSeg('#rlMode', 'm', '1');
-  rlTick(t('rx.grid'), 'info'); rlSizeCanvas(); SND.start();
+  rlTick(t('rx.grid'), 'info'); rlSizeCanvas(); SND.start('rx');
   let last = performance.now();
   const loop = now => {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
@@ -270,17 +270,34 @@ function drawRx() {
   const L = RL; if (!L || !RLC) return;
   const { g, w, h, dpr } = RLC, W = RW, tr = W.tr;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = W.T.ice ? '#cfd8e2' : '#2c4a2e'; g.fillRect(0, 0, w, h);
   const xs = tr.x.concat(tr.jx), ys = tr.y.concat(tr.jy);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
   const k = Math.min((w - 30) / (x1 - x0), (h - 30) / (y1 - y0)), X = v => 15 + (v - x0) * k + (w - 30 - (x1 - x0) * k) / 2, Y = v => 15 + (v - y0) * k + (h - 30 - (y1 - y0) * k) / 2;
+  const wox = X(0), woy = Y(0);
+  g.fillStyle = worldPat(g, groundTex(W.T.ice ? 'snow' : 'forest'), 30, wox, woy, k); g.fillRect(0, 0, w, h);
+  const patA = worldPat(g, surfTex('A'), 10, wox, woy, k), patG = worldPat(g, surfTex('G'), 12, wox, woy, k), patN = worldPat(g, surfTex('N'), 12, wox, woy, k);
+  // grandstand and service area beside the start
+  { const hd0 = tr.h[0], nx = Math.cos(hd0 + Math.PI / 2), ny = Math.sin(hd0 + Math.PI / 2), out = ((tr.x[0] - tr.cx) * nx + (tr.y[0] - tr.cy) * ny) > 0 ? 1 : -1;
+    g.save(); g.translate(X(tr.x[0] + nx * out * 17), Y(tr.y[0] + ny * out * 17)); g.rotate(hd0);
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(-26 * k + 2, -4 * k + 3, 52 * k, 8 * k);
+    for (let r = 0; r < 4; r++) { g.fillStyle = r % 2 ? '#3b4250' : '#4a5263'; g.fillRect(-26 * k, -4 * k + r * 2 * k, 52 * k, 2 * k); }
+    for (let q = 0; q < 60; q++) { g.fillStyle = ['#e8392f', '#2f7bf5', '#f5c518', '#fff'][q % 4]; g.fillRect((-25 + (q * 37 % 50)) * k, (-3.6 + (q * 13 % 7)) * k, 1.5, 1.5); }
+    g.restore(); }
   g.lineCap = 'round'; g.lineJoin = 'round';
   const path = (ax, ay, closed) => { g.beginPath(); g.moveTo(X(ax[0]), Y(ay[0])); for (let i = 1; i < ax.length; i++) g.lineTo(X(ax[i]), Y(ay[i])); if (closed) g.closePath(); };
-  path(tr.jx, tr.jy); g.strokeStyle = '#6e593b'; g.lineWidth = 13 * k; g.stroke(); g.strokeStyle = W.T.ice ? '#eef3f8' : '#a8875b'; g.lineWidth = 9 * k; g.stroke();
+  // tyre barrier around the circuit (outside the verge)
+  path(tr.x, tr.y, true); g.strokeStyle = '#26282c'; g.lineWidth = 21 * k; g.setLineDash([1.2 * k, .6 * k]); g.stroke(); g.setLineDash([]);
+  path(tr.x, tr.y, true); g.strokeStyle = W.T.ice ? '#b9c6d6' : '#3e5a35'; g.lineWidth = 18.5 * k; g.stroke();
+  path(tr.jx, tr.jy); g.strokeStyle = '#6e593b'; g.lineWidth = 13 * k; g.stroke(); g.strokeStyle = W.T.ice ? patN : patG; g.lineWidth = 9 * k; g.stroke();
   path(tr.x, tr.y, true); g.strokeStyle = '#1b1d21'; g.lineWidth = 15 * k; g.stroke();
-  for (let i = 0; i < tr.N; i++) {   // surface per sample
+  for (let i = 0; i < tr.N; i++) {   // textured surface per sample, tarmac with white edge lines
     const j = (i + 1) % tr.N; g.beginPath(); g.moveTo(X(tr.x[i]), Y(tr.y[i])); g.lineTo(X(tr.x[j]), Y(tr.y[j]));
-    g.strokeStyle = W.T.ice ? '#e9eef4' : tr.grav[i] ? '#a8875b' : '#5a5f68'; g.lineWidth = 11 * k; g.stroke();
+    g.strokeStyle = W.T.ice ? patN : tr.grav[i] ? patG : patA; g.lineWidth = 11 * k; g.stroke();
+  }
+  if (!W.T.ice) for (const sd of [-1, 1]) {
+    g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = Math.max(1, .18 * k);
+    for (let i = 0; i < tr.N; i++) { if (tr.grav[i]) continue; const j = (i + 1) % tr.N, n1 = tr.h[i] + Math.PI / 2, n2 = tr.h[j] + Math.PI / 2;
+      g.beginPath(); g.moveTo(X(tr.x[i] + Math.cos(n1) * 5.1 * sd), Y(tr.y[i] + Math.sin(n1) * 5.1 * sd)); g.lineTo(X(tr.x[j] + Math.cos(n2) * 5.1 * sd), Y(tr.y[j] + Math.sin(n2) * 5.1 * sd)); g.stroke(); }
   }
   if (W.wet) { path(tr.x, tr.y, true); g.strokeStyle = 'rgba(58,110,168,.2)'; g.lineWidth = 11 * k; g.stroke(); }
   const jm = Math.floor(tr.jx.length / 2); g.fillStyle = '#ffb21e'; g.font = `800 ${Math.max(10, 9 * k)}px ${FC}`; g.textAlign = 'center'; g.fillText('JOKER', X(tr.jx[jm]), Y(tr.jy[jm]) - 10 * k); g.textAlign = 'left';

@@ -121,8 +121,8 @@ function genStage(ev, seed, km) {
   const frac = {}; sf.forEach(k => { frac[k] = (frac[k] || 0) + 1 / N; });
   // scenery: trees / rocks / spectators beside the road
   const decor = [];
-  for (let k = 0; k < N; k += 3) {
-    if (R() < .55) { const side = R() < .5 ? -1 : 1, off = rr(9, 34) * side, a = h[k] + Math.PI / 2; decor.push([x[k] + Math.cos(a) * off, y[k] + Math.sin(a) * off, R() < .9 ? 0 : 1, rr(1.6, 3.6), k]); }
+  for (let k = 0; k < N; k += 2) {
+    if (R() < .8) { const side = R() < .5 ? -1 : 1, off = rr(9, 44) * side, a = h[k] + Math.PI / 2; decor.push([x[k] + Math.cos(a) * off, y[k] + Math.sin(a) * off, R() < .9 ? 0 : 1, rr(1.6, 3.6), k]); }
   }
   // keep scenery clear of every part of the road (the road may pass near itself): grid lookup of road samples
   const CELL = 20, grid = new Map(), key2 = (a, b) => a + ',' + b;
@@ -252,7 +252,7 @@ function startStage(si) {
   $('#rlJoker').classList.add('hidden'); $('#rlModeRow').classList.remove('hidden');
   setSeg('#rlSpeed', 's', String(RL.speed)); setSeg('#rlMode', 'm', '1');
   rlTick(t('rl.startPos', { p: RL.startPos, n }) + (RL.sweep > .5 && !sd.pass && ((st.frac.G || 0) + (st.frac.S || 0)) > .3 ? ' ' + t('rl.sweepNote') : ''), 'info');
-  rlSizeCanvas(); SND.start();
+  rlSizeCanvas(); SND.start('rally');
   let last = performance.now();
   const loop = now => {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
@@ -359,6 +359,43 @@ function endStage() {
   rallyStageDone(L);
 }
 
+/* ---------- textures: small tiles drawn once, used as world-aligned patterns ---------- */
+const TEX = {};
+function texTile(key, base, paint) {
+  if (TEX[key]) return TEX[key];
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = base; g.fillRect(0, 0, 128, 128);
+  const R = mulberry(hashStr(key)), rr = (a, b) => a + R() * (b - a);
+  paint(g, R, rr);
+  TEX[key] = c; return c;
+}
+const dots = (g, R, rr, n, cols, s0, s1) => { for (let i = 0; i < n; i++) { g.fillStyle = cols[Math.floor(R() * cols.length)]; const s = rr(s0, s1); g.fillRect(rr(0, 128), rr(0, 128), s, s); } };
+// blobs wrap around the tile edges, so the pattern repeats without seams
+const softBlobs = (g, R, rr, n, col) => { for (let i = 0; i < n; i++) { const x = rr(0, 128), y = rr(0, 128), r = rr(6, 22); g.fillStyle = col; for (const dx of [-128, 0, 128]) for (const dy of [-128, 0, 128]) { g.beginPath(); g.arc(x + dx, y + dy, r, 0, 7); g.fill(); } } };
+function surfTex(sf) {
+  return {
+    A: () => texTile('tA', '#555a63', (g, R, rr) => { dots(g, R, rr, 900, ['#4b5058', '#60656e', '#5a5f68', '#6b7079'], .8, 1.8); g.strokeStyle = 'rgba(30,32,36,.35)'; g.lineWidth = .8; for (let i = 0; i < 4; i++) { g.beginPath(); let x = rr(0, 128), y = rr(0, 128); g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += rr(-14, 14); y += rr(-14, 14); g.lineTo(x, y); } g.stroke(); } }),
+    G: () => texTile('tG', '#a3825a', (g, R, rr) => { softBlobs(g, R, rr, 10, 'rgba(120,92,60,.18)'); dots(g, R, rr, 1300, ['#8c6d48', '#b8976a', '#c9ad84', '#7a6a58', '#9a9288'], .8, 2.6); }),
+    S: () => texTile('tS', '#d6bc86', (g, R, rr) => { g.strokeStyle = 'rgba(160,130,80,.25)'; g.lineWidth = 1.2; for (let y = 4; y < 128; y += 9) { g.beginPath(); for (let x = 0; x <= 128; x += 8) g.lineTo(x, y + Math.sin(x * .1 + y) * 2.5); g.stroke(); } dots(g, R, rr, 400, ['#c4a874', '#e6d2a4'], .8, 1.6); }),
+    N: () => texTile('tN', '#e6ecf3', (g, R, rr) => { softBlobs(g, R, rr, 12, 'rgba(170,190,215,.18)'); dots(g, R, rr, 500, ['#d2dbe6', '#ffffff', '#c3cfdd'], .8, 1.8); }),
+  }[sf]();
+}
+function groundTex(scen) {
+  return {
+    forest: () => texTile('gF', '#22402a', (g, R, rr) => { softBlobs(g, R, rr, 16, 'rgba(10,30,14,.25)'); softBlobs(g, R, rr, 10, 'rgba(90,130,70,.12)'); g.strokeStyle = 'rgba(110,150,90,.25)'; g.lineWidth = 1; for (let i = 0; i < 160; i++) { const x = rr(0, 128), y = rr(0, 128); g.beginPath(); g.moveTo(x, y); g.lineTo(x + rr(-1.5, 1.5), y - rr(2, 4)); g.stroke(); } }),
+    snow: () => texTile('gN', '#d3dce7', (g, R, rr) => { softBlobs(g, R, rr, 14, 'rgba(150,170,200,.16)'); softBlobs(g, R, rr, 8, 'rgba(255,255,255,.4)'); dots(g, R, rr, 200, ['#ffffff', '#bfcbd9'], .8, 1.6); }),
+    desert: () => texTile('gD', '#b9925c', (g, R, rr) => { softBlobs(g, R, rr, 12, 'rgba(150,110,60,.2)'); g.strokeStyle = 'rgba(140,100,55,.22)'; g.lineWidth = 1.2; for (let y = 6; y < 128; y += 12) { g.beginPath(); for (let x = 0; x <= 128; x += 8) g.lineTo(x, y + Math.sin(x * .08 + y * .3) * 3); g.stroke(); } dots(g, R, rr, 300, ['#8f7048', '#cfae7a', '#7d6a55'], .8, 2.2); }),
+    coast: () => texTile('gC', '#4f6d3b', (g, R, rr) => { softBlobs(g, R, rr, 14, 'rgba(30,50,20,.22)'); softBlobs(g, R, rr, 10, 'rgba(160,170,90,.15)'); dots(g, R, rr, 300, ['#3d5a2c', '#6a8a4a', '#8a8a60'], .8, 2); }),
+  }[scen in { forest: 1, snow: 1, desert: 1, coast: 1 } ? scen : 'forest']();
+}
+// a world-aligned pattern: tile covers `m` metres, (ox, oy) = screen position of world (0, 0), k = pixels per metre
+function worldPat(g, tile, m, ox, oy, k) {
+  const p = g.createPattern(tile, 'repeat'), s = k * m / 128;
+  if (p.setTransform) p.setTransform(new DOMMatrix([s, 0, 0, s, ox, oy]));
+  return p;
+}
+
+
 /* ---------- drawing ---------- */
 let RLC = null;
 function rlSizeCanvas() {
@@ -374,7 +411,6 @@ function drawStage() {
   const L = RL; if (!L || !RLC) return;
   const { g, w, h, dpr } = RLC, st = L.st, sc = SCEN[L.ev.scen] || SCEN.forest;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = sc[0]; g.fillRect(0, 0, w, h);
   const i = Math.min(st.N - 1, Math.floor(L.s / DS)), fr = L.s / DS - i, j = Math.min(st.N - 1, i + 1);
   // heading interpolated between samples, smoothing driven by real frame time (no jumps between samples)
   const now = performance.now(), fdt = clamp((now - (L.lastDraw || now)) / 1000, 0, .1); L.lastDraw = now;
@@ -398,6 +434,8 @@ function drawStage() {
   const camX = px + L.lookX, camY = py + L.lookY;
   const X = px => (px - camX) * k + w / 2, Y = py => (py - camY) * k + h / 2;
   const span = Math.ceil(Math.max(w, h) / k / DS) + 10, a = Math.max(0, i - span), b = Math.min(st.N - 1, i + span);
+  const wox = X(0), woy = Y(0);
+  g.fillStyle = worldPat(g, groundTex(L.ev.scen), 30, wox, woy, k); g.fillRect(0, 0, w, h);
   // road: shoulder, then surface in runs of the same surface
   g.lineCap = 'round'; g.lineJoin = 'round';
   const run = (wid, colF) => {
@@ -410,7 +448,28 @@ function drawStage() {
       }
     }
   };
-  run(11, sf => SURF[sf].edge); run(7.5, sf => SURF[sf].col);
+  // verge (darker), shoulder, then the textured surface
+  g.globalAlpha = .35; run(14, () => '#000'); g.globalAlpha = 1;
+  run(11, sf => SURF[sf].edge);
+  const pats = {}; const patOf = sf => pats[sf] || (pats[sf] = worldPat(g, surfTex(sf), sf === 'A' ? 10 : 12, wox, woy, k));
+  run(7.5, patOf);
+  // lines along the road, offset sideways (metres): wheel ruts on loose surfaces, painted lines on tarmac
+  const along = (off, test, style, wid, dash) => {
+    g.strokeStyle = style; g.lineWidth = Math.max(1, wid * k); g.setLineDash(dash ? dash.map(d => d * k) : []);
+    let open = false;
+    for (let q = a; q <= b; q++) {
+      const okq = test(st.sf[q]);
+      const nx = Math.cos(st.h[q] + Math.PI / 2), ny = Math.sin(st.h[q] + Math.PI / 2), xx = X(st.x[q] + nx * off), yy = Y(st.y[q] + ny * off);
+      if (okq && !open) { g.beginPath(); g.moveTo(xx, yy); open = true; } else if (okq) g.lineTo(xx, yy);
+      if ((!okq || q === b) && open) { g.stroke(); open = false; }
+    }
+    g.setLineDash([]);
+  };
+  const isLoose = sf => sf !== 'A';
+  along(-1.0, isLoose, 'rgba(60,40,20,.22)', .7); along(1.0, isLoose, 'rgba(60,40,20,.22)', .7);
+  along(0, isLoose, 'rgba(255,255,255,.08)', .5);
+  along(-3.45, sf => sf === 'A', 'rgba(255,255,255,.7)', .15); along(3.45, sf => sf === 'A', 'rgba(255,255,255,.7)', .15);
+  along(0, sf => sf === 'A', 'rgba(255,255,255,.55)', .14, [3, 5]);
   if (L.wx.wet) { g.globalAlpha = .18; run(7.5, () => '#3a6ea8'); g.globalAlpha = 1; }
   // features
   for (let q = a; q <= b; q++) {
@@ -422,7 +481,7 @@ function drawStage() {
   // scenery
   st.decor.forEach(([dx, dy, ty, r]) => {
     const sx = X(dx), sy = Y(dy); if (sx < -20 || sy < -20 || sx > w + 20 || sy > h + 20) return;
-    if (ty === 0) { g.fillStyle = sc[1]; g.beginPath(); g.arc(sx, sy, r * k, 0, Math.PI * 2); g.fill(); g.fillStyle = sc[2]; g.beginPath(); g.arc(sx - r * k * .25, sy - r * k * .25, r * k * .55, 0, Math.PI * 2); g.fill(); }
+    if (ty === 0) drawDecor(g, sx, sy, r * k, L.ev.scen, dx * 13 + dy * 7);
     else { g.fillStyle = ['#e8392f', '#2f7bf5', '#f5c518', '#fff'][Math.floor(dx * 7 + dy) & 3]; g.beginPath(); g.arc(sx, sy, .7 * k, 0, Math.PI * 2); g.fill(); }
   });
   // tyre marks (rally: always; darker when sliding)
@@ -504,6 +563,25 @@ function drawStage() {
     const ny = Math.min(56, h * .14);
     g.fillStyle = 'rgba(15,18,23,.85)'; g.fillRect(w / 2 - tw / 2, ny, tw, 30);
     g.fillStyle = '#ffb21e'; g.textAlign = 'center'; g.fillText(note, w / 2, ny + 15); g.textAlign = 'left';
+  }
+}
+// scenery objects by landscape: broadleaf trees, snowy pines, desert rocks and shrubs, coastal bushes
+function drawDecor(g, x, y, r, scen, h) {
+  const v = Math.abs(Math.floor(h)) % 7;
+  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(x + r * .35, y + r * .45, r, r * .85, 0, 0, 7); g.fill();
+  if (scen === 'snow') {   // pine seen from above: dark star, snow on top
+    g.fillStyle = '#2b4a3a'; g.beginPath(); for (let k = 0; k <= 16; k++) { const a = k / 16 * Math.PI * 2, rr = k % 2 ? r * .55 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill();
+    g.fillStyle = 'rgba(245,250,255,.85)'; g.beginPath(); g.arc(x - r * .15, y - r * .15, r * .42, 0, 7); g.fill();
+  } else if (scen === 'desert') {
+    if (v < 4) {   // rock
+      g.fillStyle = ['#8a7b6a', '#7a6a58', '#9a8a74'][v % 3]; g.beginPath();
+      for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2, rr = r * (.7 + ((h * (k + 3)) % 5) / 12); g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill();
+      g.fillStyle = 'rgba(255,255,255,.15)'; g.beginPath(); g.arc(x - r * .25, y - r * .25, r * .35, 0, 7); g.fill();
+    } else { g.fillStyle = '#6d6b3a'; for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(x + Math.cos(k * 1.3) * r * .4, y + Math.sin(k * 1.3) * r * .4, r * .4, 0, 7); g.fill(); } }
+  } else {
+    const c1 = scen === 'coast' ? ['#4f6b2c', '#5d7a34', '#456127'][v % 3] : ['#1f4a26', '#2a5a2e', '#21522a'][v % 3];
+    g.fillStyle = c1; for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(x + Math.cos(k * 1.26 + v) * r * .38, y + Math.sin(k * 1.26 + v) * r * .38, r * .62, 0, 7); g.fill(); }
+    g.fillStyle = 'rgba(160,200,110,.22)'; g.beginPath(); g.arc(x - r * .3, y - r * .3, r * .45, 0, 7); g.fill();
   }
 }
 function drawRallyCar(g, x, y, ang, k, col, ghost, lift = 0) {

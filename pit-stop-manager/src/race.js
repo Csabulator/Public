@@ -93,7 +93,7 @@ function startRace(startTires, opts = {}) {
   selectCar(0);
   sizeCanvas(); drawBG();
   tick(t('rt.grid'));
-  SND.start();
+  SND.start(R.kind);
   let last = performance.now();
   const loop = now => {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
