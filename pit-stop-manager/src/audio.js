@@ -136,6 +136,6 @@ const SND = (() => {
     if (on) { unlock(); if ((R && !R.headless) || RL) start(lastKind); } else stop();
     paint();
   }
-  function paint() { const b = $('#rSnd'); if (b) b.classList.toggle('off', !on); }
+  function paint() { ['#rSnd', '#rlSnd'].forEach(id => { const b = $(id); if (b) b.classList.toggle('off', !on); }); }
   return { start: k => { lastKind = k || 'gt'; start(lastKind); }, stop, engine, radio, gun, toggle, unlock, paint, get on() { return on; } };
 })();

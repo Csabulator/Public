@@ -424,6 +424,11 @@ function selectCar(i) {
   setSeg('#rMode', 'm', c.mode); setSeg('#pTire', 'ty', R.plans[i].tire); setSeg('#pFuel', 'f', R.plans[i].fuel);
   updateBoxBtn(); if (R.lastUI) updateLB();
 }
+// one leaderboard row, the same in every discipline
+function lbRow(pos, c, gap, hot = false) {
+  const g = typeof gap === 'string' && gap.startsWith('<') ? gap : `<span class="g${hot ? ' pit' : ''}">${gap ?? ''}</span>`;
+  return `<div class="lbr ${c.isMe ? 'me' : ''}"><span class="p">${pos}</span><span class="sw" style="background:${c.color}"></span><span class="nm">#${c.num} ${esc(c.driver)} <span class="nat">${c.nat || ''}</span> <span class="muted small">· ${esc(c.name)}</span>${c.isRival ? ' <span class="tt r">RIV</span>' : ''}</span>${g}</div>`;
+}
 function updateBoxBtn() { const b = $('#rBox'); if (b && R) { const c = R.my[R.sel]; b.classList.toggle('req', c.pitReq); b.classList.toggle('in', !!c.pit); b.classList.toggle('busy', !c.pit && !!mateInLane(c)); } }
 function wxLabel() { return R.wet < .2 ? ['dry', t('wx.dry')] : R.wet < .7 ? ['damp', t('wx.damp')] : ['wet', t('wx.wet')]; }
 function toEntry(c) { return (c.entryN + 1) * R.tr.N - R.tr.pitE - c.prog; }
@@ -494,7 +499,7 @@ function bindRaceControls() {
     } else tick(t('rt.boxCancel', { num: me.num }), 'radio');
     updateBoxBtn();
   };
-  $('#rSnd').onclick = () => { SND.toggle(); };
+  $('#rSnd').onclick = () => { SND.toggle(); }; $('#rlSnd').onclick = () => { SND.toggle(); };
   $('#rQuit').onclick = () => {
     if (!R) return;
     modal(`<h3>${t('race.quitT')}</h3><p>${t('race.quitP')}</p><div class="row"><button class="btn grow" data-close>${t('ui.cancel')}</button><button class="btn pri grow" id="ok">${t('race.skip')}</button></div>`);

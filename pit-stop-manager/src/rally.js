@@ -401,7 +401,7 @@ let RLC = null;
 function rlSizeCanvas() {
   const cv = $('#rlCv'), box = $('#rlStage'), dpr = Math.min(2, window.devicePixelRatio || 1);
   const wide = getComputedStyle($('#rally .rbody')).display === 'grid', tk = $('#rlTick'), tkH = tk ? tk.offsetHeight + 14 : 0;
-  const w = box.clientWidth || 360, h = wide ? Math.max(260, $('#rally .rbody').clientHeight - tkH) : Math.round(Math.min(w * .78, window.innerHeight * .5));
+  const w = box.clientWidth || 360, h = wide ? Math.max(180, $('#rally .rbody').clientHeight - tkH) : Math.round(Math.max(170, Math.min(w * .7, window.innerHeight * .38)));   // same size as the circuit map
   cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
   RLC = { cv, g: cv.getContext('2d'), w, h, dpr };
 }
@@ -611,7 +611,7 @@ function rlTick(text, kind) { const el = $('#rlTick'); if (!el) return; el.textC
 function stageUI() {
   const L = RL; if (!L) return;
   const W = RW, d = W.dmg;
-  $('#rlTele').innerHTML = rallyTele(W) + `<div class="small muted" style="margin-top:4px">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}${W.flat ? ' · <b class="neg">' + t('rl.flat') + '</b>' : ''}</div>`;
+  $('#rlTele').innerHTML = rallyTele(W, `#${S.num} · ${esc(lastName(L.me.driver))} · ${t('mode.' + L.mode)}`, `<span class="muted">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}</span>${W.flat ? ' <b class="neg">' + t('rl.flat') + '</b>' : ''}`);
   const pr = $('#rlPrompt');
   if (L.prompt === 'puncture') {
     pr.classList.remove('hidden');
@@ -624,12 +624,14 @@ function stageUI() {
   fin.push({ c: L.me, tm: L.done && !L.retired ? L.t : null });
   fin.sort((a, b) => (a.tm ?? 1e9) - (b.tm ?? 1e9));
   const best = fin.length && fin[0].tm != null ? fin[0].tm : null;
-  $('#rlLb').innerHTML = `<div class="small muted" style="margin:2px 0 6px">${t('rl.liveTimes')}</div>` + fin.slice(0, 10).map((e, k) => `<div class="lbr ${e.c.isMe ? 'me' : ''}"><span class="p">${e.tm != null ? k + 1 : '–'}</span><span class="dot" style="background:${e.c.color}"></span><span class="nm">${esc(lastName(e.c.driver))}</span><span class="gap">${e.tm == null ? (e.c.isMe ? (L.retired ? 'DNF' : fmtT(L.t)) : '') : k === 0 ? fmtT(e.tm) : fmtGap(e.tm - best)}</span></div>`).join('');
+  $('#rlLb').innerHTML = `<div class="pest small muted">${t('rl.liveTimes')}</div>` + fin.slice(0, 10).map((e, k) => lbRow(e.tm != null ? k + 1 : '–', e.c, e.tm == null ? (e.c.isMe ? (L.retired ? '<span class="g dnf">DNF</span>' : fmtT(L.t)) : '') : k === 0 ? fmtT(e.tm) : fmtGap(e.tm - best))).join('');
 }
-function rallyTele(W) {
+// same panel as on the circuit: car sketch on the left, bars on the right
+function rallyTele(W, head, foot = '') {
   const d = W.dmg, bar = (k, v) => `<div class="trow"><span>${t('rdmg.' + k)}</span><div class="bar"><i style="width:${Math.round(v * 100)}%;background:${condCol(v)}"></i></div><b>${Math.round(v * 100)}%</b></div>`;
   const tw = clamp(1 - W.wear, 0, 1);
-  return `<div class="rtele">${DMG_KEYS.map(k => bar(k, d[k])).join('')}<div class="trow"><span>${t('tele.tires')}</span><div class="bar"><i style="width:${Math.round(tw * 100)}%;background:${treadCol(tw)}"></i></div><b>${Math.round(tw * 100)}%</b></div></div>`;
+  const car = teleCarSVG({ wear: (1 - tw) * 1.2, tire: 'S', dmg: { a: d.body, s: d.susp, e: Math.max(d.engine, d.gear) } });
+  return `<div class="tcar">${car}</div><div class="tinfo"><div class="tpos">${head}</div>${DMG_KEYS.map(k => bar(k, d[k])).join('')}<div class="trow"><span>${t('tele.tires')}</span><div class="bar"><i style="width:${Math.round(tw * 100)}%;background:${treadCol(tw)}"></i></div><b>${Math.round(tw * 100)}%</b></div>${foot ? `<div class="tdmg">${foot}</div>` : ''}</div>`;
 }
 const surfText = fr => Object.entries(fr).filter(([k, v]) => v > .04).sort((a, b) => b[1] - a[1]).map(([k, v]) => t('surf.' + k) + (v < .97 ? ' ' + Math.round(v * 100) + '%' : '')).join(' · ');
 function wxBadge(wx, ev) { const k = wx.snow ? 'snow' : wx.wet ? 'wet' : 'dry'; return `<i class="wxd ${k === 'snow' ? 'damp' : k}"></i>${t('rwx.' + k)}`; }

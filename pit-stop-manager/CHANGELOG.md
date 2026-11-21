@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.12.0 – 2026-11-21
+- Rally and rallycross screens look like the circuit race screen: ✕ and sound button in the header, same map size, the same car panel (car sketch with damage, bars) and the same leaderboard rows (number, name, nationality, team).
+
 ## 3.11.3 – 2026-11-21
 - Lakes, sand traps, forests and grass patches have a closed, continuous outline (no step where the outline meets itself).
 

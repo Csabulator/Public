@@ -263,8 +263,9 @@ function rxUI() {
   const jb = $('#rlJoker');
   jb.textContent = me.joker ? t('rx.jDone') : me.onJ ? t('rx.jNow') : me.plan <= L.laps ? t('rx.jPlanned', { n: me.plan }) : 'JOKER';
   jb.classList.toggle('req', !me.joker && me.plan > L.laps && me.lap >= L.laps - 2); jb.classList.toggle('in', me.joker);
-  $('#rlTele').innerHTML = rallyTele({ dmg: me.dmg, wear: 0 });
-  $('#rlLb').innerHTML = ord.map((c, i) => `<div class="lbr ${c.isMe ? 'me' : ''}"><span class="p">${c.dnf ? '–' : i + 1}</span><span class="dot" style="background:${c.c.color}"></span><span class="nm">${esc(lastName(c.c.driver))}</span><span class="gap">${c.joker ? 'J✓' : c.onJ ? 'J…' : ''} ${c.dnf ? 'DNF' : c.done ? fmtT(c.time) : t('rx.lapN', { n: Math.min(L.laps, c.lap + 1) })}</span></div>`).join('');
+  const myPos = ord.indexOf(me) + 1;
+  $('#rlTele').innerHTML = rallyTele({ dmg: me.dmg, wear: 0 }, `#${S.num} · P${myPos} · ${t('mode.' + L.mode)}`);
+  $('#rlLb').innerHTML = ord.map((c, i) => lbRow(c.dnf ? '–' : i + 1, c.c, c.dnf ? '<span class="g dnf">DNF</span>' : `${c.joker ? 'J✓ ' : c.onJ ? 'J… ' : ''}${c.done ? fmtT(c.time) : t('rx.lapN', { n: Math.min(L.laps, c.lap + 1) })}`, c.onJ)).join('');
 }
 function drawRx() {
   const L = RL; if (!L || !RLC) return;

@@ -295,11 +295,11 @@ label.l{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;font
 @media(max-width:380px){.statgrid{grid-template-columns:repeat(2,1fr)}.achgrid{grid-template-columns:1fr}}
 
 /* ---- rally / rallycross ---- */
-.rally .tele.rt{display:block}
+.rally .tele .trow{grid-template-columns:112px 1fr 44px}
 .rtele .trow{display:grid;grid-template-columns:92px 1fr 40px;gap:8px;align-items:center;font-size:12.5px;margin:3px 0}
 .rtele .trow .bar{height:7px}
 .rally .prompt{margin:8px 10px 0;background:#2a1a0c;border:1px solid #6a3c12;border-radius:10px;padding:10px 12px}
-.rally .rxrow{display:block;padding:8px 10px 0}.rally .rxrow .boxb{width:100%}
+.rally .rxrow{display:block;margin:0 10px;padding:0}.rally .rxrow .boxb{width:100%;margin-top:8px}
 .lbr{display:grid;grid-template-columns:22px 10px 1fr auto;gap:7px;align-items:center;padding:4px 2px;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,.05)}
 .lbr .p{font-family:var(--fc);font-weight:800;color:var(--muted);text-align:right}.lbr .dot{width:9px;height:9px;border-radius:50%}
 .lbr.me{background:rgba(255,178,30,.1);border-radius:6px}.lbr .gap{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
@@ -375,8 +375,9 @@ details.card summary{cursor:pointer;list-style:none}details.card summary::-webki
 </div>
 <div class="race rally hidden" id="rally">
   <div class="rh">
-    <button class="btn sm" id="rlQuit" aria-label="skip">⏭</button>
+    <button class="btn sm" id="rlQuit" aria-label="quit">✕</button>
     <div class="grow" style="min-width:0"><b id="rlTitle">SS1</b><div class="small muted ell" id="rlSub"></div></div>
+    <button class="sndb" id="rlSnd" aria-label="sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w1" d="M16.5 8.5a5 5 0 0 1 0 7"/><path class="w2" d="M19 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M16 9l6 6M22 9l-6 6"/></svg></button>
     <div class="rwx" id="rlWx"></div>
     <div class="lap" id="rlCnt">1/9</div>
   </div>
@@ -389,7 +390,7 @@ details.card summary{cursor:pointer;list-style:none}details.card summary::-webki
       </div>
       <div class="pitrow rxrow"><button id="rlJoker" class="boxb hidden">JOKER</button></div>
       <div class="prompt hidden" id="rlPrompt"></div>
-      <div class="tele rt"><div id="rlTele"></div></div>
+      <div class="tele" id="rlTele"></div>
       <div class="lb" id="rlLb"></div>
     </div>
   </div>
@@ -418,7 +419,7 @@ function shade(hex, amt) {
 }
 
 /* ===================== balance constants ===================== */
-const VERSION = '3.11.3';
+const VERSION = '3.12.0';
 const TEAM_COLORS = ['#e8392f', '#ff8a1e', '#f5c518', '#2fbf71', '#14b8c4', '#2f7bf5', '#7a4cf0', '#e64598', '#f2f2f2', '#2b2f36'];
 const TIER_BASE = [24, 45, 67, 88];          // AI performance level per tier
 const TIER_MULT = [1.25, 2.1, 3.6, 6.0];     // money multiplier per tier
@@ -2546,7 +2547,7 @@ const SND = (() => {
     if (on) { unlock(); if ((R && !R.headless) || RL) start(lastKind); } else stop();
     paint();
   }
-  function paint() { const b = $('#rSnd'); if (b) b.classList.toggle('off', !on); }
+  function paint() { ['#rSnd', '#rlSnd'].forEach(id => { const b = $(id); if (b) b.classList.toggle('off', !on); }); }
   return { start: k => { lastKind = k || 'gt'; start(lastKind); }, stop, engine, radio, gun, toggle, unlock, paint, get on() { return on; } };
 })();
 
@@ -2977,6 +2978,11 @@ function selectCar(i) {
   setSeg('#rMode', 'm', c.mode); setSeg('#pTire', 'ty', R.plans[i].tire); setSeg('#pFuel', 'f', R.plans[i].fuel);
   updateBoxBtn(); if (R.lastUI) updateLB();
 }
+// one leaderboard row, the same in every discipline
+function lbRow(pos, c, gap, hot = false) {
+  const g = typeof gap === 'string' && gap.startsWith('<') ? gap : `<span class="g${hot ? ' pit' : ''}">${gap ?? ''}</span>`;
+  return `<div class="lbr ${c.isMe ? 'me' : ''}"><span class="p">${pos}</span><span class="sw" style="background:${c.color}"></span><span class="nm">#${c.num} ${esc(c.driver)} <span class="nat">${c.nat || ''}</span> <span class="muted small">· ${esc(c.name)}</span>${c.isRival ? ' <span class="tt r">RIV</span>' : ''}</span>${g}</div>`;
+}
 function updateBoxBtn() { const b = $('#rBox'); if (b && R) { const c = R.my[R.sel]; b.classList.toggle('req', c.pitReq); b.classList.toggle('in', !!c.pit); b.classList.toggle('busy', !c.pit && !!mateInLane(c)); } }
 function wxLabel() { return R.wet < .2 ? ['dry', t('wx.dry')] : R.wet < .7 ? ['damp', t('wx.damp')] : ['wet', t('wx.wet')]; }
 function toEntry(c) { return (c.entryN + 1) * R.tr.N - R.tr.pitE - c.prog; }
@@ -3047,7 +3053,7 @@ function bindRaceControls() {
     } else tick(t('rt.boxCancel', { num: me.num }), 'radio');
     updateBoxBtn();
   };
-  $('#rSnd').onclick = () => { SND.toggle(); };
+  $('#rSnd').onclick = () => { SND.toggle(); }; $('#rlSnd').onclick = () => { SND.toggle(); };
   $('#rQuit').onclick = () => {
     if (!R) return;
     modal(`<h3>${t('race.quitT')}</h3><p>${t('race.quitP')}</p><div class="row"><button class="btn grow" data-close>${t('ui.cancel')}</button><button class="btn pri grow" id="ok">${t('race.skip')}</button></div>`);
@@ -4549,7 +4555,7 @@ let RLC = null;
 function rlSizeCanvas() {
   const cv = $('#rlCv'), box = $('#rlStage'), dpr = Math.min(2, window.devicePixelRatio || 1);
   const wide = getComputedStyle($('#rally .rbody')).display === 'grid', tk = $('#rlTick'), tkH = tk ? tk.offsetHeight + 14 : 0;
-  const w = box.clientWidth || 360, h = wide ? Math.max(260, $('#rally .rbody').clientHeight - tkH) : Math.round(Math.min(w * .78, window.innerHeight * .5));
+  const w = box.clientWidth || 360, h = wide ? Math.max(180, $('#rally .rbody').clientHeight - tkH) : Math.round(Math.max(170, Math.min(w * .7, window.innerHeight * .38)));   // same size as the circuit map
   cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
   RLC = { cv, g: cv.getContext('2d'), w, h, dpr };
 }
@@ -4759,7 +4765,7 @@ function rlTick(text, kind) { const el = $('#rlTick'); if (!el) return; el.textC
 function stageUI() {
   const L = RL; if (!L) return;
   const W = RW, d = W.dmg;
-  $('#rlTele').innerHTML = rallyTele(W) + `<div class="small muted" style="margin-top:4px">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}${W.flat ? ' · <b class="neg">' + t('rl.flat') + '</b>' : ''}</div>`;
+  $('#rlTele').innerHTML = rallyTele(W, `#${S.num} · ${esc(lastName(L.me.driver))} · ${t('mode.' + L.mode)}`, `<span class="muted">${t('rl.tyreNow', { t: t('ty.' + W.tyre), n: W.spares })}</span>${W.flat ? ' <b class="neg">' + t('rl.flat') + '</b>' : ''}`);
   const pr = $('#rlPrompt');
   if (L.prompt === 'puncture') {
     pr.classList.remove('hidden');
@@ -4772,12 +4778,14 @@ function stageUI() {
   fin.push({ c: L.me, tm: L.done && !L.retired ? L.t : null });
   fin.sort((a, b) => (a.tm ?? 1e9) - (b.tm ?? 1e9));
   const best = fin.length && fin[0].tm != null ? fin[0].tm : null;
-  $('#rlLb').innerHTML = `<div class="small muted" style="margin:2px 0 6px">${t('rl.liveTimes')}</div>` + fin.slice(0, 10).map((e, k) => `<div class="lbr ${e.c.isMe ? 'me' : ''}"><span class="p">${e.tm != null ? k + 1 : '–'}</span><span class="dot" style="background:${e.c.color}"></span><span class="nm">${esc(lastName(e.c.driver))}</span><span class="gap">${e.tm == null ? (e.c.isMe ? (L.retired ? 'DNF' : fmtT(L.t)) : '') : k === 0 ? fmtT(e.tm) : fmtGap(e.tm - best)}</span></div>`).join('');
+  $('#rlLb').innerHTML = `<div class="pest small muted">${t('rl.liveTimes')}</div>` + fin.slice(0, 10).map((e, k) => lbRow(e.tm != null ? k + 1 : '–', e.c, e.tm == null ? (e.c.isMe ? (L.retired ? '<span class="g dnf">DNF</span>' : fmtT(L.t)) : '') : k === 0 ? fmtT(e.tm) : fmtGap(e.tm - best))).join('');
 }
-function rallyTele(W) {
+// same panel as on the circuit: car sketch on the left, bars on the right
+function rallyTele(W, head, foot = '') {
   const d = W.dmg, bar = (k, v) => `<div class="trow"><span>${t('rdmg.' + k)}</span><div class="bar"><i style="width:${Math.round(v * 100)}%;background:${condCol(v)}"></i></div><b>${Math.round(v * 100)}%</b></div>`;
   const tw = clamp(1 - W.wear, 0, 1);
-  return `<div class="rtele">${DMG_KEYS.map(k => bar(k, d[k])).join('')}<div class="trow"><span>${t('tele.tires')}</span><div class="bar"><i style="width:${Math.round(tw * 100)}%;background:${treadCol(tw)}"></i></div><b>${Math.round(tw * 100)}%</b></div></div>`;
+  const car = teleCarSVG({ wear: (1 - tw) * 1.2, tire: 'S', dmg: { a: d.body, s: d.susp, e: Math.max(d.engine, d.gear) } });
+  return `<div class="tcar">${car}</div><div class="tinfo"><div class="tpos">${head}</div>${DMG_KEYS.map(k => bar(k, d[k])).join('')}<div class="trow"><span>${t('tele.tires')}</span><div class="bar"><i style="width:${Math.round(tw * 100)}%;background:${treadCol(tw)}"></i></div><b>${Math.round(tw * 100)}%</b></div>${foot ? `<div class="tdmg">${foot}</div>` : ''}</div>`;
 }
 const surfText = fr => Object.entries(fr).filter(([k, v]) => v > .04).sort((a, b) => b[1] - a[1]).map(([k, v]) => t('surf.' + k) + (v < .97 ? ' ' + Math.round(v * 100) + '%' : '')).join(' · ');
 function wxBadge(wx, ev) { const k = wx.snow ? 'snow' : wx.wet ? 'wet' : 'dry'; return `<i class="wxd ${k === 'snow' ? 'damp' : k}"></i>${t('rwx.' + k)}`; }
@@ -5482,8 +5490,9 @@ function rxUI() {
   const jb = $('#rlJoker');
   jb.textContent = me.joker ? t('rx.jDone') : me.onJ ? t('rx.jNow') : me.plan <= L.laps ? t('rx.jPlanned', { n: me.plan }) : 'JOKER';
   jb.classList.toggle('req', !me.joker && me.plan > L.laps && me.lap >= L.laps - 2); jb.classList.toggle('in', me.joker);
-  $('#rlTele').innerHTML = rallyTele({ dmg: me.dmg, wear: 0 });
-  $('#rlLb').innerHTML = ord.map((c, i) => `<div class="lbr ${c.isMe ? 'me' : ''}"><span class="p">${c.dnf ? '–' : i + 1}</span><span class="dot" style="background:${c.c.color}"></span><span class="nm">${esc(lastName(c.c.driver))}</span><span class="gap">${c.joker ? 'J✓' : c.onJ ? 'J…' : ''} ${c.dnf ? 'DNF' : c.done ? fmtT(c.time) : t('rx.lapN', { n: Math.min(L.laps, c.lap + 1) })}</span></div>`).join('');
+  const myPos = ord.indexOf(me) + 1;
+  $('#rlTele').innerHTML = rallyTele({ dmg: me.dmg, wear: 0 }, `#${S.num} · P${myPos} · ${t('mode.' + L.mode)}`);
+  $('#rlLb').innerHTML = ord.map((c, i) => lbRow(c.dnf ? '–' : i + 1, c.c, c.dnf ? '<span class="g dnf">DNF</span>' : `${c.joker ? 'J✓ ' : c.onJ ? 'J… ' : ''}${c.done ? fmtT(c.time) : t('rx.lapN', { n: Math.min(L.laps, c.lap + 1) })}`, c.onJ)).join('');
 }
 function drawRx() {
   const L = RL; if (!L || !RLC) return;

@@ -285,11 +285,11 @@ label.l{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;font
 @media(max-width:380px){.statgrid{grid-template-columns:repeat(2,1fr)}.achgrid{grid-template-columns:1fr}}
 
 /* ---- rally / rallycross ---- */
-.rally .tele.rt{display:block}
+.rally .tele .trow{grid-template-columns:112px 1fr 44px}
 .rtele .trow{display:grid;grid-template-columns:92px 1fr 40px;gap:8px;align-items:center;font-size:12.5px;margin:3px 0}
 .rtele .trow .bar{height:7px}
 .rally .prompt{margin:8px 10px 0;background:#2a1a0c;border:1px solid #6a3c12;border-radius:10px;padding:10px 12px}
-.rally .rxrow{display:block;padding:8px 10px 0}.rally .rxrow .boxb{width:100%}
+.rally .rxrow{display:block;margin:0 10px;padding:0}.rally .rxrow .boxb{width:100%;margin-top:8px}
 .lbr{display:grid;grid-template-columns:22px 10px 1fr auto;gap:7px;align-items:center;padding:4px 2px;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,.05)}
 .lbr .p{font-family:var(--fc);font-weight:800;color:var(--muted);text-align:right}.lbr .dot{width:9px;height:9px;border-radius:50%}
 .lbr.me{background:rgba(255,178,30,.1);border-radius:6px}.lbr .gap{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
